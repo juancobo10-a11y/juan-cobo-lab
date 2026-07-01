@@ -31,16 +31,16 @@ export function Footer() {
           <div className="flex flex-col space-y-3 md:items-end">
             <h4 className="font-semibold text-white/90 uppercase tracking-wider text-sm mb-2">Contacto</h4>
             <div className="flex gap-4">
-              <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/80 hover:bg-accent hover:text-white transition-all" aria-label="LinkedIn">
+              <a href="https://www.linkedin.com/in/juan-cobo-ph-d-9801672b" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/80 hover:bg-accent hover:text-white transition-all" aria-label="LinkedIn">
                 <FaLinkedin size={18} />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/80 hover:bg-accent hover:text-white transition-all" aria-label="Google Scholar">
+              <a href="https://scholar.google.com/citations?user=USgdRhcAAAAJ&hl=es" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/80 hover:bg-accent hover:text-white transition-all" aria-label="Google Scholar">
                 <FaGraduationCap size={18} />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/80 hover:bg-accent hover:text-white transition-all font-bold font-serif" aria-label="ORCID">
+              <a href="https://orcid.org/0000-0003-0138-7051" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/80 hover:bg-accent hover:text-white transition-all font-bold font-serif text-sm" aria-label="ORCID">
                 iD
               </a>
-              <a href="mailto:juan@juancobolab.co" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/80 hover:bg-accent hover:text-white transition-all" aria-label="Email">
+              <a href="mailto:juan.cobo@contraloria.gov.co" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/80 hover:bg-accent hover:text-white transition-all" aria-label="Email">
                 <FaEnvelope size={18} />
               </a>
             </div>

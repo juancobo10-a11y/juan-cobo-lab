@@ -1,44 +1,64 @@
-import React, { useState } from 'react';
-import { Link } from 'wouter';
+import React, { useState, useEffect } from 'react';
 import { FlaskConical, Menu, X } from 'lucide-react';
+
+const links = [
+  { href: '#about', label: 'Sobre mí' },
+  { href: '#thinking', label: 'Ideas' },
+  { href: '#articles', label: 'Artículos' },
+  { href: '#publications', label: 'Publicaciones' },
+  { href: '#tools', label: 'Herramientas' },
+  { href: '#blog', label: 'Blog' },
+];
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  const links = [
-    { href: '#about', label: 'Sobre mí' },
-    { href: '#articles', label: 'Artículos' },
-    { href: '#publications', label: 'Publicaciones' },
-    { href: '#tools', label: 'Herramientas' },
-    { href: '#blog', label: 'Blog' },
-  ];
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-border/50 transition-all duration-300">
+    <nav
+      className={`sticky top-0 z-50 w-full transition-all duration-500 ${
+        scrolled
+          ? 'bg-[#0D1B2A]/95 backdrop-blur-md border-b border-white/8 shadow-xl shadow-black/20'
+          : 'bg-transparent border-b border-transparent'
+      }`}
+    >
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <a href="#" className="flex items-center gap-2 group text-foreground hover:text-accent transition-colors">
+        {/* Brand */}
+        <a
+          href="#"
+          className="flex items-center gap-2 group"
+          aria-label="Juan Cobo Lab — inicio"
+        >
           <FlaskConical className="w-5 h-5 text-accent" />
-          <span className="font-serif text-xl font-bold italic tracking-wide">Juan Cobo Lab</span>
+          <span className="font-serif text-xl font-bold italic tracking-wide text-white">
+            Juan Cobo Lab
+          </span>
         </a>
 
-        {/* Desktop Nav */}
+        {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
           {links.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-foreground/80 hover:text-accent transition-colors"
+              className="text-sm font-medium text-white/60 hover:text-white transition-colors duration-200"
             >
               {link.label}
             </a>
           ))}
         </div>
 
-        {/* Mobile Menu Toggle */}
+        {/* Mobile toggle */}
         <button
-          className="md:hidden p-2 text-foreground"
+          className="md:hidden p-2 text-white/70 hover:text-white transition-colors"
           onClick={() => setIsOpen(!isOpen)}
-          aria-label="Toggle Menu"
+          aria-label="Abrir menú"
           aria-expanded={isOpen}
           aria-controls="mobile-nav"
         >
@@ -46,14 +66,17 @@ export function Navbar() {
         </button>
       </div>
 
-      {/* Mobile Nav */}
+      {/* Mobile nav */}
       {isOpen && (
-        <div id="mobile-nav" className="md:hidden absolute top-16 left-0 w-full bg-background border-b border-border p-4 flex flex-col gap-4 shadow-lg">
+        <div
+          id="mobile-nav"
+          className="md:hidden absolute top-16 left-0 w-full bg-[#0D1B2A] border-b border-white/10 p-4 flex flex-col gap-1 shadow-2xl"
+        >
           {links.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="text-lg font-medium text-foreground/80 hover:text-accent transition-colors p-2 rounded-md hover:bg-muted"
+              className="text-base font-medium text-white/65 hover:text-white hover:bg-white/5 transition-all p-3 rounded-xl"
               onClick={() => setIsOpen(false)}
             >
               {link.label}

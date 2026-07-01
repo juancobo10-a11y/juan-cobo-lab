@@ -1,54 +1,81 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { FaLinkedin, FaGraduationCap, FaEnvelope } from 'react-icons/fa';
-import { FlaskConical } from 'lucide-react';
+
+const socials = [
+  {
+    label: 'LinkedIn',
+    href: 'https://www.linkedin.com/in/juan-cobo-ph-d-9801672b',
+    icon: <FaLinkedin size={15} />,
+  },
+  {
+    label: 'Google Scholar',
+    href: 'https://scholar.google.com/citations?user=USgdRhcAAAAJ&hl=es',
+    icon: <FaGraduationCap size={15} />,
+  },
+  {
+    label: 'ORCID',
+    href: 'https://orcid.org/0000-0003-0138-7051',
+    icon: <span className="text-[11px] font-bold tracking-wide">iD</span>,
+  },
+  {
+    label: 'Correo',
+    href: 'mailto:juan.cobo@contraloria.gov.co',
+    icon: <FaEnvelope size={15} />,
+  },
+];
 
 export function Footer() {
   return (
-    <footer className="bg-[#121f33] text-white py-16 border-t-4 border-accent">
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
-          {/* Brand */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <FlaskConical className="w-6 h-6 text-accent" />
-              <span className="font-serif text-2xl font-bold italic tracking-wide">Juan Cobo Lab</span>
-            </div>
-            <p className="text-white/60 font-light max-w-xs">
-              Evidencia, método y café. Un espacio para pensar y diseñar mejores políticas públicas.
-            </p>
-          </div>
+    <footer className="bg-[#0D1B2A] text-white">
+      {/* Main CTA */}
+      <div className="max-w-3xl mx-auto px-6 py-36 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        >
+          <h2 className="text-5xl md:text-6xl lg:text-7xl font-serif text-white leading-[1.05] mb-6">
+            ¿Llegaste hasta aquí?
+          </h2>
+          <p className="text-xl text-white/55 font-light max-w-lg mx-auto mb-3 leading-relaxed">
+            Entonces probablemente también disfrutas hacer buenas preguntas.
+          </p>
+          <p className="text-lg text-white/30 italic mb-14 leading-relaxed">
+            Tomemos un café.
+            <br />
+            (O al menos una buena conversación sobre datos.)
+          </p>
 
-          {/* Quick Links */}
-          <div className="flex flex-col space-y-3">
-            <h4 className="font-semibold text-white/90 uppercase tracking-wider text-sm mb-2">Navegación</h4>
-            <a href="#about" className="text-white/60 hover:text-accent transition-colors">Sobre mí</a>
-            <a href="#articles" className="text-white/60 hover:text-accent transition-colors">Artículos</a>
-            <a href="#publications" className="text-white/60 hover:text-accent transition-colors">Publicaciones</a>
-            <a href="#tools" className="text-white/60 hover:text-accent transition-colors">Herramientas</a>
+          {/* Social buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {socials.map((s) => (
+              <a
+                key={s.label}
+                href={s.href}
+                target={s.href.startsWith('mailto') ? undefined : '_blank'}
+                rel={s.href.startsWith('mailto') ? undefined : 'noopener noreferrer'}
+                className="flex items-center gap-2.5 bg-white/5 hover:bg-accent border border-white/10 hover:border-accent text-white/65 hover:text-white px-6 py-3 rounded-full text-sm font-medium transition-all duration-300 hover:-translate-y-0.5"
+              >
+                {s.icon}
+                {s.label}
+              </a>
+            ))}
           </div>
+        </motion.div>
+      </div>
 
-          {/* Social */}
-          <div className="flex flex-col space-y-3 md:items-end">
-            <h4 className="font-semibold text-white/90 uppercase tracking-wider text-sm mb-2">Contacto</h4>
-            <div className="flex gap-4">
-              <a href="https://www.linkedin.com/in/juan-cobo-ph-d-9801672b" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/80 hover:bg-accent hover:text-white transition-all" aria-label="LinkedIn">
-                <FaLinkedin size={18} />
-              </a>
-              <a href="https://scholar.google.com/citations?user=USgdRhcAAAAJ&hl=es" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/80 hover:bg-accent hover:text-white transition-all" aria-label="Google Scholar">
-                <FaGraduationCap size={18} />
-              </a>
-              <a href="https://orcid.org/0000-0003-0138-7051" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/80 hover:bg-accent hover:text-white transition-all font-bold font-serif text-sm" aria-label="ORCID">
-                iD
-              </a>
-              <a href="mailto:juan.cobo@contraloria.gov.co" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/80 hover:bg-accent hover:text-white transition-all" aria-label="Email">
-                <FaEnvelope size={18} />
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-white/40">
-          <p>© {new Date().getFullYear()} Juan Cobo Lab. Hecho con datos y algo de café.</p>
+      {/* Bottom bar */}
+      <div className="border-t border-white/8 px-6 py-6">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-white/25">
+          <p className="font-serif italic text-white/35">Juan Cobo Lab</p>
+          <p>© {new Date().getFullYear()} · Hecho con datos y café · Bogotá, Colombia</p>
+          <nav className="flex gap-6" aria-label="Footer">
+            <a href="#about" className="hover:text-white/50 transition-colors">Sobre mí</a>
+            <a href="#publications" className="hover:text-white/50 transition-colors">Publicaciones</a>
+            <a href="#tools" className="hover:text-white/50 transition-colors">Herramientas</a>
+          </nav>
         </div>
       </div>
     </footer>

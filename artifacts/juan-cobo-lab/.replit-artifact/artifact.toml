@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Juan Cobo Lab"
+version = "1.0.0"
+id = "artifacts/juan-cobo-lab"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18800
+
+[services.development]
+run = "pnpm --filter @workspace/juan-cobo-lab run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/juan-cobo-lab", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/juan-cobo-lab/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18800"
+BASE_PATH = "/"

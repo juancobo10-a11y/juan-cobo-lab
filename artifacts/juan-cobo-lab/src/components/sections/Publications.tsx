@@ -1,65 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const categories = [
-  "Todos",
-  "Artículos científicos",
-  "Columnas de opinión",
-  "Estudios técnicos",
-  "Ponencias",
-  "Capítulos de libro"
-];
-
-const publicationsData = [
-  {
-    title: "Evaluación de impacto de programas sociales en Colombia: una revisión de la última década",
-    category: "Artículos científicos",
-    venue: "Revista de Economía del Rosario",
-    year: "2023"
-  },
-  {
-    title: "¿Para qué sirven los indicadores si nadie los lee?",
-    category: "Columnas de opinión",
-    venue: "El Espectador",
-    year: "2022"
-  },
-  {
-    title: "Análisis territorial del gasto público en salud post-pandemia",
-    category: "Estudios técnicos",
-    venue: "DNP",
-    year: "2021"
-  },
-  {
-    title: "Inteligencia artificial en la política pública: oportunidades y riesgos reales",
-    category: "Ponencias",
-    venue: "CLAD",
-    year: "2023"
-  },
-  {
-    title: "Innovación pública en América Latina: de la teoría al escritorio",
-    category: "Capítulos de libro",
-    venue: "Universidad Externado de Colombia",
-    year: "2020"
-  },
-  {
-    title: "Desigualdad urbana y acceso a bienes públicos: el caso de Bogotá",
-    category: "Artículos científicos",
-    venue: "Desarrollo y Sociedad",
-    year: "2019"
-  },
-  {
-    title: "Manual práctico para estructurar proyectos de inversión local",
-    category: "Estudios técnicos",
-    venue: "ESAP",
-    year: "2022"
-  },
-  {
-    title: "El fin del Excel: por qué el sector público necesita mejores bases de datos",
-    category: "Columnas de opinión",
-    venue: "La Silla Vacía",
-    year: "2023"
-  }
-];
+import { CATEGORIES, publications as publicationsData, type PublicationCategory } from '@/data/publications';
 
 export function Publications() {
   const [activeFilter, setActiveFilter] = useState("Todos");
@@ -75,7 +16,7 @@ export function Publications() {
         
         {/* Filters */}
         <div className="flex flex-wrap gap-2 justify-center mb-12">
-          {categories.map((cat) => (
+          {CATEGORIES.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveFilter(cat)}

@@ -1,40 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Clock } from 'lucide-react';
+import { articles } from '@/data/articles';
 
 export function Articles() {
-  const articles = [
-    {
-      title: "Cómo convertir una idea en un artículo publicable",
-      tag: "Metodología",
-      teaser: "El paso a paso que sigo para transformar un hallazgo en Excel en un documento que alguien más quiera leer.",
-      readTime: "5 min",
-    },
-    {
-      title: "Lo que nadie te dice sobre analizar políticas públicas",
-      tag: "Políticas públicas",
-      teaser: "Más allá de los modelos causales perfectos: cómo lidiar con datos incompletos y tiempos políticos urgentes.",
-      readTime: "7 min",
-    },
-    {
-      title: "IA para investigar sin dejar que piense por ti",
-      tag: "Inteligencia Artificial",
-      teaser: "Flujos de trabajo útiles con LLMs para revisión de literatura, sin perder el rigor crítico.",
-      readTime: "6 min",
-    },
-    {
-      title: "De Excel a la decisión pública",
-      tag: "Análisis de datos",
-      teaser: "Por qué el mejor análisis no sirve si no cabe en un memo de una página para el ministro.",
-      readTime: "4 min",
-    },
-    {
-      title: "Por qué una buena gráfica también puede mentir",
-      tag: "Visualización",
-      teaser: "Errores comunes (y tentaciones) al presentar resultados de evaluaciones de impacto.",
-      readTime: "8 min",
-    }
-  ];
 
   const containerVariants = {
     hidden: { opacity: 0 },

@@ -1,24 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-
-const posts = [
-  {
-    date: "14 Oct 2023",
-    title: "Lo que aprendí fallando en mi primera evaluación de impacto",
-    teaser: "Una confesión sobre tamaños de muestra insuficientes, variables de confusión que no vi venir y por qué la humildad metodológica es vital."
-  },
-  {
-    date: "28 Sep 2023",
-    title: "Cuando la IA alucinó mi bibliografía: crónica de un viernes",
-    teaser: "Le pedí a un modelo de lenguaje que me encontrara papers sobre gasto público. Me inventó tres autores y una revista que sonaba espectacularmente real."
-  },
-  {
-    date: "05 Sep 2023",
-    title: "Por qué los dashboards bonitos no sirven si nadie los mira",
-    teaser: "El fetiche de la visualización en el sector público y cómo construir herramientas de datos que los tomadores de decisión realmente usen."
-  }
-];
+import { blogPosts as posts } from '@/data/blog';
 
 export function Blog() {
   return (

@@ -73,6 +73,27 @@ export const publications: Publication[] = [
   // ── Columnas de opinión ───────────────────────────────────────────────
 
   {
+    title: "Presidente: la conectividad ya no es el reto",
+    category: "Columnas de opinión",
+    venue: "El Meridiano",
+    year: "2026",
+    url: "",
+  },
+  {
+    title: "Tecnología para la paz: ¿conectamos territorios o transformamos oportunidades?",
+    category: "Columnas de opinión",
+    venue: "El Meridiano",
+    year: "2026",
+    url: "",
+  },
+  {
+    title: "Inteligencia Artificial en la educación: oportunidad real para cerrar brechas",
+    category: "Columnas de opinión",
+    venue: "El Meridiano",
+    year: "2026",
+    url: "https://elmeridiano.co/cordoba/opinion/inteligencia-artificial-en-la-educacion-oportunidad-real-para--cerrar-brechas",
+  },
+  {
     title: "Innovación social, beneficio más allá del crecimiento económico",
     category: "Columnas de opinión",
     venue: "Pesquisa — Pontificia Universidad Javeriana",

@@ -500,11 +500,12 @@ export default function PreguntaTemplate({ article }: PreguntaTemplateProps) {
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link href="/preguntas">
-                  <button className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl border border-white/20 text-white/80 text-[15px] font-medium hover:border-white/40 hover:text-white hover:bg-white/5 transition-all duration-200 group">
-                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-                    Volver a las preguntas
-                  </button>
+                <Link
+                  href="/preguntas"
+                  className="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl border border-white/20 text-white/80 text-[15px] font-medium hover:border-white/40 hover:text-white hover:bg-white/5 transition-all duration-200"
+                >
+                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                  Volver a las preguntas
                 </Link>
 
                 <button

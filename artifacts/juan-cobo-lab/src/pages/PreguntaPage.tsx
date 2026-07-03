@@ -25,11 +25,12 @@ export default function PreguntaPage() {
             <p className="text-white/40 mb-10">
               Esta pregunta no existe en el laboratorio todavía.
             </p>
-            <Link href="/preguntas">
-              <button className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/20 text-white/70 hover:border-white/40 hover:text-white transition-all text-sm">
-                <ArrowLeft className="w-4 h-4" />
-                Ver todas las preguntas
-              </button>
+            <Link
+              href="/preguntas"
+              className="group inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/20 text-white/70 hover:border-white/40 hover:text-white transition-all text-sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Ver todas las preguntas
             </Link>
           </div>
         </div>

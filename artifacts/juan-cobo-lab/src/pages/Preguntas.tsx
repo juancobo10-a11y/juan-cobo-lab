@@ -235,12 +235,10 @@ export default function Preguntas() {
                       </motion.div>
                     );
 
-                    return hasArticle ? (
+                    return (
                       <Link key={q.id} href={`/preguntas/${q.id}`}>
                         {card}
                       </Link>
-                    ) : (
-                      <div key={q.id}>{card}</div>
                     );
                   })}
                 </motion.div>

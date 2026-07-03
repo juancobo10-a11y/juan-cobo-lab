@@ -6,11 +6,13 @@ import Constitucion from './pages/Constitucion';
 import Preguntas from './pages/Preguntas';
 import PreguntaPage from './pages/PreguntaPage';
 import ConversacionesPage from './pages/Conversaciones';
+import JuanCobo from './pages/JuanCobo';
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/juan-cobo" component={JuanCobo} />
       <Route path="/constitucion" component={Constitucion} />
       <Route path="/preguntas" component={Preguntas} />
       <Route path="/preguntas/:id" component={PreguntaPage} />

@@ -58,6 +58,12 @@ export function Navbar() {
             </a>
           ))}
           <Link
+            href="/juan-cobo"
+            className="text-sm font-medium text-white/60 hover:text-white transition-colors duration-200"
+          >
+            Juan Cobo
+          </Link>
+          <Link
             href="/preguntas"
             className="text-sm font-medium text-white/60 hover:text-white transition-colors duration-200"
           >
@@ -105,6 +111,13 @@ export function Navbar() {
               {link.label}
             </a>
           ))}
+          <Link
+            href="/juan-cobo"
+            className="text-base font-medium text-white/65 hover:text-white hover:bg-white/5 transition-all p-3 rounded-xl"
+            onClick={() => setIsOpen(false)}
+          >
+            Juan Cobo
+          </Link>
           <Link
             href="/preguntas"
             className="text-base font-medium text-white/65 hover:text-white hover:bg-white/5 transition-all p-3 rounded-xl"

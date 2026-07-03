@@ -2,6 +2,16 @@
 
 ---
 
+## Sprint 2.2 — Metodologías (2026-07-03)
+
+### Nuevo
+- Página `/metodologias` con hero, introducción, 8 tarjetas y CTA final.
+- 8 metodologías: Evaluación de políticas públicas, Teoría del cambio, Innovación social transformativa, Diagnóstico de problemas públicos, Apropiación social del conocimiento, Indicadores y medición de impacto, Conectividad significativa, Educación CTeI y transformación territorial.
+- Cada tarjeta: estado "En desarrollo" + botón desactivado "Próximamente".
+- Enlace "Metodologías" en navbar (desktop + móvil) y footer.
+
+---
+
 ## v0.4.2 — Fotografías de identidad (2026-07-03)
 
 ### Nuevo

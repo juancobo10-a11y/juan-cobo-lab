@@ -2,17 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { FlaskConical, Menu, X } from 'lucide-react';
 
-const links = [
-  { href: '#about', label: 'Sobre mí', anchor: true },
-  { href: '#thinking', label: 'Ideas', anchor: true },
-  { href: '#publications', label: 'Publicaciones', anchor: true },
-  { href: '#tools', label: 'Herramientas', anchor: true },
-  { href: '/constitucion', label: 'La Constitución', anchor: false },
+const sectionLinks = [
+  { hash: 'about', label: 'Sobre mí' },
+  { hash: 'thinking', label: 'Ideas' },
+  { hash: 'publications', label: 'Publicaciones' },
+  { hash: 'tools', label: 'Herramientas' },
 ];
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [location] = useLocation();
+
+  const isHome = location === '/';
+
+  // When on home, use #hash (smooth scroll). When on another page, use /#hash (navigate + scroll).
+  const anchorHref = (hash: string) => (isHome ? `#${hash}` : `/#${hash}`);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -29,9 +34,9 @@ export function Navbar() {
       }`}
     >
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Brand */}
-        <a
-          href="#"
+        {/* Brand — siempre navega a / */}
+        <Link
+          href="/"
           className="flex items-center gap-2 group"
           aria-label="Juan Cobo Lab — inicio"
         >
@@ -39,29 +44,25 @@ export function Navbar() {
           <span className="font-serif text-xl font-bold italic tracking-wide text-white">
             Juan Cobo Lab
           </span>
-        </a>
+        </Link>
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
-          {links.map((link) =>
-            link.anchor ? (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-sm font-medium text-white/60 hover:text-white transition-colors duration-200"
-              >
-                {link.label}
-              </a>
-            ) : (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-sm font-medium text-white/60 hover:text-accent transition-colors duration-200"
-              >
-                {link.label}
-              </Link>
-            )
-          )}
+          {sectionLinks.map((link) => (
+            <a
+              key={link.hash}
+              href={anchorHref(link.hash)}
+              className="text-sm font-medium text-white/60 hover:text-white transition-colors duration-200"
+            >
+              {link.label}
+            </a>
+          ))}
+          <Link
+            href="/constitucion"
+            className="text-sm font-medium text-white/60 hover:text-accent transition-colors duration-200"
+          >
+            La Constitución
+          </Link>
         </div>
 
         {/* Mobile toggle */}
@@ -82,27 +83,23 @@ export function Navbar() {
           id="mobile-nav"
           className="md:hidden absolute top-16 left-0 w-full bg-[#0D1B2A] border-b border-white/10 p-4 flex flex-col gap-1 shadow-2xl"
         >
-          {links.map((link) =>
-            link.anchor ? (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-base font-medium text-white/65 hover:text-white hover:bg-white/5 transition-all p-3 rounded-xl"
-                onClick={() => setIsOpen(false)}
-              >
-                {link.label}
-              </a>
-            ) : (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-base font-medium text-white/65 hover:text-accent hover:bg-white/5 transition-all p-3 rounded-xl"
-                onClick={() => setIsOpen(false)}
-              >
-                {link.label}
-              </Link>
-            )
-          )}
+          {sectionLinks.map((link) => (
+            <a
+              key={link.hash}
+              href={anchorHref(link.hash)}
+              className="text-base font-medium text-white/65 hover:text-white hover:bg-white/5 transition-all p-3 rounded-xl"
+              onClick={() => setIsOpen(false)}
+            >
+              {link.label}
+            </a>
+          ))}
+          <Link
+            href="/constitucion"
+            className="text-base font-medium text-white/65 hover:text-accent hover:bg-white/5 transition-all p-3 rounded-xl"
+            onClick={() => setIsOpen(false)}
+          >
+            La Constitución
+          </Link>
         </div>
       )}
     </nav>

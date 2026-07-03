@@ -1,0 +1,113 @@
+Construye ahora un MVP funcional completo de la página /preguntas.
+
+Objetivo:
+Crear una página real llamada “Las preguntas que me dan pereque”, no una maqueta.
+
+Ruta:
+/preguntas
+
+Debe aparecer en el navbar y en el footer.
+
+Contenido inicial:
+Usa estas 16 preguntas como datos reales:
+
+1. Me pregunto si las estrellas se iluminan con el fin de que algún día cada uno pueda encontrar la suya.
+Categoría: Sentido
+Pereque: Buscar sentido a la vida y a lo que hacemos.
+Importancia: Ayuda a otros a pensar cuál es su estrella y por qué vale la pena luchar por ella.
+
+2. ¿Qué significa “hágase tu voluntad así en la tierra como en el cielo”?
+Categoría: Sentido
+Pereque: Pensar cómo traer el Reino de Dios al presente desde nuestro lugar de acción.
+Importancia: Invita a actuar mejor desde lo cotidiano.
+
+3. ¿Por qué fallamos en el diagnóstico de los problemas de política pública?
+Categoría: Política pública
+Pereque: Es la base de mi trabajo: entender bien el problema antes de proponer soluciones.
+Importancia: Toda política pública debería partir de un buen diagnóstico.
+
+4. ¿Cuál es el sentido de la vida?
+Categoría: Sentido
+Pereque: Encontrar sentido da mucho pereque.
+Importancia: Es una pregunta universal.
+
+5. ¿Cómo arrancar un proyecto?
+Categoría: Método
+Pereque: Todo proyecto exige ordenar tiempo, costo y alcance.
+Importancia: Cualquiera que quiera construir algo necesita empezar bien.
+
+6. ¿Cómo hacer una pregunta de investigación?
+Categoría: Investigación
+Pereque: Una mala pregunta daña una buena investigación.
+Importancia: Estudiantes, investigadores y servidores públicos necesitan formular mejores preguntas.
+
+7. Una hipótesis de investigación, ¿cómo se debe escribir?
+Categoría: Investigación
+Pereque: La hipótesis ordena lo que queremos contrastar.
+Importancia: Ayuda a investigar con mayor rigor.
+
+8. ¿Cómo superar cualquier tusa?
+Categoría: Vida
+Pereque: Las tusas no son solo amorosas; también son laborales, familiares y personales.
+Importancia: Todos necesitamos aprender a gestionar pérdidas y conflictos.
+
+9. ¿Cómo saber si soy un buen líder?
+Categoría: Liderazgo
+Pereque: Liderar exige mirarse con honestidad.
+Importancia: Todo equipo necesita mejores liderazgos.
+
+10. ¿Somos ambiciosos en la planeación de metas o ponemos retos bajitos?
+Categoría: Política pública
+Pereque: Muchas metas se diseñan para cumplirse, no para transformar.
+Importancia: La planeación pública debería aspirar a cambios reales.
+
+11. Las metas TIC del Plan Nacional de Desarrollo: ¿cumplimiento o ilusión estadística?
+Categoría: TIC
+Pereque: Las cifras pueden mostrar cumplimiento sin demostrar impacto.
+Importancia: Ayuda a distinguir resultado formal de transformación real.
+
+12. ¿Por qué conectar un hogar no significa necesariamente incluirlo?
+Categoría: TIC
+Pereque: La conectividad no garantiza uso significativo.
+Importancia: Permite pensar la inclusión digital más allá de la cobertura.
+
+13. Formar una persona no garantiza que adquiera competencias útiles.
+Categoría: Educación
+Pereque: La asistencia a una formación no prueba aprendizaje.
+Importancia: Las políticas educativas deben medir competencias, no solo beneficiarios.
+
+14. Beneficiar una empresa no asegura mayor productividad.
+Categoría: Productividad
+Pereque: Un apoyo estatal no siempre se convierte en transformación productiva.
+Importancia: Importa medir resultados, no solo entregas.
+
+15. ¿La política de conectividad del PND contribuyó realmente a la implementación del Acuerdo de Paz?
+Categoría: TIC y Paz
+Pereque: La conectividad debe evaluarse frente a sus efectos territoriales.
+Importancia: El país necesita saber si la política pública está cumpliendo el Acuerdo.
+
+16. ¿Conectividad para la paz o paz con conectividad?
+Categoría: TIC y Paz
+Pereque: No es lo mismo llevar tecnología a territorios que construir condiciones de paz.
+Importancia: Ayuda a replantear el sentido de la conectividad rural.
+
+Diseño:
+- Página premium, limpia, responsive.
+- Título grande: “Las preguntas que me dan pereque”.
+- Subtítulo: “No porque tenga todas las respuestas, sino porque creo que vale la pena seguir haciendo mejores preguntas.”
+- Introducción corta explicando qué significa dar pereque con propósito.
+- Tarjetas para cada pregunta.
+- Cada tarjeta debe mostrar categoría, pregunta, pereque e importancia.
+- Agregar filtros por categoría.
+- Agregar buscador por palabra clave.
+- Agregar contador: “16 preguntas abiertas”.
+- Agregar un CTA final: “¿Tienes una pregunta que te da pereque? Escríbeme.”
+
+Muy importante:
+- No agregues backend.
+- No agregues autenticación.
+- No agregues base de datos.
+- No agregues IA todavía.
+- Todo debe funcionar con datos locales en src/data/questions.ts.
+- Después de construirlo, haz commit, push a GitHub y republish.
+- Genera changelog de v0.2.1.

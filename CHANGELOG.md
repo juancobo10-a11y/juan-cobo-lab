@@ -5,6 +5,22 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [0.2.1] — 2026-07-03
+
+### Añadido
+- **Nueva página: `/preguntas`** — "Las preguntas que me dan pereque" con las 16 preguntas reales de Juan Cobo.
+- **Datos reales:** `src/data/questions.ts` con 16 preguntas categorizadas (Sentido, Política pública, Método, Investigación, Vida, Liderazgo, TIC, Educación, Productividad, TIC y Paz).
+- **Buscador por palabra clave** en tiempo real sobre pregunta, pereque, importancia y categoría.
+- **Filtros por categoría** con pills interactivos; se pueden combinar con la búsqueda.
+- **Contador dinámico** "X preguntas abiertas" que refleja el resultado filtrado.
+- **Estado vacío** con opción de limpiar filtros cuando ninguna pregunta coincide.
+- **CTA final:** "¿Tienes una pregunta que te da pereque? Escríbeme." con link directo al correo.
+- **Link en navbar:** nuevo ítem "Preguntas" entre los links de sección.
+- **Link en footer:** nuevo ítem "Preguntas" en la barra de navegación inferior.
+- **Link en sección Pereque del home:** "Ver las 16 preguntas →" en el header de la sección.
+
+---
+
 ## [0.2.0] — 2026-07-03
 
 ### Identidad y contenido
@@ -18,11 +34,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ### Experiencia
 - La sección "Últimos artículos" se oculta automáticamente cuando no hay artículos con URL real publicada.
 - La sección "Blog" se oculta automáticamente cuando no hay entradas con URL real publicada.
+- Navbar route-aware: desde páginas internas, los links de sección apuntan a `/#hash`; el logo siempre navega a `/`.
 - Agregado link a "La Constitución" en la barra de navegación y en el footer.
-
-### Navegación
-- Navbar: nuevo ítem "La Constitución" con ruta `/constitucion`.
-- Footer: nuevo enlace "La Constitución" en el bloque de navegación inferior.
 
 ---
 

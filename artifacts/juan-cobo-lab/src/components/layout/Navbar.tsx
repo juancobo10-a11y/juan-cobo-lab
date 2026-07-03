@@ -58,6 +58,12 @@ export function Navbar() {
             </a>
           ))}
           <Link
+            href="/preguntas"
+            className="text-sm font-medium text-white/60 hover:text-white transition-colors duration-200"
+          >
+            Preguntas
+          </Link>
+          <Link
             href="/constitucion"
             className="text-sm font-medium text-white/60 hover:text-accent transition-colors duration-200"
           >
@@ -93,6 +99,13 @@ export function Navbar() {
               {link.label}
             </a>
           ))}
+          <Link
+            href="/preguntas"
+            className="text-base font-medium text-white/65 hover:text-white hover:bg-white/5 transition-all p-3 rounded-xl"
+            onClick={() => setIsOpen(false)}
+          >
+            Preguntas
+          </Link>
           <Link
             href="/constitucion"
             className="text-base font-medium text-white/65 hover:text-accent hover:bg-white/5 transition-all p-3 rounded-xl"

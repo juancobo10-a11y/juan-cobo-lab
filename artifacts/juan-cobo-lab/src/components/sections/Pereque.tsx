@@ -1,5 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'wouter';
+import { ArrowRight } from 'lucide-react';
 
 const preguntas = [
   {
@@ -42,19 +44,28 @@ export function Pereque() {
     <section id="thinking" className="py-36 bg-white">
       <div className="max-w-6xl mx-auto px-6">
         {/* Header */}
-        <div className="mb-16 max-w-2xl">
-          <span className="text-[11px] text-accent font-semibold tracking-[0.2em] uppercase mb-4 block">
-            En qué estoy pensando
-          </span>
-          <h2 className="text-4xl md:text-5xl font-serif text-primary leading-[1.1] mb-5">
-            Las preguntas que{' '}
-            <span className="italic text-accent">me dan pereque</span>
-          </h2>
-          <p className="text-lg text-primary/55 leading-relaxed font-light">
-            No son las preguntas que tengo resueltas. Son las que no me dejan dormir
-            bien y que probablemente van a terminar en un artículo — o en una
-            conversación que vale la pena tener.
-          </p>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
+          <div className="max-w-2xl">
+            <span className="text-[11px] text-accent font-semibold tracking-[0.2em] uppercase mb-4 block">
+              En qué estoy pensando
+            </span>
+            <h2 className="text-4xl md:text-5xl font-serif text-primary leading-[1.1] mb-5">
+              Las preguntas que{' '}
+              <span className="italic text-accent">me dan pereque</span>
+            </h2>
+            <p className="text-lg text-primary/55 leading-relaxed font-light">
+              No son las preguntas que tengo resueltas. Son las que no me dejan dormir
+              bien y que probablemente van a terminar en un artículo — o en una
+              conversación que vale la pena tener.
+            </p>
+          </div>
+          <Link
+            href="/preguntas"
+            className="group inline-flex items-center gap-2 text-sm font-semibold text-primary/50 hover:text-accent transition-colors shrink-0"
+          >
+            Ver las 16 preguntas
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </Link>
         </div>
 
         {/* Grid */}

@@ -75,7 +75,7 @@ export function Footer() {
           <nav className="flex gap-6" aria-label="Footer">
             <a href="#about" className="hover:text-white/50 transition-colors">Sobre mí</a>
             <a href="#publications" className="hover:text-white/50 transition-colors">Publicaciones</a>
-            <a href="#tools" className="hover:text-white/50 transition-colors">Herramientas</a>
+            <Link href="/preguntas" className="hover:text-white/50 transition-colors">Preguntas</Link>
             <Link href="/constitucion" className="hover:text-white/50 transition-colors">La Constitución</Link>
           </nav>
         </div>

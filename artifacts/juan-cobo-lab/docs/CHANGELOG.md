@@ -2,6 +2,16 @@
 
 ---
 
+## v0.4.2 — Fotografías de identidad (2026-07-03)
+
+### Nuevo
+- **Hero `/juan-cobo`**: retrato editorial de Juan Cobo a la derecha en layout de dos columnas. En móvil: texto primero, foto debajo. Sombra decorativa cobre detrás de la imagen.
+- **Bloque Martina**: foto de Juan y Martina en columna lateral (derecha en desktop, debajo en móvil). Caption: *"Martina. Mi mayor proyecto de vida."*
+- Imágenes optimizadas con ImageMagick para web: `public/images/juan-cobo.jpg` (45 KB) y `public/images/juan-martina.jpg` (93 KB).
+- Paths de imagen via `import.meta.env.BASE_URL` para compatibilidad entre dev y producción.
+
+---
+
 ## v0.4.1 — ¿Quién es Juan Cobo? (2026-07-03)
 
 ### Nuevo

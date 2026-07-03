@@ -10,6 +10,7 @@ import { Pereque } from '../components/sections/Pereque';
 import { Publications } from '../components/sections/Publications';
 import { Tools } from '../components/sections/Tools';
 import { Blog } from '../components/sections/Blog';
+import { Conversaciones } from '../components/sections/Conversaciones';
 import { Footer } from '../components/sections/Footer';
 
 /**
@@ -46,6 +47,9 @@ export default function Home() {
         <Articles />
         <Pereque />
         <Publications />
+
+        {/* ── Conversaciones ───────────────────────────── */}
+        <Conversaciones />
 
         {/* ── Herramientas ─────────────────────────────── */}
         <Tools />

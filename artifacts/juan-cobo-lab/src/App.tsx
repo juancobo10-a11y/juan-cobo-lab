@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Constitucion from './pages/Constitucion';
 import Preguntas from './pages/Preguntas';
 import PreguntaPage from './pages/PreguntaPage';
+import ConversacionesPage from './pages/Conversaciones';
 
 function Router() {
   return (
@@ -13,6 +14,7 @@ function Router() {
       <Route path="/constitucion" component={Constitucion} />
       <Route path="/preguntas" component={Preguntas} />
       <Route path="/preguntas/:id" component={PreguntaPage} />
+      <Route path="/conversaciones" component={ConversacionesPage} />
       <Route component={NotFound} />
     </Switch>
   );

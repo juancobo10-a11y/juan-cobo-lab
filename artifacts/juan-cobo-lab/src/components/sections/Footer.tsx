@@ -72,10 +72,11 @@ export function Footer() {
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-white/25">
           <p className="font-serif italic text-white/35">Juan Cobo Lab</p>
           <p>© {new Date().getFullYear()} · Hecho con datos y café · Bogotá, Colombia</p>
-          <nav className="flex gap-6" aria-label="Footer">
+          <nav className="flex flex-wrap gap-x-6 gap-y-2 justify-end" aria-label="Footer">
             <a href="#about" className="hover:text-white/50 transition-colors">Sobre mí</a>
             <a href="#publications" className="hover:text-white/50 transition-colors">Publicaciones</a>
             <Link href="/preguntas" className="hover:text-white/50 transition-colors">Preguntas</Link>
+            <Link href="/conversaciones" className="hover:text-white/50 transition-colors">Conversaciones</Link>
             <Link href="/constitucion" className="hover:text-white/50 transition-colors">La Constitución</Link>
           </nav>
         </div>

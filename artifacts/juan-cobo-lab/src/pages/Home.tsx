@@ -6,7 +6,7 @@ import { Stats } from '../components/sections/Stats';
 import { About } from '../components/sections/About';
 import { Quote } from '../components/sections/Quote';
 import { Articles } from '../components/sections/Articles';
-import { Thinking } from '../components/sections/Thinking';
+import { Pereque } from '../components/sections/Pereque';
 import { Publications } from '../components/sections/Publications';
 import { Tools } from '../components/sections/Tools';
 import { Blog } from '../components/sections/Blog';
@@ -44,7 +44,7 @@ export default function Home() {
 
         {/* ── Contenido ────────────────────────────────── */}
         <Articles />
-        <Thinking />
+        <Pereque />
         <Publications />
 
         {/* ── Herramientas ─────────────────────────────── */}

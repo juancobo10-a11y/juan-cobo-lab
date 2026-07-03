@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'wouter';
 import { FlaskConical, Menu, X } from 'lucide-react';
 
 const links = [
-  { href: '#about', label: 'Sobre mí' },
-  { href: '#thinking', label: 'Ideas' },
-  { href: '#articles', label: 'Artículos' },
-  { href: '#publications', label: 'Publicaciones' },
-  { href: '#tools', label: 'Herramientas' },
-  { href: '#blog', label: 'Blog' },
+  { href: '#about', label: 'Sobre mí', anchor: true },
+  { href: '#thinking', label: 'Ideas', anchor: true },
+  { href: '#publications', label: 'Publicaciones', anchor: true },
+  { href: '#tools', label: 'Herramientas', anchor: true },
+  { href: '/constitucion', label: 'La Constitución', anchor: false },
 ];
 
 export function Navbar() {
@@ -43,15 +43,25 @@ export function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
-          {links.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-sm font-medium text-white/60 hover:text-white transition-colors duration-200"
-            >
-              {link.label}
-            </a>
-          ))}
+          {links.map((link) =>
+            link.anchor ? (
+              <a
+                key={link.href}
+                href={link.href}
+                className="text-sm font-medium text-white/60 hover:text-white transition-colors duration-200"
+              >
+                {link.label}
+              </a>
+            ) : (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-sm font-medium text-white/60 hover:text-accent transition-colors duration-200"
+              >
+                {link.label}
+              </Link>
+            )
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -72,16 +82,27 @@ export function Navbar() {
           id="mobile-nav"
           className="md:hidden absolute top-16 left-0 w-full bg-[#0D1B2A] border-b border-white/10 p-4 flex flex-col gap-1 shadow-2xl"
         >
-          {links.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-base font-medium text-white/65 hover:text-white hover:bg-white/5 transition-all p-3 rounded-xl"
-              onClick={() => setIsOpen(false)}
-            >
-              {link.label}
-            </a>
-          ))}
+          {links.map((link) =>
+            link.anchor ? (
+              <a
+                key={link.href}
+                href={link.href}
+                className="text-base font-medium text-white/65 hover:text-white hover:bg-white/5 transition-all p-3 rounded-xl"
+                onClick={() => setIsOpen(false)}
+              >
+                {link.label}
+              </a>
+            ) : (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-base font-medium text-white/65 hover:text-accent hover:bg-white/5 transition-all p-3 rounded-xl"
+                onClick={() => setIsOpen(false)}
+              >
+                {link.label}
+              </Link>
+            )
+          )}
         </div>
       )}
     </nav>

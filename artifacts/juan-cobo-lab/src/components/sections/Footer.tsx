@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'wouter';
 import { FaLinkedin, FaGraduationCap, FaEnvelope } from 'react-icons/fa';
 
 const socials = [
@@ -75,6 +76,7 @@ export function Footer() {
             <a href="#about" className="hover:text-white/50 transition-colors">Sobre mí</a>
             <a href="#publications" className="hover:text-white/50 transition-colors">Publicaciones</a>
             <a href="#tools" className="hover:text-white/50 transition-colors">Herramientas</a>
+            <Link href="/constitucion" className="hover:text-white/50 transition-colors">La Constitución</Link>
           </nav>
         </div>
       </div>

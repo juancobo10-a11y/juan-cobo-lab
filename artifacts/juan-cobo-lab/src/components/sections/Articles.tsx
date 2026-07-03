@@ -18,26 +18,27 @@ export function Articles() {
     show: { opacity: 1, y: 0 }
   };
 
+  // Ocultar la sección cuando no hay artículos publicados con URL real
+  const published = articles.filter((a) => a.url);
+  if (published.length === 0) return null;
+
   return (
     <section id="articles" className="py-24 bg-background">
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex justify-between items-end mb-12">
           <h2 className="text-4xl md:text-5xl font-serif text-primary">Últimos artículos</h2>
-          <a href="#" className="hidden sm:flex items-center gap-2 text-accent font-medium hover:text-accent/80 transition-colors">
-            Ver todos <ArrowRight className="w-4 h-4" />
-          </a>
         </div>
 
-        <motion.div 
+        <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
           variants={containerVariants}
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: "-100px" }}
         >
-          {articles.map((article, i) => (
-            <motion.article 
-              key={i} 
+          {published.map((article, i) => (
+            <motion.article
+              key={i}
               variants={itemVariants}
               className={`bg-card rounded-2xl p-8 border border-border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col h-full ${i === 0 ? 'md:col-span-2 lg:col-span-2 bg-primary text-primary-foreground border-transparent' : ''}`}
             >
@@ -56,19 +57,18 @@ export function Articles() {
                 <div className={`flex items-center gap-1.5 text-sm ${i === 0 ? 'text-white/60' : 'text-muted-foreground'}`}>
                   <Clock className="w-4 h-4" /> {article.readTime}
                 </div>
-                <a href="#" className={`font-medium text-sm flex items-center gap-1 group ${i === 0 ? 'text-white hover:text-accent' : 'text-accent hover:text-primary'}`}>
+                <a
+                  href={article.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`font-medium text-sm flex items-center gap-1 group ${i === 0 ? 'text-white hover:text-accent' : 'text-accent hover:text-primary'}`}
+                >
                   Leer <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
                 </a>
               </div>
             </motion.article>
           ))}
         </motion.div>
-        
-        <div className="mt-8 text-center sm:hidden">
-          <a href="#" className="inline-flex items-center gap-2 text-accent font-medium hover:text-accent/80 transition-colors">
-            Ver todos los artículos <ArrowRight className="w-4 h-4" />
-          </a>
-        </div>
       </div>
     </section>
   );

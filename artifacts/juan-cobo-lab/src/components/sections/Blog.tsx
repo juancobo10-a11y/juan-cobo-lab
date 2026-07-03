@@ -4,6 +4,10 @@ import { ArrowRight } from 'lucide-react';
 import { blogPosts as posts } from '@/data/blog';
 
 export function Blog() {
+  // Ocultar la sección cuando no hay entradas publicadas con URL real
+  const published = posts.filter((p) => p.url);
+  if (published.length === 0) return null;
+
   return (
     <section id="blog" className="py-36 bg-[#F7F6F4]">
       <div className="max-w-6xl mx-auto px-6">
@@ -29,7 +33,7 @@ export function Blog() {
 
         {/* Posts */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {posts.map((post, i) => (
+          {published.map((post, i) => (
             <motion.article
               key={i}
               initial={{ opacity: 0, y: 20 }}
@@ -43,7 +47,9 @@ export function Blog() {
               </div>
               <h3 className="text-2xl font-serif text-primary mb-4 leading-snug">
                 <a
-                  href="#"
+                  href={post.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="hover:text-accent transition-colors focus:outline-none focus-visible:underline"
                 >
                   {post.title}
@@ -53,7 +59,9 @@ export function Blog() {
                 {post.teaser}
               </p>
               <a
-                href="#"
+                href={post.url}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="font-semibold text-sm text-primary/50 flex items-center gap-1.5 group/link w-max hover:text-accent transition-colors"
               >
                 Leer entrada{' '}

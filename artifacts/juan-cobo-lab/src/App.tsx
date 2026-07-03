@@ -4,6 +4,7 @@ import { Route, Switch, Router as WouterRouter } from 'wouter';
 import Home from './pages/Home';
 import Constitucion from './pages/Constitucion';
 import Preguntas from './pages/Preguntas';
+import PreguntaPage from './pages/PreguntaPage';
 
 function Router() {
   return (
@@ -11,6 +12,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/constitucion" component={Constitucion} />
       <Route path="/preguntas" component={Preguntas} />
+      <Route path="/preguntas/:id" component={PreguntaPage} />
       <Route component={NotFound} />
     </Switch>
   );

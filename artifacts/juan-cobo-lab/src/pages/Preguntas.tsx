@@ -1,9 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'wouter';
-import { ArrowLeft, Search, X, Mail } from 'lucide-react';
+import { ArrowLeft, Search, X, Mail, BookOpen } from 'lucide-react';
 import { Navbar } from '../components/layout/Navbar';
 import { questions, CATEGORIAS } from '../data/questions';
+import { questionArticles } from '../data/questionArticles';
+
+// IDs que ya tienen artículo publicado
+const publishedIds = new Set(questionArticles.map((a) => a.id));
 
 const ALL = 'Todas';
 
@@ -167,56 +171,78 @@ export default function Preguntas() {
                   layout
                   className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
                 >
-                  {filtradas.map((q, i) => (
-                    <motion.div
-                      key={q.id}
-                      layout
-                      initial={{ opacity: 0, y: 20, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.96 }}
-                      transition={{ duration: 0.35, delay: i * 0.04 }}
-                      className="group flex flex-col bg-[#F9F9F7] border border-transparent hover:border-accent/20 rounded-2xl p-7 transition-all duration-300 hover:shadow-md"
-                    >
-                      {/* Numero + Categoría */}
-                      <div className="flex items-center justify-between mb-5">
-                        <span className="text-3xl font-serif text-primary/10 tabular-nums leading-none font-bold">
-                          {String(q.id).padStart(2, '0')}
-                        </span>
-                        <span
-                          className={`text-[10px] font-bold tracking-[0.18em] uppercase px-2.5 py-1 rounded-full border ${categoriaColorLight[q.categoria] ?? 'bg-gray-50 text-gray-500 border-gray-200'}`}
-                        >
-                          {q.categoria}
-                        </span>
-                      </div>
-
-                      {/* Pregunta */}
-                      <h2 className="text-lg md:text-xl font-serif text-primary leading-snug mb-5 flex-grow">
-                        {q.pregunta}
-                      </h2>
-
-                      {/* Divider */}
-                      <div className="border-t border-border/60 pt-5 space-y-3">
-                        {/* Pereque */}
-                        <div>
-                          <span className="text-[10px] font-bold text-accent/70 tracking-[0.15em] uppercase block mb-1">
-                            ¿Por qué da pereque?
+                  {filtradas.map((q, i) => {
+                    const hasArticle = publishedIds.has(q.id);
+                    const card = (
+                      <motion.div
+                        key={q.id}
+                        layout
+                        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.96 }}
+                        transition={{ duration: 0.35, delay: i * 0.04 }}
+                        className={`group flex flex-col bg-[#F9F9F7] border rounded-2xl p-7 transition-all duration-300 hover:shadow-md h-full ${
+                          hasArticle
+                            ? 'border-accent/20 hover:border-accent/50 cursor-pointer hover:-translate-y-1'
+                            : 'border-transparent hover:border-accent/15'
+                        }`}
+                      >
+                        {/* Numero + Categoría */}
+                        <div className="flex items-center justify-between mb-5">
+                          <span className="text-3xl font-serif text-primary/10 tabular-nums leading-none font-bold">
+                            {String(q.id).padStart(2, '0')}
                           </span>
-                          <p className="text-sm text-primary/55 leading-relaxed">
-                            {q.pereque}
-                          </p>
-                        </div>
-                        {/* Importancia */}
-                        <div>
-                          <span className="text-[10px] font-bold text-primary/30 tracking-[0.15em] uppercase block mb-1">
-                            Por qué importa
+                          <span
+                            className={`text-[10px] font-bold tracking-[0.18em] uppercase px-2.5 py-1 rounded-full border ${categoriaColorLight[q.categoria] ?? 'bg-gray-50 text-gray-500 border-gray-200'}`}
+                          >
+                            {q.categoria}
                           </span>
-                          <p className="text-sm text-primary/45 leading-relaxed">
-                            {q.importancia}
-                          </p>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
+
+                        {/* Pregunta */}
+                        <h2 className={`text-lg md:text-xl font-serif leading-snug mb-5 flex-grow transition-colors duration-200 ${hasArticle ? 'text-primary group-hover:text-accent' : 'text-primary'}`}>
+                          {q.pregunta}
+                        </h2>
+
+                        {/* Divider */}
+                        <div className="border-t border-border/60 pt-5 space-y-3">
+                          {/* Pereque */}
+                          <div>
+                            <span className="text-[10px] font-bold text-accent/70 tracking-[0.15em] uppercase block mb-1">
+                              ¿Por qué da pereque?
+                            </span>
+                            <p className="text-sm text-primary/55 leading-relaxed">
+                              {q.pereque}
+                            </p>
+                          </div>
+                          {/* Importancia */}
+                          <div>
+                            <span className="text-[10px] font-bold text-primary/30 tracking-[0.15em] uppercase block mb-1">
+                              Por qué importa
+                            </span>
+                            <p className="text-sm text-primary/45 leading-relaxed">
+                              {q.importancia}
+                            </p>
+                          </div>
+                          {/* Published indicator */}
+                          {hasArticle && (
+                            <div className="flex items-center gap-1.5 pt-1 text-accent text-[12px] font-semibold">
+                              <BookOpen className="w-3.5 h-3.5" />
+                              Leer análisis →
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+
+                    return hasArticle ? (
+                      <Link key={q.id} href={`/preguntas/${q.id}`}>
+                        {card}
+                      </Link>
+                    ) : (
+                      <div key={q.id}>{card}</div>
+                    );
+                  })}
                 </motion.div>
               ) : (
                 <motion.div

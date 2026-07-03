@@ -3,79 +3,112 @@
 export interface Conversacion {
   id: number;
   titulo: string;
-  /** Frase corta que resume el eje temático de la conversación */
+  /** Contexto breve: evento, institución o canal */
   tema: string;
   descripcion: string;
   categoria: string;
-  fecha: string;         // "Junio 2025"
-  destacado?: boolean;   // Aparece en el preview del home
+  fecha: string;          // "Febrero 2026"
+  destacado?: boolean;    // aparece primero en el preview del home
 
-  // ── Recursos (todos opcionales) ───────────────────────────────────────────
-  // Si el campo está vacío o undefined → el botón se muestra como "Próximamente"
-  youtubeUrl?: string;   // URL completa del video en YouTube
-  pdfUrl?: string;       // URL o ruta al archivo PDF de la presentación
-  articuloUrl?: string;  // URL del artículo relacionado
+  // ── Video ────────────────────────────────────────────────────────────────
+  youtubeId?: string;     // ID del video (para thumbnail + link)
+  youtubeUrl?: string;    // URL completa (puede incluir timestamp &t=Xs)
+  duracion?: string;      // "2 h 20 min" — mostrado como badge
+
+  // ── Otros recursos (opcionales) ──────────────────────────────────────────
+  pdfUrl?: string;        // URL o ruta al PDF de la presentación
+  articuloUrl?: string;   // URL del artículo relacionado
 }
 
-// ─── Datos ────────────────────────────────────────────────────────────────────
-// Completa los campos youtubeUrl, pdfUrl y articuloUrl con los enlaces reales.
-// Si un enlace aún no existe, déjalo vacío ('') o quítalo — el botón
-// aparecerá automáticamente como "Próximamente" y desactivado.
-//
-// Para agregar una entrada nueva:
+// ─── Videoteca ────────────────────────────────────────────────────────────────
+// Para agregar un nuevo video:
 //   {
-//     id: 4,
-//     titulo: 'Título de la conversación',
-//     tema: 'Eje temático en una frase',
-//     descripcion: 'Descripción breve de qué se habló.',
-//     categoria: 'TIC | Política pública | Regulación | Investigación',
+//     id: N,
+//     titulo: 'Título real del video',
+//     tema: 'Evento o institución donde se presentó',
+//     descripcion: 'Descripción breve (2-3 oraciones).',
+//     categoria: 'Conferencias y ponencias',
 //     fecha: 'Mes Año',
-//     youtubeUrl: 'https://www.youtube.com/watch?v=...',
-//     pdfUrl: 'https://... o /presentaciones/nombre.pdf',
-//     articuloUrl: 'https://...',
+//     youtubeId: 'ID_DEL_VIDEO',
+//     youtubeUrl: 'https://www.youtube.com/watch?v=ID_DEL_VIDEO',
+//     duracion: 'X h Y min',
 //     destacado: true,
 //   },
 
 export const conversations: Conversacion[] = [
-  // ── PENDIENTE DE COMPLETAR — reemplazar con contenido real ───────────────
-
   {
     id: 1,
-    titulo: 'Datos, contraloría y política pública: una conversación pendiente',
-    tema: 'Control fiscal y evidencia en Colombia',
+    titulo: 'Conectividad digital en Colombia',
+    tema: 'Ponencia — Contraloría General de la República',
     descripcion:
-      'Por qué los organismos de control necesitan hablar más con los productores de evidencia, y menos con los titulares de prensa. Una mirada a la brecha entre la información disponible y las decisiones que se toman.',
-    categoria: 'Política pública',
-    fecha: 'Próximamente',
+      'Análisis de la evolución de las políticas públicas de conectividad digital en Colombia, presentado ante la Contraloría General de la República. Indicadores, brechas persistentes y recomendaciones de política basadas en evidencia.',
+    categoria: 'Conferencias y ponencias',
+    fecha: 'Febrero 2026',
     destacado: true,
-    youtubeUrl: '',      // ← pendiente de completar
-    pdfUrl: '',          // ← pendiente de completar
-    articuloUrl: '',     // ← pendiente de completar
+    youtubeId: 'YjbrfMKf2CA',
+    youtubeUrl: 'https://www.youtube.com/watch?v=YjbrfMKf2CA&t=702s',
+    duracion: '2 h',
   },
   {
     id: 2,
-    titulo: 'El sector TIC en Colombia: indicadores, brechas y lo que los datos no dicen',
-    tema: 'Análisis sectorial 2023–2025',
+    titulo: 'De lo Tradicional a lo Digital: Impulsando el Comercio Electrónico',
+    tema: 'Estudio intersectorial — Contraloría General de la República',
     descripcion:
-      'Los principales hallazgos del análisis sectorial del período 2023–2025: metodología, fuentes, limitaciones explícitas y lo que todavía no sabemos sobre el ecosistema digital colombiano.',
-    categoria: 'TIC',
-    fecha: 'Próximamente',
+      'Presentación del estudio intersectorial sobre la transición al comercio electrónico en Colombia: indicadores de adopción, brechas por región e ingreso, y oportunidades de política pública para acelerar la digitalización económica.',
+    categoria: 'Conferencias y ponencias',
+    fecha: 'Noviembre 2025',
     destacado: true,
-    youtubeUrl: '',      // ← pendiente de completar
-    pdfUrl: '',          // ← pendiente de completar
-    articuloUrl: '',     // ← pendiente de completar
+    youtubeId: 'GAadUDFnglA',
+    youtubeUrl: 'https://www.youtube.com/watch?v=GAadUDFnglA&t=109s',
+    duracion: '2 h 20 min',
   },
   {
     id: 3,
-    titulo: 'Por qué Colombia necesita una política de datos pública, urgente y valiente',
-    tema: 'Gobernanza de datos y Estado digital',
+    titulo: 'De la Brecha Digital a la Conectividad Significativa',
+    tema: 'Conferencia — Contraloría General de la República',
     descripcion:
-      'El argumento que no alcanzó en 800 palabras de columna: qué implica gobernar con datos en un Estado que todavía teme la transparencia, y cuál sería el primer paso concreto.',
-    categoria: 'Política pública',
-    fecha: 'Próximamente',
+      'Más allá del acceso a internet: qué implica realmente una conexión útil para el desarrollo. Exploración del concepto de conectividad significativa y sus implicaciones para la política pública colombiana.',
+    categoria: 'Conferencias y ponencias',
+    fecha: 'Agosto 2025',
     destacado: true,
-    youtubeUrl: '',      // ← pendiente de completar
-    pdfUrl: '',          // ← pendiente de completar
-    articuloUrl: '',     // ← pendiente de completar
+    youtubeId: '05-slhPX2NI',
+    youtubeUrl: 'https://www.youtube.com/watch?v=05-slhPX2NI&t=914s',
+    duracion: '28 min',
+  },
+  {
+    id: 4,
+    titulo: 'Foro «Conectividad Digital para todos»',
+    tema: 'Foro regional — Leticia, Amazonas',
+    descripcion:
+      'Desde Leticia, Amazonas, expertos y funcionarios analizan el cierre de brechas en conectividad digital en regiones apartadas de Colombia. Control fiscal, indicadores satelitales y gobernanza del espectro.',
+    categoria: 'Conferencias y ponencias',
+    fecha: 'Marzo 2025',
+    youtubeId: 'Dfy-m3FSfPY',
+    youtubeUrl: 'https://www.youtube.com/watch?v=Dfy-m3FSfPY&t=12418s',
+    duracion: '4 h 8 min',
+  },
+  {
+    id: 5,
+    titulo: 'Aciertos y desafíos de la educación inclusiva en Colombia',
+    tema: 'Foro — Contraloría General de la República',
+    descripcion:
+      'Análisis de los aciertos y desafíos de la educación inclusiva en Colombia: políticas, evidencia empírica y recomendaciones desde el control fiscal. Perspectiva intersectorial con énfasis en poblaciones vulnerables.',
+    categoria: 'Conferencias y ponencias',
+    fecha: 'Junio 2024',
+    youtubeId: '-Mabhr_kno4',
+    youtubeUrl: 'https://www.youtube.com/watch?v=-Mabhr_kno4&t=11s',
+    duracion: '3 h 55 min',
+  },
+  {
+    id: 6,
+    titulo: '10 Años del Acuerdo de Paz: reflexión desde el territorio',
+    tema: 'Evento conmemorativo — UNAD y Contraloría General de la Nación',
+    descripcion:
+      'Reflexión, memoria y diálogo sobre los avances, retos y perspectivas de la construcción de paz en Colombia a diez años del Acuerdo. Espacio académico entre la UNAD y la Contraloría General de la Nación.',
+    categoria: 'Conferencias y ponencias',
+    fecha: 'Junio 2026',
+    youtubeId: 'x6eYzfTVw8k',
+    youtubeUrl: 'https://www.youtube.com/watch?v=x6eYzfTVw8k',
+    duracion: '7 h 25 min',
   },
 ];

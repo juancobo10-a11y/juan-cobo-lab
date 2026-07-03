@@ -9,8 +9,8 @@ import {
   Search,
   X,
   Mail,
-  MessageCircle,
   Clock,
+  Youtube,
 } from 'lucide-react';
 import { Navbar } from '../components/layout/Navbar';
 import { conversations, type Conversacion } from '../data/conversations';
@@ -19,9 +19,13 @@ import { conversations, type Conversacion } from '../data/conversations';
 
 const CATEGORIAS = ['Todos', ...Array.from(new Set(conversations.map((c) => c.categoria)))];
 
-// ─── Unified Card ─────────────────────────────────────────────────────────────
+function thumbUrl(youtubeId: string) {
+  return `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`;
+}
 
-function LinkBtn({
+// ─── Action button ────────────────────────────────────────────────────────────
+
+function ActionBtn({
   href,
   icon: Icon,
   label,
@@ -32,8 +36,7 @@ function LinkBtn({
   label: string;
   activeClass: string;
 }) {
-  const available = Boolean(href);
-  if (available) {
+  if (href) {
     return (
       <a
         href={href}
@@ -49,7 +52,8 @@ function LinkBtn({
   return (
     <span
       aria-disabled="true"
-      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-medium bg-primary/[0.04] text-primary/25 border border-primary/[0.06] select-none cursor-not-allowed"
+      title="Próximamente"
+      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-medium bg-primary/[0.04] text-primary/25 border border-primary/[0.06] cursor-not-allowed select-none"
     >
       <Clock className="w-3.5 h-3.5 shrink-0" />
       Próximamente
@@ -57,73 +61,103 @@ function LinkBtn({
   );
 }
 
-function ConversacionCard({ c, index }: { c: Conversacion; index: number }) {
-  const fadeUp = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.45, delay: index * 0.055 } },
-  };
+// ─── Video Card ───────────────────────────────────────────────────────────────
+
+function VideoCard({ c, index }: { c: Conversacion; index: number }) {
+  const [imgError, setImgError] = useState(false);
 
   return (
     <motion.article
-      variants={fadeUp}
-      initial="hidden"
-      animate="show"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97 }}
+      transition={{ duration: 0.4, delay: index * 0.05 }}
       className="flex flex-col h-full bg-white border border-border rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
     >
-      {/* ── Header: tema + meta ─────────────────────────────────────────── */}
-      <div className="relative bg-[#0D1B2A] px-6 pt-7 pb-6 overflow-hidden">
-        {/* Subtle grid */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.035]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-            backgroundSize: '28px 28px',
-          }}
-        />
-        {/* Copper accent line */}
-        <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-accent opacity-70" />
-
-        <div className="relative">
-          <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <span className="text-[10px] font-bold tracking-[0.18em] uppercase text-accent/80 bg-accent/10 border border-accent/20 px-2.5 py-0.5 rounded-full">
-              {c.categoria}
-            </span>
-            <span className="text-[11px] text-white/30">{c.fecha}</span>
+      {/* ── Thumbnail ───────────────────────────────────────────────────── */}
+      <div className="relative aspect-video bg-[#0D1B2A] overflow-hidden">
+        {c.youtubeId && !imgError ? (
+          <img
+            src={thumbUrl(c.youtubeId)}
+            alt={c.titulo}
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover opacity-85 group-hover:opacity-100 group-hover:scale-[1.03] transition-all duration-500"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div
+              aria-hidden
+              className="absolute inset-0 opacity-[0.04]"
+              style={{
+                backgroundImage:
+                  'linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)',
+                backgroundSize: '32px 32px',
+              }}
+            />
+            <Youtube className="w-12 h-12 text-white/15" />
           </div>
-          <p className="font-serif text-white/70 text-[14px] leading-snug italic line-clamp-2">
-            {c.tema}
-          </p>
+        )}
+
+        {/* Dark gradient overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+        {/* Play button */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-14 h-14 rounded-full bg-white/15 backdrop-blur-sm border border-white/25 flex items-center justify-center group-hover:bg-rose-500/90 group-hover:border-rose-500 group-hover:scale-110 transition-all duration-300 shadow-lg">
+            <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+          </div>
         </div>
+
+        {/* Duration badge */}
+        {c.duracion && (
+          <span className="absolute bottom-3 right-3 flex items-center gap-1 bg-black/75 text-white text-[11px] font-semibold px-2.5 py-1 rounded-md backdrop-blur-sm">
+            <Clock className="w-3 h-3" />
+            {c.duracion}
+          </span>
+        )}
+
+        {/* Category badge over thumbnail */}
+        <span className="absolute top-3 left-3 text-[10px] font-bold tracking-[0.15em] uppercase text-accent/90 bg-black/50 backdrop-blur-sm border border-accent/30 px-2.5 py-1 rounded-full">
+          {c.categoria}
+        </span>
       </div>
 
       {/* ── Body ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col flex-grow px-6 pt-5 pb-6">
-        <h3 className="font-serif text-[18px] text-primary leading-snug mb-3 group-hover:text-accent transition-colors duration-200">
+      <div className="flex flex-col flex-grow px-5 pt-4 pb-5">
+        {/* Meta */}
+        <div className="flex items-center gap-2 mb-3">
+          <Youtube className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+          <span className="text-[11px] text-primary/40 font-medium truncate">{c.tema}</span>
+          <span className="text-primary/20 shrink-0">·</span>
+          <span className="text-[11px] text-primary/35 shrink-0">{c.fecha}</span>
+        </div>
+
+        {/* Title */}
+        <h3 className="font-serif text-[17px] text-primary leading-snug mb-2 flex-grow group-hover:text-accent transition-colors duration-200 line-clamp-3">
           {c.titulo}
         </h3>
-        <p className="text-[13px] text-primary/50 leading-relaxed line-clamp-3 flex-grow">
+
+        {/* Description */}
+        <p className="text-[12.5px] text-primary/45 leading-relaxed line-clamp-2 mb-4">
           {c.descripcion}
         </p>
 
         {/* ── Action buttons ───────────────────────────────────────────── */}
-        <div className="flex gap-2 mt-5 pt-5 border-t border-border">
-          <LinkBtn
-            href={c.youtubeUrl || undefined}
+        <div className="flex gap-2 pt-4 border-t border-border">
+          <ActionBtn
+            href={c.youtubeUrl}
             icon={Play}
-            label="Ver video"
-            activeClass="bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-500 hover:text-white hover:border-rose-500"
+            label="Ver en YouTube"
+            activeClass="bg-rose-500 text-white border border-rose-600 hover:bg-rose-600 shadow-sm"
           />
-          <LinkBtn
-            href={c.articuloUrl || undefined}
+          <ActionBtn
+            href={c.articuloUrl}
             icon={ExternalLink}
-            label="Leer artículo"
+            label="Artículo"
             activeClass="bg-sky-50 text-sky-600 border border-sky-200 hover:bg-sky-500 hover:text-white hover:border-sky-500"
           />
-          <LinkBtn
-            href={c.pdfUrl || undefined}
+          <ActionBtn
+            href={c.pdfUrl}
             icon={FileText}
             label="Presentación"
             activeClass="bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-500 hover:text-white hover:border-amber-500"
@@ -150,10 +184,13 @@ export default function ConversacionesPage() {
         c.titulo.toLowerCase().includes(termino) ||
         c.tema.toLowerCase().includes(termino) ||
         c.descripcion.toLowerCase().includes(termino) ||
-        c.categoria.toLowerCase().includes(termino);
+        c.categoria.toLowerCase().includes(termino) ||
+        (c.fecha ?? '').toLowerCase().includes(termino);
       return coincideCategoria && coincideBusqueda;
     });
   }, [categoriaActiva, busqueda]);
+
+  const totalVideos = conversations.filter((c) => c.youtubeUrl).length;
 
   return (
     <div className="min-h-screen flex flex-col font-sans text-foreground bg-background">
@@ -171,10 +208,9 @@ export default function ConversacionesPage() {
               backgroundSize: '48px 48px',
             }}
           />
-          {/* Copper glow */}
           <div
             aria-hidden
-            className="pointer-events-none absolute -top-40 left-1/3 w-[600px] h-[400px] rounded-full opacity-[0.07]"
+            className="pointer-events-none absolute -top-40 left-1/3 w-[600px] h-[400px] rounded-full opacity-[0.06]"
             style={{ background: 'radial-gradient(circle, hsl(24 69% 53%) 0%, transparent 70%)' }}
           />
 
@@ -202,28 +238,28 @@ export default function ConversacionesPage() {
                 Algunas preguntas también necesitan ser habladas.
               </p>
 
-              {/* Stats row */}
-              <div className="flex flex-wrap gap-6 mt-10 pt-10 border-t border-white/8">
-                {[
-                  { n: conversations.length, label: 'conversaciones' },
-                  {
-                    n: conversations.filter((c) => c.youtubeUrl).length,
-                    label: 'videos disponibles',
-                  },
-                  {
-                    n: conversations.filter((c) => c.pdfUrl).length,
-                    label: 'presentaciones',
-                  },
-                  {
-                    n: conversations.filter((c) => c.articuloUrl).length,
-                    label: 'artículos',
-                  },
-                ].map(({ n, label }) => (
-                  <div key={label} className="text-center">
-                    <p className="font-serif text-3xl text-white tabular-nums">{n}</p>
-                    <p className="text-[11px] text-white/35 mt-0.5">{label}</p>
-                  </div>
-                ))}
+              {/* Stats */}
+              <div className="flex flex-wrap gap-8 mt-10 pt-10 border-t border-white/8">
+                <div>
+                  <p className="font-serif text-4xl text-white tabular-nums">{conversations.length}</p>
+                  <p className="text-[11px] text-white/35 mt-0.5">conversaciones</p>
+                </div>
+                <div>
+                  <p className="font-serif text-4xl text-white tabular-nums">{totalVideos}</p>
+                  <p className="text-[11px] text-white/35 mt-0.5">videos disponibles</p>
+                </div>
+                <div>
+                  <p className="font-serif text-4xl text-white tabular-nums">
+                    {conversations.filter((c) => c.pdfUrl).length}
+                  </p>
+                  <p className="text-[11px] text-white/35 mt-0.5">presentaciones</p>
+                </div>
+                <div>
+                  <p className="font-serif text-4xl text-white tabular-nums">
+                    {conversations.filter((c) => c.articuloUrl).length}
+                  </p>
+                  <p className="text-[11px] text-white/35 mt-0.5">artículos</p>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -258,7 +294,7 @@ export default function ConversacionesPage() {
               {/* Counter */}
               <p className="text-sm text-primary/45 shrink-0 font-medium tabular-nums">
                 <span className="text-accent font-bold text-base">{filtradas.length}</span>{' '}
-                {filtradas.length === 1 ? 'conversación' : 'conversaciones'}
+                {filtradas.length === 1 ? 'video' : 'videos'}
                 {filtradas.length !== conversations.length && (
                   <span className="text-primary/30"> de {conversations.length}</span>
                 )}
@@ -266,21 +302,23 @@ export default function ConversacionesPage() {
             </div>
 
             {/* Category pills */}
-            <div className="flex flex-wrap gap-2">
-              {CATEGORIAS.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setCategoriaActiva(cat)}
-                  className={`text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-all duration-200 ${
-                    categoriaActiva === cat
-                      ? 'bg-accent text-white border-accent shadow-sm'
-                      : 'bg-white text-primary/55 border-border hover:border-accent/40 hover:text-primary'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+            {CATEGORIAS.length > 1 && (
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIAS.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setCategoriaActiva(cat)}
+                    className={`text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-all duration-200 ${
+                      categoriaActiva === cat
+                        ? 'bg-accent text-white border-accent shadow-sm'
+                        : 'bg-white text-primary/55 border-border hover:border-accent/40 hover:text-primary'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -295,7 +333,7 @@ export default function ConversacionesPage() {
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
                   {filtradas.map((c, i) => (
-                    <ConversacionCard key={c.id} c={c} index={i} />
+                    <VideoCard key={c.id} c={c} index={i} />
                   ))}
                 </motion.div>
               ) : (
@@ -308,7 +346,7 @@ export default function ConversacionesPage() {
                 >
                   <p className="text-5xl mb-4">🔍</p>
                   <p className="text-xl font-serif text-primary/50 mb-2">
-                    Ninguna conversación coincide.
+                    Ningún video coincide.
                   </p>
                   <p className="text-sm text-primary/35 mb-6">
                     Prueba con otro término o cambia la categoría.
@@ -320,7 +358,7 @@ export default function ConversacionesPage() {
                     }}
                     className="text-sm font-semibold text-accent hover:underline"
                   >
-                    Ver todas las conversaciones
+                    Ver todos los videos
                   </button>
                 </motion.div>
               )}

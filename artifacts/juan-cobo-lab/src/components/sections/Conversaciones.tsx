@@ -20,6 +20,9 @@ const fadeUp = {
 function thumbUrl(id: string) {
   return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
 }
+function thumbFallback(id: string) {
+  return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+}
 
 // ─── Action button (compact) ──────────────────────────────────────────────────
 
@@ -63,7 +66,14 @@ function ActionBtn({
 // ─── Video Card ───────────────────────────────────────────────────────────────
 
 function VideoCard({ c, index }: { c: Conversacion; index: number }) {
-  const [imgError, setImgError] = useState(false);
+  const [thumbStage, setThumbStage] = useState<0 | 1 | 2>(0);
+  const handleThumbError = () => setThumbStage((s) => (s < 2 ? ((s + 1) as 0 | 1 | 2) : 2));
+  const currentSrc =
+    c.youtubeId && thumbStage < 2
+      ? thumbStage === 0
+        ? thumbUrl(c.youtubeId)
+        : thumbFallback(c.youtubeId)
+      : null;
 
   return (
     <motion.article
@@ -76,11 +86,11 @@ function VideoCard({ c, index }: { c: Conversacion; index: number }) {
     >
       {/* Thumbnail */}
       <div className="relative aspect-video bg-[#0D1B2A] overflow-hidden">
-        {c.youtubeId && !imgError ? (
+        {currentSrc ? (
           <img
-            src={thumbUrl(c.youtubeId)}
+            src={currentSrc}
             alt={c.titulo}
-            onError={() => setImgError(true)}
+            onError={handleThumbError}
             className="w-full h-full object-cover opacity-85 group-hover:opacity-100 group-hover:scale-[1.03] transition-all duration-500"
           />
         ) : (

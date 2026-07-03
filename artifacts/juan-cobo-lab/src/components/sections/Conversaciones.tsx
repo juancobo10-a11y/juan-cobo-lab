@@ -111,13 +111,13 @@ function ConversacionCard({ c, index }: { c: Conversacion; index: number }) {
           <LinkBtn
             href={c.articuloUrl || undefined}
             icon={ExternalLink}
-            label="Artículo"
+            label="Leer artículo"
             activeClass="bg-sky-50 text-sky-600 border border-sky-200 hover:bg-sky-500 hover:text-white hover:border-sky-500"
           />
           <LinkBtn
             href={c.pdfUrl || undefined}
             icon={FileText}
-            label="PDF"
+            label="Presentación"
             activeClass="bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-500 hover:text-white hover:border-amber-500"
           />
         </div>

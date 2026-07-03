@@ -1,13 +1,13 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import { Link } from 'wouter';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/sections/Footer';
 import { ArrowRight } from 'lucide-react';
 
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 28 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
 };
 
 const cycleSteps = [
@@ -44,6 +44,8 @@ export default function JuanCobo() {
   return (
     <div className="min-h-screen bg-[#F9F9F7]">
       <Navbar />
+
+      <main id="main-content">
 
       {/* ── 1. HERO ─────────────────────────────────────────────── */}
       <section className="bg-[#0D1B2A] pt-28 pb-32 px-6 relative overflow-hidden">
@@ -214,11 +216,11 @@ export default function JuanCobo() {
             {/* Ciclo visual */}
             <motion.div variants={fadeUp} className="relative">
               {/* Desktop: arco horizontal */}
-              <div className="hidden md:flex items-start gap-0">
+              <ol aria-label="Ciclo de método" className="hidden md:flex items-start gap-0 list-none">
                 {cycleSteps.map((step, i) => (
-                  <div key={step} className="flex items-center flex-1 min-w-0">
+                  <li key={step} className="flex items-center flex-1 min-w-0">
                     <div className="flex flex-col items-center flex-1 min-w-0">
-                      <div className="w-9 h-9 rounded-full bg-[#0D1B2A] border-2 border-accent flex items-center justify-center mb-3 flex-shrink-0">
+                      <div className="w-9 h-9 rounded-full bg-[#0D1B2A] border-2 border-accent flex items-center justify-center mb-3 flex-shrink-0" aria-hidden="true">
                         <span className="text-[10px] font-bold text-accent">{i + 1}</span>
                       </div>
                       <p className="text-xs font-medium text-[#0D1B2A]/70 text-center leading-tight px-1">
@@ -226,34 +228,34 @@ export default function JuanCobo() {
                       </p>
                     </div>
                     {i < cycleSteps.length - 1 && (
-                      <div className="flex-shrink-0 mb-6">
+                      <div className="flex-shrink-0 mb-6" aria-hidden="true">
                         <ArrowRight className="w-4 h-4 text-accent/40" />
                       </div>
                     )}
-                  </div>
+                  </li>
                 ))}
                 {/* Flecha de vuelta */}
-                <div className="flex-shrink-0 ml-2 mb-6">
+                <li aria-hidden="true" className="flex-shrink-0 ml-2 mb-6">
                   <ArrowRight className="w-4 h-4 text-accent/30 rotate-180" />
-                </div>
-              </div>
+                </li>
+              </ol>
 
               {/* Mobile: lista vertical */}
-              <div className="md:hidden flex flex-col gap-3">
+              <ol aria-label="Ciclo de método" className="md:hidden flex flex-col gap-3 list-none">
                 {cycleSteps.map((step, i) => (
-                  <div key={step} className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-[#0D1B2A] border-2 border-accent flex items-center justify-center flex-shrink-0">
+                  <li key={step} className="flex items-center gap-4">
+                    <div className="w-8 h-8 rounded-full bg-[#0D1B2A] border-2 border-accent flex items-center justify-center flex-shrink-0" aria-hidden="true">
                       <span className="text-[10px] font-bold text-accent">{i + 1}</span>
                     </div>
                     <span className="text-sm font-medium text-[#0D1B2A]/75">{step}</span>
                     {i < cycleSteps.length - 1 && (
-                      <div className="ml-auto">
+                      <div className="ml-auto" aria-hidden="true">
                         <ArrowRight className="w-3.5 h-3.5 text-accent/30 rotate-90" />
                       </div>
                     )}
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ol>
             </motion.div>
           </motion.div>
         </div>
@@ -339,6 +341,8 @@ export default function JuanCobo() {
           </motion.div>
         </motion.div>
       </section>
+
+      </main>
 
       <Footer />
     </div>

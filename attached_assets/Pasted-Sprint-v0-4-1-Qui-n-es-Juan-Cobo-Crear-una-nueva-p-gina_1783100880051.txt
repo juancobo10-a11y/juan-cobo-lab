@@ -1,0 +1,104 @@
+Sprint v0.4.1 — ¿Quién es Juan Cobo?
+
+Crear una nueva página visible llamada “¿Quién es Juan Cobo?”.
+
+Ruta:
+/juan-cobo
+
+Agregarla al navbar y al footer como:
+“Juan Cobo”
+
+Objetivo:
+Cerrar la identidad de Juan Cobo Lab con una página humana, profesional y memorable.
+
+Estructura de la página:
+
+1. Hero
+Título:
+¿Quién es Juan Cobo?
+
+Frase principal:
+No me dedico a encontrar respuestas. Me dedico a hacer mejores preguntas para construir mejores propuestas junto con otros.
+
+Subtítulo:
+Economista, doctor en Ciencias Sociales, investigador, servidor público, profesor y aprendiz permanente.
+
+2. Texto principal
+Usar este texto:
+
+Hola, soy Juan Cobo.
+
+Durante muchos años pensé que mi trabajo consistía en evaluar políticas públicas, construir indicadores, escribir investigaciones y presentar resultados.
+
+Con el tiempo entendí que mi verdadero trabajo era otro: ayudar a comprender mejor los problemas antes de intentar solucionarlos.
+
+Esa idea ha guiado mi vida como economista, investigador, profesor y servidor público. He tenido el privilegio de estudiar en Colombia, Francia y España, y de trabajar en la academia, el sector financiero y la Contraloría General de la República.
+
+Pero los títulos y los cargos nunca han sido el destino. Han sido herramientas para cumplir un propósito más grande: hacer mejores preguntas para construir mejores propuestas junto con otros.
+
+Disfruto enseñar. No porque crea que tengo todas las respuestas, sino porque me entusiasma ver cómo una conversación, una buena pregunta o una metodología ayudan a otra persona a encontrar su propio camino.
+
+Creo profundamente en la apropiación social del conocimiento: el conocimiento solo cobra verdadero valor cuando deja de ser de uno y se convierte en una herramienta para que otros comprendan, decidan y transformen su realidad.
+
+Por eso, cuando alguien me pregunta algo y no conozco la respuesta, rara vez digo “no sé”. Mi respuesta suele ser otra:
+
+“No lo sé todavía... pero averigüémoslo juntos.”
+
+Esa frase ha guiado buena parte de mi vida profesional.
+
+Porque investigar no consiste en demostrar que uno sabe mucho. Consiste en tener la humildad suficiente para seguir aprendiendo.
+
+3. Bloque Martina
+Agregar un bloque destacado:
+
+Si hay una persona que cambió definitivamente mi forma de entender el liderazgo, el servicio y el futuro, esa es mi hija Martina.
+
+Ella me recuerda todos los días que las decisiones que tomamos hoy son el mundo que heredarán quienes vienen detrás de nosotros.
+
+Por eso intento que mi trabajo no se limite a producir informes o investigaciones. Aspiro a dejar herramientas, conversaciones e ideas que ayuden a construir un país donde las decisiones públicas sean más humanas, más rigurosas y más útiles para las próximas generaciones.
+
+4. Bloque Método
+Título:
+Mi forma de trabajar
+
+Texto:
+Algo me da pereque. Hago mejores preguntas. Busco evidencia. Converso. Cocreo. Rayo un documento mártir. Construyo un producto mínimo viable. Lo pongo a prueba. Aprendo. Y vuelvo a empezar.
+
+Agregar visualmente el ciclo:
+Pereque → Preguntas → Evidencia → Cocreación → Documento mártir → Producto mínimo viable → Prueba → Aprendizaje
+
+5. Bloque Pilares
+Título:
+Los pilares de Juan Cobo Lab
+
+Tarjetas:
+- Curiosidad
+- Evidencia
+- Cocreación
+- Acción
+
+6. CTA final
+Texto:
+Si llegaste hasta aquí, bienvenido.
+Aquí venimos a dar pereque.
+No para tener la razón.
+Sino para construir mejores preguntas, mejores ideas y mejores decisiones.
+
+Botón:
+Explorar preguntas
+
+Debe llevar a:
+/preguntas
+
+Diseño:
+Mantener estilo premium de Juan Cobo Lab.
+Mucho espacio en blanco.
+Azul navy, blanco y detalles cobre.
+Responsive para móvil.
+No debe parecer una hoja de vida tradicional.
+
+Después:
+- Hacer commit
+- Push a GitHub
+- Republish
+- Generar changelog v0.4.1

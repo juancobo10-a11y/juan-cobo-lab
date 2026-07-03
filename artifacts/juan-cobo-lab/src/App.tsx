@@ -7,12 +7,14 @@ import Preguntas from './pages/Preguntas';
 import PreguntaPage from './pages/PreguntaPage';
 import ConversacionesPage from './pages/Conversaciones';
 import JuanCobo from './pages/JuanCobo';
+import Metodologias from './pages/Metodologias';
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/juan-cobo" component={JuanCobo} />
+      <Route path="/metodologias" component={Metodologias} />
       <Route path="/constitucion" component={Constitucion} />
       <Route path="/preguntas" component={Preguntas} />
       <Route path="/preguntas/:id" component={PreguntaPage} />

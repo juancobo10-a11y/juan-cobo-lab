@@ -1,85 +1,81 @@
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export type ConversacionTipo = 'video' | 'pdf' | 'articulo';
+// ─── Interface ────────────────────────────────────────────────────────────────
 
 export interface Conversacion {
   id: number;
-  tipo: ConversacionTipo;
   titulo: string;
+  /** Frase corta que resume el eje temático de la conversación */
+  tema: string;
   descripcion: string;
   categoria: string;
-  fecha: string;        // "Junio 2025"
-  destacado?: boolean;  // aparece en el preview del home
-  // Video (tipo: 'video')
-  youtubeId?: string;   // ID del video (parte después de ?v= en YouTube)
-  duracion?: string;    // "45 min"
-  canal?: string;       // nombre del canal o presentador
-  // Presentación PDF (tipo: 'pdf')
-  pdfUrl?: string;      // URL absoluta o ruta relativa al archivo
-  totalSlides?: number;
-  evento?: string;      // nombre de la conferencia o evento
-  // Artículo externo (tipo: 'articulo')
-  articuloUrl?: string; // URL del artículo
-  fuente?: string;      // "El Meridiano", "Razón Pública", etc.
-  etiquetas?: string[];
+  fecha: string;         // "Junio 2025"
+  destacado?: boolean;   // Aparece en el preview del home
+
+  // ── Recursos (todos opcionales) ───────────────────────────────────────────
+  // Si el campo está vacío o undefined → el botón se muestra como "Próximamente"
+  youtubeUrl?: string;   // URL completa del video en YouTube
+  pdfUrl?: string;       // URL o ruta al archivo PDF de la presentación
+  articuloUrl?: string;  // URL del artículo relacionado
 }
 
-// ─── Conversaciones ───────────────────────────────────────────────────────────
-// Agrega aquí las conversaciones reales.
-// Los campos marcados con * son obligatorios para ese tipo de contenido.
+// ─── Datos ────────────────────────────────────────────────────────────────────
+// Completa los campos youtubeUrl, pdfUrl y articuloUrl con los enlaces reales.
+// Si un enlace aún no existe, déjalo vacío ('') o quítalo — el botón
+// aparecerá automáticamente como "Próximamente" y desactivado.
 //
-// Ejemplo de video:
-//   { id: 1, tipo: 'video', titulo: '...', youtubeId: 'dQw4w9WgXcQ',
-//     duracion: '45 min', canal: 'Canal XYZ', ... }
-//
-// Ejemplo de PDF:
-//   { id: 2, tipo: 'pdf', titulo: '...', pdfUrl: '/presentaciones/mi-slides.pdf',
-//     totalSlides: 32, evento: 'Congreso TIC Colombia 2025', ... }
-//
-// Ejemplo de artículo:
-//   { id: 3, tipo: 'articulo', titulo: '...', articuloUrl: 'https://...',
-//     fuente: 'Razón Pública', etiquetas: ['política', 'datos'], ... }
+// Para agregar una entrada nueva:
+//   {
+//     id: 4,
+//     titulo: 'Título de la conversación',
+//     tema: 'Eje temático en una frase',
+//     descripcion: 'Descripción breve de qué se habló.',
+//     categoria: 'TIC | Política pública | Regulación | Investigación',
+//     fecha: 'Mes Año',
+//     youtubeUrl: 'https://www.youtube.com/watch?v=...',
+//     pdfUrl: 'https://... o /presentaciones/nombre.pdf',
+//     articuloUrl: 'https://...',
+//     destacado: true,
+//   },
 
 export const conversations: Conversacion[] = [
-  // ── DEMO — eliminar o reemplazar con contenido real ──────────────────────
+  // ── PENDIENTE DE COMPLETAR — reemplazar con contenido real ───────────────
 
   {
     id: 1,
-    tipo: 'video',
     titulo: 'Datos, contraloría y política pública: una conversación pendiente',
+    tema: 'Control fiscal y evidencia en Colombia',
     descripcion:
-      'Por qué los organismos de control necesitan hablar más con los productores de evidencia, y menos con los titulares de prensa.',
+      'Por qué los organismos de control necesitan hablar más con los productores de evidencia, y menos con los titulares de prensa. Una mirada a la brecha entre la información disponible y las decisiones que se toman.',
     categoria: 'Política pública',
     fecha: 'Próximamente',
     destacado: true,
-    youtubeId: '',       // ← reemplazar con el ID real del video
-    duracion: '—',
-    canal: 'Juan Cobo Lab',
+    youtubeUrl: '',      // ← pendiente de completar
+    pdfUrl: '',          // ← pendiente de completar
+    articuloUrl: '',     // ← pendiente de completar
   },
   {
     id: 2,
-    tipo: 'pdf',
     titulo: 'El sector TIC en Colombia: indicadores, brechas y lo que los datos no dicen',
+    tema: 'Análisis sectorial 2023–2025',
     descripcion:
-      'Presentación de 40 diapositivas con los principales hallazgos del análisis sectorial 2023–2025. Metodología, fuentes y limitaciones explícitas.',
+      'Los principales hallazgos del análisis sectorial del período 2023–2025: metodología, fuentes, limitaciones explícitas y lo que todavía no sabemos sobre el ecosistema digital colombiano.',
     categoria: 'TIC',
     fecha: 'Próximamente',
     destacado: true,
-    pdfUrl: '',          // ← reemplazar con la URL o ruta al PDF
-    totalSlides: 40,
-    evento: 'Evento por confirmar',
+    youtubeUrl: '',      // ← pendiente de completar
+    pdfUrl: '',          // ← pendiente de completar
+    articuloUrl: '',     // ← pendiente de completar
   },
   {
     id: 3,
-    tipo: 'articulo',
     titulo: 'Por qué Colombia necesita una política de datos pública, urgente y valiente',
+    tema: 'Gobernanza de datos y Estado digital',
     descripcion:
-      'El argumento que no alcanzó en 800 palabras de columna: qué implica gobernar con datos en un Estado que todavía teme la transparencia.',
+      'El argumento que no alcanzó en 800 palabras de columna: qué implica gobernar con datos en un Estado que todavía teme la transparencia, y cuál sería el primer paso concreto.',
     categoria: 'Política pública',
     fecha: 'Próximamente',
     destacado: true,
-    articuloUrl: '',     // ← reemplazar con la URL del artículo publicado
-    fuente: 'Por confirmar',
-    etiquetas: ['datos abiertos', 'gobernanza', 'TIC'],
+    youtubeUrl: '',      // ← pendiente de completar
+    pdfUrl: '',          // ← pendiente de completar
+    articuloUrl: '',     // ← pendiente de completar
   },
 ];

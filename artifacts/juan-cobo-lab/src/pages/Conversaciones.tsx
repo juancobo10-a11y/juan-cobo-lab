@@ -390,6 +390,7 @@ export default function ConversacionesPage() {
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/30" />
                 <input
                   type="text"
+                  aria-label="Buscar conversaciones"
                   placeholder="Buscar por título, tema o fuente…"
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}

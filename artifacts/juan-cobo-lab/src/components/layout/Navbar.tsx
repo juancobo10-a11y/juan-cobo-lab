@@ -81,7 +81,7 @@ export function Navbar() {
         <button
           className="md:hidden p-2 text-white/70 hover:text-white transition-colors"
           onClick={() => setIsOpen(!isOpen)}
-          aria-label="Abrir menú"
+          aria-label={isOpen ? 'Cerrar menú' : 'Abrir menú'}
           aria-expanded={isOpen}
           aria-controls="mobile-nav"
         >

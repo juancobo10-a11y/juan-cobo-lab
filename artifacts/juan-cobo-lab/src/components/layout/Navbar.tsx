@@ -89,9 +89,12 @@ export function Navbar() {
           </Link>
           <Link
             href="/helios"
-            className="text-sm font-medium px-3 py-1.5 rounded-lg bg-accent/15 text-accent hover:bg-accent/25 transition-all duration-200"
+            className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg bg-accent/15 text-accent hover:bg-accent/25 transition-all duration-200"
           >
             HELIOS
+            <span className="text-[9px] font-mono font-bold uppercase tracking-wider bg-accent text-white px-1.5 py-0.5 rounded-full leading-none">
+              Beta
+            </span>
           </Link>
         </div>
 
@@ -160,10 +163,13 @@ export function Navbar() {
           </Link>
           <Link
             href="/helios"
-            className="text-base font-medium text-accent bg-accent/10 hover:bg-accent/20 transition-all p-3 rounded-xl"
+            className="flex items-center gap-2 text-base font-medium text-accent bg-accent/10 hover:bg-accent/20 transition-all p-3 rounded-xl"
             onClick={() => setIsOpen(false)}
           >
             HELIOS
+            <span className="text-[9px] font-mono font-bold uppercase tracking-wider bg-accent text-white px-1.5 py-0.5 rounded-full leading-none">
+              Beta
+            </span>
           </Link>
         </div>
       )}

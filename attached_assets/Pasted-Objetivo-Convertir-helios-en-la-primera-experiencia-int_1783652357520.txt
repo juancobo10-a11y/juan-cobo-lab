@@ -1,0 +1,183 @@
+Objetivo
+
+Convertir /helios en la primera experiencia interactiva de Juan Cobo Lab.
+
+No es un chatbot.
+
+No es un formulario.
+
+Es un copiloto de razonamiento.
+
+El usuario debe sentir que está pensando mejor, no llenando una encuesta.
+
+Pantalla 1
+Hero
+
+Título:
+
+¿Qué problema público quieres comprender hoy?
+
+Subtítulo:
+
+HELIOS no comienza proponiendo soluciones. Comienza ayudándote a comprender mejor el problema.
+
+Caja de texto grande.
+
+Placeholder:
+
+Describe el fenómeno que observas...
+
+Ejemplo:
+
+• Deserción escolar rural
+
+• Baja ejecución presupuestal
+
+• Conectividad significativa
+
+• Violencia intrafamiliar
+
+Debajo, una sección:
+
+Otros usuarios han explorado
+
+Mostrar chips clicables:
+
+Conectividad rural
+Educación
+Ciencia, Tecnología e Innovación
+Cambio climático
+Salud pública
+Innovación pública
+Gestión del agua
+
+Botón principal:
+
+Démosle pereque →
+
+Pantalla 2
+
+Título:
+
+Antes de proponer soluciones, comprendamos el problema.
+
+Mostrar una conversación editorial (no estilo chat).
+
+Máximo 150 palabras.
+
+Luego mostrar:
+
+Hipótesis de trabajo
+
+Tres tarjetas.
+
+Cada tarjeta contiene:
+
+nombre de la hipótesis;
+explicación breve;
+nivel de confianza (Alta / Media / Exploratoria);
+pequeño texto:
+
+Basada en evidencia y literatura internacional.
+
+Botón:
+
+Explorar esta hipótesis
+
+Pantalla 3
+
+Título:
+
+Construyamos el panorama
+
+Texto introductorio:
+
+No todos los problemas públicos deben analizarse de la misma manera. En este caso comenzaremos utilizando PESTEL para ampliar la mirada antes de profundizar.
+
+Mostrar seis tarjetas:
+
+Política
+Economía
+Sociedad
+Tecnología
+Ambiente
+Marco Legal
+
+Cada tarjeta tiene:
+
+explicación breve;
+una pregunta orientadora.
+
+No usar tablas.
+
+No usar formularios.
+
+Todo debe sentirse conversacional.
+
+Pantalla 4
+
+No mostrar "Proceso terminado".
+
+Mostrar:
+
+Lo que descubrimos juntos
+
+Problema inicial
+
+↓
+
+Hipótesis seleccionada
+
+↓
+
+Herramienta utilizada
+
+↓
+
+Lo aprendido
+
+Texto:
+
+En pocos minutos pasaste de describir un fenómeno a construir una hipótesis de trabajo respaldada por un método de análisis. Ese es el propósito de HELIOS.
+
+Botones:
+
+Analizar otro problema
+Explorar otra hipótesis
+Conocer HELIOS
+
+Abajo agregar una cita:
+
+"Las respuestas cambian. Las buenas preguntas permanecen."
+
+Navbar
+
+Mostrar:
+
+HELIOS · Beta
+
+con un pequeño badge naranja.
+
+Diseño
+
+Mantener completamente la identidad de Juan Cobo Lab.
+
+Editorial.
+
+Mucho espacio en blanco.
+
+Animaciones discretas.
+
+Nada que parezca un formulario administrativo.
+
+Accesibilidad
+Navegación por teclado.
+Focus visible.
+Responsive.
+Buen contraste.
+Transiciones suaves.
+Entregables
+Commit.
+Push.
+Republish.
+Changelog v0.2.

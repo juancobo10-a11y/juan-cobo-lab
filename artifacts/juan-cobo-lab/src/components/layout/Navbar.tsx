@@ -87,6 +87,12 @@ export function Navbar() {
           >
             La Constitución
           </Link>
+          <Link
+            href="/helios"
+            className="text-sm font-medium px-3 py-1.5 rounded-lg bg-accent/15 text-accent hover:bg-accent/25 transition-all duration-200"
+          >
+            HELIOS
+          </Link>
         </div>
 
         {/* Mobile toggle */}
@@ -151,6 +157,13 @@ export function Navbar() {
             onClick={() => setIsOpen(false)}
           >
             La Constitución
+          </Link>
+          <Link
+            href="/helios"
+            className="text-base font-medium text-accent bg-accent/10 hover:bg-accent/20 transition-all p-3 rounded-xl"
+            onClick={() => setIsOpen(false)}
+          >
+            HELIOS
           </Link>
         </div>
       )}

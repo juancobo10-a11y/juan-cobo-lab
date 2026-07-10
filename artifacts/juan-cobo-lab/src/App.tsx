@@ -8,6 +8,7 @@ import PreguntaPage from './pages/PreguntaPage';
 import ConversacionesPage from './pages/Conversaciones';
 import JuanCobo from './pages/JuanCobo';
 import Metodologias from './pages/Metodologias';
+import Helios from './pages/Helios';
 
 function Router() {
   return (
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/preguntas" component={Preguntas} />
       <Route path="/preguntas/:id" component={PreguntaPage} />
       <Route path="/conversaciones" component={ConversacionesPage} />
+      <Route path="/helios" component={Helios} />
       <Route component={NotFound} />
     </Switch>
   );

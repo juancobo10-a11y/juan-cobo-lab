@@ -43,6 +43,7 @@ const hipotesis: {
   titulo: string;
   texto: string;
   confianza: NivelConfianza;
+  nextStep: string;
 }[] = [
   {
     numero: "01",

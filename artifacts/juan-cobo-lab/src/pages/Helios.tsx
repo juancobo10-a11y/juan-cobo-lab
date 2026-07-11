@@ -135,13 +135,13 @@ const pestel: {
 ];
 
 const exploradoChips = [
-  "Conectividad rural",
-  "Educación",
-  "Ciencia, Tecnología e Innovación",
-  "Cambio climático",
-  "Salud pública",
-  "Innovación pública",
-  "Gestión del agua",
+  "Índice de Brecha Digital",
+  "Conectividad significativa",
+  "Transformación digital territorial",
+  "Apropiación digital rural",
+  "Habilidades digitales",
+  "Infraestructura TIC",
+  "Brecha urbano-rural",
 ];
 
 // ─── Pantalla 1: Entrada ───────────────────────────────────────────────────

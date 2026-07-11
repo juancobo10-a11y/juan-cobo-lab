@@ -545,13 +545,12 @@ function PantallaDescubrimiento({
   }, []);
 
   const pasos = [
-    { label: "Problema inicial", valor: problema },
+    { label: "Problema analizado", valor: problema },
     { label: "Hipótesis seleccionada", valor: hipotesisSeleccionada.titulo },
     { label: "Herramienta utilizada", valor: "Análisis PESTEL" },
     {
-      label: "Lo aprendido",
-      valor:
-        "Un problema público tiene múltiples dimensiones. Antes de proponer soluciones, es necesario comprender el sistema.",
+      label: "Próximo paso recomendado",
+      valor: hipotesisSeleccionada.nextStep,
     },
   ];
 

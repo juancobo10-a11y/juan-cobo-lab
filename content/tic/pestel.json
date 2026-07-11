@@ -1,0 +1,38 @@
+[
+  {
+    "letra": "P",
+    "dimension": "Política",
+    "explicacion": "Las decisiones sobre el Fondo Único de Tecnologías, el Plan Nacional de Conectividad y las prioridades del Ministerio TIC determinan qué territorios reciben inversión y bajo qué condiciones.",
+    "pregunta": "¿Qué decisiones políticas recientes han ampliado o reducido la brecha digital en los territorios más vulnerables?"
+  },
+  {
+    "letra": "E",
+    "dimension": "Economía",
+    "explicacion": "El costo de los planes de datos sigue siendo una barrera crítica. Para muchas familias colombianas, la conectividad compite directamente con la alimentación, el transporte o la educación.",
+    "pregunta": "¿La asequibilidad de los planes de datos es el principal factor de exclusión, o existen barreras más determinantes?"
+  },
+  {
+    "letra": "S",
+    "dimension": "Sociedad",
+    "explicacion": "Las habilidades digitales, la confianza en los servicios en línea y la percepción de utilidad de internet varían enormemente entre generaciones, géneros y comunidades rurales o étnicas.",
+    "pregunta": "¿Qué grupos poblacionales enfrentan las barreras de apropiación más profundas y por qué?"
+  },
+  {
+    "letra": "T",
+    "dimension": "Tecnología",
+    "explicacion": "La calidad de la conexión —velocidad, latencia, estabilidad— determina qué se puede hacer con internet. Una conexión lenta excluye del trabajo remoto y la educación virtual, aunque técnicamente exista cobertura.",
+    "pregunta": "¿La calidad de la conectividad disponible permite a los territorios participar realmente en la economía digital?"
+  },
+  {
+    "letra": "E",
+    "dimension": "Ambiente",
+    "explicacion": "La geografía colombiana —montañas, selva, ríos— encarece el despliegue de infraestructura en zonas rurales y dispersas. Los desastres naturales y el conflicto armado también interrumpen las redes existentes.",
+    "pregunta": "¿Cómo afectan las condiciones territoriales y ambientales la provisión y calidad de la conectividad?"
+  },
+  {
+    "letra": "L",
+    "dimension": "Marco Legal",
+    "explicacion": "La regulación del espectro radioeléctrico, las obligaciones de cobertura de los operadores y el marco de protección de datos configuran el ecosistema en que se despliega la conectividad.",
+    "pregunta": "¿El marco regulatorio incentiva a los operadores a llegar a los territorios más difíciles, o solo a los rentables?"
+  }
+]

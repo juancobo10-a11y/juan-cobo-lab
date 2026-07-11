@@ -2,6 +2,10 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Navbar } from "@/components/layout/Navbar";
 import { ArrowRight, ChevronRight } from "lucide-react";
+import contextoData from "../../../../content/tic/contexto.json";
+import hipotesisData from "../../../../content/tic/hipotesis.json";
+import pestelData from "../../../../content/tic/pestel.json";
+import chipsData from "../../../../content/tic/chips.json";
 
 // ─── Animation variants ────────────────────────────────────────────────────
 const screenEnter: Variants = {
@@ -32,117 +36,34 @@ const fadeUp: Variants = {
   },
 };
 
-// ─── Static content (MVP 0.2 — hardcoded) ─────────────────────────────────
-const contexto =
-  "Tener cobertura de internet no significa estar conectado de verdad. En Colombia, millones de personas viven en zonas donde hay señal pero no pueden pagar un plan, no saben usar los servicios disponibles o simplemente no encuentran contenidos relevantes para su vida cotidiana. La brecha digital ya no es solo un problema de infraestructura: es una brecha de calidad, de asequibilidad, de habilidades y de apropiación. Y esa brecha no se distribuye igual: el Chocó no tiene el mismo problema que Medellín, aunque en ambos exista conectividad. Entender esto cambia completamente la política pública. No alcanza con tender cables. La pregunta ya no es cuántos cables instalamos. La pregunta es qué capacidades desarrollan las personas gracias a esa conectividad.";
-
+// ─── Static content (MVP 0.3 — caso real: Índice de Brecha Digital Colombia) ──
 type NivelConfianza = "Alta" | "Media" | "Exploratoria";
 
-const hipotesis: {
+type Hipotesis = {
   numero: string;
   titulo: string;
   texto: string;
   confianza: NivelConfianza;
   nextStep: string;
-}[] = [
-  {
-    numero: "01",
-    titulo: "La infraestructura dejó de ser el cuello de botella principal",
-    texto:
-      "En los territorios donde ya existe cobertura, las brechas más críticas están en el uso y la apropiación: asequibilidad de los planes, habilidades digitales y relevancia de los servicios. Ampliar la red sin atender estas dimensiones solo profundiza la desigualdad.",
-    confianza: "Alta",
-    nextStep:
-      "Revisar los datos de uso efectivo del Ministerio TIC: ¿qué porcentaje de usuarios con acceso no utiliza activamente los servicios digitales disponibles?",
-  },
-  {
-    numero: "02",
-    titulo: "Las soluciones uniformes no funcionan en territorios tan diversos",
-    texto:
-      "El problema de Quibdó no es el mismo que el de Bogotá, aunque en ambos haya internet. Las políticas nacionales tienden a homogeneizar respuestas que requieren diferenciación según las condiciones económicas, culturales y geográficas de cada territorio.",
-    confianza: "Alta",
-    nextStep:
-      "Construir una tipología de municipios según su perfil de brecha: ¿qué clusters emergen al cruzar cobertura, uso, asequibilidad y habilidades digitales?",
-  },
-  {
-    numero: "03",
-    titulo: "Los indicadores actuales miden cobertura, no transformación",
-    texto:
-      "Las métricas tradicionales —penetración, velocidad, cobertura— no capturan si la conectividad genera cambios reales en educación, economía o participación ciudadana. Sin mejores indicadores, es imposible saber si las políticas están funcionando.",
-    confianza: "Media",
-    nextStep:
-      "Explorar el marco de conectividad significativa de la UIT y proponer indicadores complementarios al Índice de Brecha Digital del Ministerio TIC.",
-  },
-];
+};
+
+type PestelItem = {
+  letra: string;
+  dimension: string;
+  explicacion: string;
+  pregunta: string;
+};
+
+const contexto = contextoData.texto;
+const hipotesis = hipotesisData as Hipotesis[];
+const pestel = pestelData as PestelItem[];
+const exploradoChips = chipsData.explorados;
+
 const confianzaStyle: Record<NivelConfianza, string> = {
   Alta: "bg-emerald-50 text-emerald-700 ring-emerald-200/60",
   Media: "bg-amber-50 text-amber-700 ring-amber-200/60",
   Exploratoria: "bg-violet-50 text-violet-700 ring-violet-200/60",
 };
-const pestel: {
-  letra: string;
-  dimension: string;
-  explicacion: string;
-  pregunta: string;
-}[] = [
-  {
-    letra: "P",
-    dimension: "Política",
-    explicacion:
-      "Las decisiones sobre el Fondo Único de Tecnologías, el Plan Nacional de Conectividad y las prioridades del Ministerio TIC determinan qué territorios reciben inversión y bajo qué condiciones.",
-    pregunta:
-      "¿Qué decisiones políticas recientes han ampliado o reducido la brecha digital en los territorios más vulnerables?",
-  },
-  {
-    letra: "E",
-    dimension: "Economía",
-    explicacion:
-      "El costo de los planes de datos sigue siendo una barrera crítica. Para muchas familias colombianas, la conectividad compite directamente con la alimentación, el transporte o la educación.",
-    pregunta:
-      "¿La asequibilidad de los planes de datos es el principal factor de exclusión, o existen barreras más determinantes?",
-  },
-  {
-    letra: "S",
-    dimension: "Sociedad",
-    explicacion:
-      "Las habilidades digitales, la confianza en los servicios en línea y la percepción de utilidad de internet varían enormemente entre generaciones, géneros y comunidades rurales o étnicas.",
-    pregunta:
-      "¿Qué grupos poblacionales enfrentan las barreras de apropiación más profundas y por qué?",
-  },
-  {
-    letra: "T",
-    dimension: "Tecnología",
-    explicacion:
-      "La calidad de la conexión —velocidad, latencia, estabilidad— determina qué se puede hacer con internet. Una conexión lenta excluye del trabajo remoto y la educación virtual, aunque técnicamente exista cobertura.",
-    pregunta:
-      "¿La calidad de la conectividad disponible permite a los territorios participar realmente en la economía digital?",
-  },
-  {
-    letra: "E",
-    dimension: "Ambiente",
-    explicacion:
-      "La geografía colombiana —montañas, selva, ríos— encarece el despliegue de infraestructura en zonas rurales y dispersas. Los desastres naturales y el conflicto armado también interrumpen las redes existentes.",
-    pregunta:
-      "¿Cómo afectan las condiciones territoriales y ambientales la provisión y calidad de la conectividad?",
-  },
-  {
-    letra: "L",
-    dimension: "Marco Legal",
-    explicacion:
-      "La regulación del espectro radioeléctrico, las obligaciones de cobertura de los operadores y el marco de protección de datos configuran el ecosistema en que se despliega la conectividad.",
-    pregunta:
-      "¿El marco regulatorio incentiva a los operadores a llegar a los territorios más difíciles, o solo a los rentables?",
-  },
-];
-
-const exploradoChips = [
-  "Índice de Brecha Digital",
-  "Conectividad significativa",
-  "Transformación digital territorial",
-  "Apropiación digital rural",
-  "Habilidades digitales",
-  "Infraestructura TIC",
-  "Brecha urbano-rural",
-];
 
 // ─── Pantalla 1: Entrada ───────────────────────────────────────────────────
 function PantallaEntrada({
@@ -227,12 +148,7 @@ function PantallaEntrada({
               Por ejemplo
             </p>
             <div className="flex flex-wrap gap-2">
-              {[
-                "¿Por qué persiste la brecha digital donde ya existe cobertura?",
-                "Asequibilidad de planes de datos",
-                "Habilidades digitales en adultos mayores",
-                "Calidad de conectividad en municipios rurales",
-              ].map((ej) => (
+              {(chipsData.ejemplos as string[]).map((ej) => (
                 <button
                   key={ej}
                   type="button"

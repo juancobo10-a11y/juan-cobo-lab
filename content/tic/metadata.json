@@ -1,0 +1,10 @@
+{
+  "id": "brecha-digital-colombia",
+  "titulo": "Índice de Brecha Digital Colombia",
+  "descripcion": "Análisis de las dimensiones que configuran la brecha digital en Colombia: asequibilidad, apropiación, habilidades y calidad de la conexión.",
+  "tema": "TIC",
+  "herramienta": "PESTEL",
+  "nivelComplejidad": "Intermedio",
+  "version": "0.3",
+  "estado": "activo"
+}

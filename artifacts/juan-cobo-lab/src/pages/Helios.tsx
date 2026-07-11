@@ -228,7 +228,7 @@ function PantallaEntrada({
             </p>
             <div className="flex flex-wrap gap-2">
               {[
-                "Brechas digitales en territorios con cobertura",
+                "¿Por qué persiste la brecha digital donde ya existe cobertura?",
                 "Asequibilidad de planes de datos",
                 "Habilidades digitales en adultos mayores",
                 "Calidad de conectividad en municipios rurales",

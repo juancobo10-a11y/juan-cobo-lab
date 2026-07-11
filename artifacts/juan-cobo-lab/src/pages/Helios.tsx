@@ -46,39 +46,38 @@ const hipotesis: {
   nextStep: string;
 }[] = [
   {
-    numero: '01',
-    titulo: 'La infraestructura dejó de ser el cuello de botella principal',
+    numero: "01",
+    titulo: "La infraestructura dejó de ser el cuello de botella principal",
     texto:
-      'En los territorios donde ya existe cobertura, las brechas más críticas están en el uso y la apropiación: asequibilidad de los planes, habilidades digitales y relevancia de los servicios. Ampliar la red sin atender estas dimensiones solo profundiza la desigualdad.',
-    confianza: 'Alta',
+      "En los territorios donde ya existe cobertura, las brechas más críticas están en el uso y la apropiación: asequibilidad de los planes, habilidades digitales y relevancia de los servicios. Ampliar la red sin atender estas dimensiones solo profundiza la desigualdad.",
+    confianza: "Alta",
     nextStep:
-      'Revisar los datos de uso efectivo del Ministerio TIC: ¿qué porcentaje de usuarios con acceso no utiliza activamente los servicios digitales disponibles?',
+      "Revisar los datos de uso efectivo del Ministerio TIC: ¿qué porcentaje de usuarios con acceso no utiliza activamente los servicios digitales disponibles?",
   },
   {
-    numero: '02',
-    titulo: 'Las soluciones uniformes no funcionan en territorios tan diversos',
+    numero: "02",
+    titulo: "Las soluciones uniformes no funcionan en territorios tan diversos",
     texto:
-      'El problema de Quibdó no es el mismo que el de Bogotá, aunque en ambos haya internet. Las políticas nacionales tienden a homogeneizar respuestas que requieren diferenciación según las condiciones económicas, culturales y geográficas de cada territorio.',
-    confianza: 'Alta',
+      "El problema de Quibdó no es el mismo que el de Bogotá, aunque en ambos haya internet. Las políticas nacionales tienden a homogeneizar respuestas que requieren diferenciación según las condiciones económicas, culturales y geográficas de cada territorio.",
+    confianza: "Alta",
     nextStep:
-      'Construir una tipología de municipios según su perfil de brecha: ¿qué clusters emergen al cruzar cobertura, uso, asequibilidad y habilidades digitales?',
+      "Construir una tipología de municipios según su perfil de brecha: ¿qué clusters emergen al cruzar cobertura, uso, asequibilidad y habilidades digitales?",
   },
   {
-    numero: '03',
-    titulo: 'Los indicadores actuales miden cobertura, no transformación',
+    numero: "03",
+    titulo: "Los indicadores actuales miden cobertura, no transformación",
     texto:
-      'Las métricas tradicionales —penetración, velocidad, cobertura— no capturan si la conectividad genera cambios reales en educación, economía o participación ciudadana. Sin mejores indicadores, es imposible saber si las políticas están funcionando.',
-    confianza: 'Media',
+      "Las métricas tradicionales —penetración, velocidad, cobertura— no capturan si la conectividad genera cambios reales en educación, economía o participación ciudadana. Sin mejores indicadores, es imposible saber si las políticas están funcionando.",
+    confianza: "Media",
     nextStep:
-      'Explorar el marco de conectividad significativa de la UIT y proponer indicadores complementarios al Índice de Brecha Digital del Ministerio TIC.',
+      "Explorar el marco de conectividad significativa de la UIT y proponer indicadores complementarios al Índice de Brecha Digital del Ministerio TIC.",
   },
-
+];
 const confianzaStyle: Record<NivelConfianza, string> = {
   Alta: "bg-emerald-50 text-emerald-700 ring-emerald-200/60",
   Media: "bg-amber-50 text-amber-700 ring-amber-200/60",
   Exploratoria: "bg-violet-50 text-violet-700 ring-violet-200/60",
 };
-
 const pestel: {
   letra: string;
   dimension: string;
@@ -89,49 +88,49 @@ const pestel: {
     letra: "P",
     dimension: "Política",
     explicacion:
-      "Las decisiones legislativas, las políticas de gratuidad y la voluntad institucional de los gobiernos locales determinan si el sistema escolar puede retener a sus estudiantes.",
+      "Las decisiones sobre el Fondo Único de Tecnologías, el Plan Nacional de Conectividad y las prioridades del Ministerio TIC determinan qué territorios reciben inversión y bajo qué condiciones.",
     pregunta:
-      "¿Qué decisiones políticas han moldeado este problema en los últimos diez años?",
+      "¿Qué decisiones políticas recientes han ampliado o reducido la brecha digital en los territorios más vulnerables?",
   },
   {
     letra: "E",
     dimension: "Economía",
     explicacion:
-      "La pobreza, el trabajo infantil y los costos indirectos —transporte, uniformes, materiales— hacen que para muchas familias el abandono escolar sea la opción financieramente lógica.",
+      "El costo de los planes de datos sigue siendo una barrera crítica. Para muchas familias colombianas, la conectividad compite directamente con la alimentación, el transporte o la educación.",
     pregunta:
-      "¿Cómo incide el ingreso familiar en la decisión de permanecer o salir del sistema?",
+      "¿La asequibilidad de los planes de datos es el principal factor de exclusión, o existen barreras más determinantes?",
   },
   {
     letra: "S",
     dimension: "Sociedad",
     explicacion:
-      "Las normas culturales sobre el rol de los jóvenes, las dinámicas de género, la violencia comunitaria y la presión del entorno peer influyen directamente en si un estudiante llega o no al colegio.",
+      "Las habilidades digitales, la confianza en los servicios en línea y la percepción de utilidad de internet varían enormemente entre generaciones, géneros y comunidades rurales o étnicas.",
     pregunta:
-      "¿Qué dinámicas sociales o comunitarias alimentan el abandono escolar?",
+      "¿Qué grupos poblacionales enfrentan las barreras de apropiación más profundas y por qué?",
   },
   {
     letra: "T",
     dimension: "Tecnología",
     explicacion:
-      "El acceso a internet y herramientas digitales puede reducir barreras de distancia, pero también genera nuevas formas de exclusión cuando la infraestructura no llega o no hay habilidades para usarla.",
+      "La calidad de la conexión —velocidad, latencia, estabilidad— determina qué se puede hacer con internet. Una conexión lenta excluye del trabajo remoto y la educación virtual, aunque técnicamente exista cobertura.",
     pregunta:
-      "¿La tecnología disponible acorta o amplía las brechas en este problema?",
+      "¿La calidad de la conectividad disponible permite a los territorios participar realmente en la economía digital?",
   },
   {
     letra: "E",
     dimension: "Ambiente",
     explicacion:
-      "La ruralidad, las distancias, los riesgos climáticos y el entorno físico determinan si un estudiante puede llegar regularmente a la escuela, especialmente en territorios dispersos.",
+      "La geografía colombiana —montañas, selva, ríos— encarece el despliegue de infraestructura en zonas rurales y dispersas. Los desastres naturales y el conflicto armado también interrumpen las redes existentes.",
     pregunta:
-      "¿Cómo afectan el territorio y el entorno físico la asistencia regular?",
+      "¿Cómo afectan las condiciones territoriales y ambientales la provisión y calidad de la conectividad?",
   },
   {
     letra: "L",
     dimension: "Marco Legal",
     explicacion:
-      "El marco normativo establece la obligatoriedad de la educación, los derechos de los estudiantes y las responsabilidades del Estado. Sus vacíos o débil implementación tienen efectos directos sobre la retención.",
+      "La regulación del espectro radioeléctrico, las obligaciones de cobertura de los operadores y el marco de protección de datos configuran el ecosistema en que se despliega la conectividad.",
     pregunta:
-      "¿Qué garantías legales existen y qué vacíos deben cerrarse para proteger la permanencia?",
+      "¿El marco regulatorio incentiva a los operadores a llegar a los territorios más difíciles, o solo a los rentables?",
   },
 ];
 

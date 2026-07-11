@@ -46,27 +46,32 @@ const hipotesis: {
   nextStep: string;
 }[] = [
   {
-    numero: "01",
-    titulo: "El problema es de demanda, no de oferta",
+    numero: '01',
+    titulo: 'La infraestructura dejó de ser el cuello de botella principal',
     texto:
-      "Las familias enfrentan costos de oportunidad que hacen más racional salir del sistema que permanecer en él: el ingreso inmediato del trabajo pesa más que la promesa de largo plazo de la educación.",
-    confianza: "Alta",
+      'En los territorios donde ya existe cobertura, las brechas más críticas están en el uso y la apropiación: asequibilidad de los planes, habilidades digitales y relevancia de los servicios. Ampliar la red sin atender estas dimensiones solo profundiza la desigualdad.',
+    confianza: 'Alta',
+    nextStep:
+      'Revisar los datos de uso efectivo del Ministerio TIC: ¿qué porcentaje de usuarios con acceso no utiliza activamente los servicios digitales disponibles?',
   },
   {
-    numero: "02",
-    titulo: "La alerta temprana puede cambiar el resultado",
+    numero: '02',
+    titulo: 'Las soluciones uniformes no funcionan en territorios tan diversos',
     texto:
-      "Los sistemas de seguimiento basados en asistencia y rendimiento podrían prevenir una porción significativa de los casos si se activan en el primer trimestre de rezago.",
-    confianza: "Media",
+      'El problema de Quibdó no es el mismo que el de Bogotá, aunque en ambos haya internet. Las políticas nacionales tienden a homogeneizar respuestas que requieren diferenciación según las condiciones económicas, culturales y geográficas de cada territorio.',
+    confianza: 'Alta',
+    nextStep:
+      'Construir una tipología de municipios según su perfil de brecha: ¿qué clusters emergen al cruzar cobertura, uso, asequibilidad y habilidades digitales?',
   },
   {
-    numero: "03",
-    titulo: "El currículo no habla al territorio",
+    numero: '03',
+    titulo: 'Los indicadores actuales miden cobertura, no transformación',
     texto:
-      "La percepción de irrelevancia del contenido escolar impulsa el abandono, especialmente en zonas rurales y comunidades indígenas.",
-    confianza: "Exploratoria",
+      'Las métricas tradicionales —penetración, velocidad, cobertura— no capturan si la conectividad genera cambios reales en educación, economía o participación ciudadana. Sin mejores indicadores, es imposible saber si las políticas están funcionando.',
+    confianza: 'Media',
+    nextStep:
+      'Explorar el marco de conectividad significativa de la UIT y proponer indicadores complementarios al Índice de Brecha Digital del Ministerio TIC.',
   },
-];
 
 const confianzaStyle: Record<NivelConfianza, string> = {
   Alta: "bg-emerald-50 text-emerald-700 ring-emerald-200/60",

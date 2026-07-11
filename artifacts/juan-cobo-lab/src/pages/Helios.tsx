@@ -228,10 +228,10 @@ function PantallaEntrada({
             </p>
             <div className="flex flex-wrap gap-2">
               {[
-                "Deserción escolar rural",
-                "Baja ejecución presupuestal",
-                "Conectividad significativa",
-                "Violencia intrafamiliar",
+                "Brechas digitales en territorios con cobertura",
+                "Asequibilidad de planes de datos",
+                "Habilidades digitales en adultos mayores",
+                "Calidad de conectividad en municipios rurales",
               ].map((ej) => (
                 <button
                   key={ej}

@@ -2,6 +2,61 @@
 
 ---
 
+## v0.5 — 2026-07-14
+
+### Knowledge Router (RFC-0001)
+
+**Arquitectura nueva — sin cambios visuales al usuario**
+
+#### Módulos creados
+
+- `src/router/types.ts` — contratos públicos: `PackMetadata`, `KnowledgePack`, `RouterInput`, `MatchedTerm`, `PackCandidate`, `RouterResult`, `RoutingAlgorithm`
+- `src/router/algorithms/KeywordAlgorithm.ts` — algoritmo v1 determinista:
+  - Normalización de tildes (NFD + strip diacritics)
+  - Eliminación de palabras vacías (40+ stopwords español)
+  - Stemmer básico singular/plural (`-es`, `-s`)
+  - Reconocimiento de frases completas (`"brecha digital"` > `"digital"`)
+  - Pesos por campo: keyword-frase 0.55 > keyword-token 0.30 > tema 0.20 > título 0.15 > descripción 0.10
+  - Deduplicación: tokens cubiertos por una frase no se vuelven a puntuar
+- `src/router/KnowledgeRouter.ts` — instancia configurable; inyecta `RoutingAlgorithm`; umbrales de confianza (alta ≥ 0.42, media ≥ 0.20, ninguna < 0.05); detección de empate (delta ≤ 0.09); solo carga contenido del pack ganador (lazy imports)
+- `src/router/registry.ts` — registro explícito de packs; añadir un pack = 1 entrada nueva sin tocar Helios.tsx ni KnowledgeRouter.ts
+
+#### Knowledge Pack Educación (nuevo)
+
+- `content/educacion/` con 5 archivos JSON: metadata, contexto, hipotesis (3), pestel (6 dimensiones), chips
+- Tema: deserción escolar en Colombia — causas económicas, geográficas y pedagógicas
+
+#### Knowledge Pack TIC (actualizado)
+
+- `content/tic/metadata.json` — campo `keywords` añadido (18 términos de dominio)
+
+#### Integración en Helios.tsx
+
+- Eliminados los 4 imports estáticos de JSON hardcoded
+- Nuevo estado de pantalla: `"enrutando"` → `"confirmacion-candidatos"` → `"sin-pack"`
+- `PantallaEnrutando`: spinner mientras el router procesa la consulta
+- `PantallaConfirmacion`: muestra candidatos con score, confianza y términos coincidentes cuando hay empate o baja confianza; el usuario elige
+- `PantallaSinPack`: respuesta cuando ningún pack supera el umbral mínimo
+- Las 4 pantallas originales (Entrada, Hipótesis, PESTEL, Descubrimiento) sin cambios visuales
+
+#### Resultados de los casos de aceptación (smoke tests 5/5 ✅)
+
+| Consulta | Decisión | Pack | Score |
+|---|---|---|---|
+| "¿Por qué persiste la brecha digital?" | seleccionado | TIC | 0.955 (alta) |
+| "¿Por qué aumenta la deserción escolar?" | seleccionado | Educación | 0.773 (alta) |
+| "Habilidades digitales en adultos mayores" | seleccionado | TIC | 0.409 (media) |
+| "¿Cómo reducir la mortalidad materna?" | ninguno | — | 0 |
+| "Conectividad en escuelas rurales" | candidatos (empate) | TIC + Educación | 0.242 / 0.182 |
+
+#### Preparado para escalar
+
+- Interfaz `RoutingAlgorithm` estable para reemplazar por embeddings, LLM o RAG sin modificar el Router
+- Registry como única línea de cambio al añadir un nuevo pack
+- Metadata lazy-loading: solo se carga el contenido del pack seleccionado
+
+---
+
 ## v0.4 — 2026-07-11
 
 ### Arquitectura de contenido

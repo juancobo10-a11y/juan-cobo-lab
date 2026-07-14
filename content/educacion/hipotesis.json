@@ -1,0 +1,23 @@
+[
+  {
+    "numero": "H1",
+    "titulo": "La deserción escolar es principalmente un fenómeno económico",
+    "texto": "Las familias en pobreza multidimensional enfrentan costos de oportunidad insostenibles: el tiempo en la escuela compite directamente con ingresos laborales necesarios para la subsistencia. Los programas de transferencias condicionadas reducen la deserción, pero no eliminan los incentivos estructurales que la generan.",
+    "confianza": "Alta",
+    "nextStep": "Analizar microdatos del SISBEN cruzados con tasas de deserción por municipio para cuantificar la correlación con pobreza multidimensional."
+  },
+  {
+    "numero": "H2",
+    "titulo": "La baja calidad percibida de la educación desincentiva la permanencia",
+    "texto": "Cuando estudiantes y familias perciben que la educación disponible no mejora sus perspectivas laborales o sociales, el cálculo costo-beneficio favorece la salida temprana. El rezago académico acumulado refuerza este ciclo: quien va atrasado tiene menor probabilidad de sentirse capaz de continuar.",
+    "confianza": "Media",
+    "nextStep": "Revisar resultados de Pruebas Saber por estrato socioeconómico y cruzarlos con tasas de abandono en el mismo período."
+  },
+  {
+    "numero": "H3",
+    "titulo": "La dispersión geográfica es la barrera dominante en zonas rurales",
+    "texto": "En municipios con alta ruralidad dispersa, el tiempo y costo de desplazamiento al establecimiento educativo más cercano superan la capacidad de muchas familias. Los modelos de educación flexible y acelerada no han alcanzado la cobertura necesaria para contrarrestar este factor.",
+    "confianza": "Alta",
+    "nextStep": "Georreferenciar establecimientos educativos con modelos de accesibilidad (tiempo de viaje) y cruzar con tasas de deserción rural por municipio."
+  }
+]

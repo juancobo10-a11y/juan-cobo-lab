@@ -1,0 +1,38 @@
+[
+  {
+    "letra": "P",
+    "dimension": "Político",
+    "explicacion": "Las políticas de gratuidad y de alimentación escolar han reducido barreras de acceso, pero su implementación varía significativamente entre departamentos. La continuidad de programas como 'Generación E' y los modelos de educación flexible depende de las prioridades de cada gobierno.",
+    "pregunta": "¿Qué mecanismos de política pública tienen mayor impacto comprobado sobre la permanencia escolar en Colombia?"
+  },
+  {
+    "letra": "E",
+    "dimension": "Económico",
+    "explicacion": "El trabajo infantil y adolescente como estrategia de supervivencia familiar es el factor económico más determinante de la deserción. La pobreza multidimensional correlaciona fuertemente con las tasas de abandono: los quintiles más bajos de ingreso concentran la mayor proporción de desertores.",
+    "pregunta": "¿En qué rangos de ingreso familiar se concentra el mayor riesgo de deserción escolar y qué tipo de transferencia lo mitiga mejor?"
+  },
+  {
+    "letra": "S",
+    "dimension": "Social",
+    "explicacion": "El embarazo adolescente, la violencia intrafamiliar y la estigmatización en el entorno escolar son factores sociales que elevan el riesgo de abandono, especialmente en niñas y jóvenes en situación de vulnerabilidad. Las normas culturales sobre el valor de la educación también inciden.",
+    "pregunta": "¿Cómo varía la tasa de deserción según género y grupo étnico en zonas con alta conflictividad social?"
+  },
+  {
+    "letra": "T",
+    "dimension": "Tecnológico",
+    "explicacion": "La pandemia expuso la brecha digital como barrera educativa de primer orden: sin conectividad ni dispositivos, la educación remota agravó el rezago acumulado y disparó temporalmente las tasas de abandono. La tecnología puede ser habilitador o amplificador de desigualdad según el contexto.",
+    "pregunta": "¿La brecha digital amplificó la deserción diferencial entre zonas urbanas y rurales durante la pandemia?"
+  },
+  {
+    "letra": "E",
+    "dimension": "Ecológico",
+    "explicacion": "Los eventos climáticos extremos —inundaciones, sequías— en departamentos como Chocó, Vichada y La Guajira generan interrupciones del año escolar que elevan el riesgo de abandono definitivo. El cambio climático proyecta mayor frecuencia de estos eventos.",
+    "pregunta": "¿Qué proporción de la deserción en zonas de alta variabilidad climática está asociada a emergencias ambientales?"
+  },
+  {
+    "letra": "L",
+    "dimension": "Legal",
+    "explicacion": "La obligatoriedad legal de la educación hasta los 15 años no es suficiente sin mecanismos de cumplimiento efectivos. Las instituciones educativas tienen capacidad limitada de seguimiento a estudiantes ausentes, y los sistemas de alerta temprana siguen siendo incipientes.",
+    "pregunta": "¿Qué marcos legales de seguimiento y reingreso han sido más efectivos en otros países latinoamericanos para reducir el abandono escolar?"
+  }
+]

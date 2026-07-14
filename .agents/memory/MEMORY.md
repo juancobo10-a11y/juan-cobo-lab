@@ -1,0 +1,1 @@
+- [HELIOS Knowledge Router](helios-router.md) — arquitectura del Router de Sprint 0.5; decisiones de algoritmo, umbrales y extensión futura

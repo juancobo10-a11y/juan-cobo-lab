@@ -1,0 +1,159 @@
+🚀 Sprint 0.5 — Knowledge Router (RFC-0001)
+
+Quiero iniciar el Sprint 0.5 de HELIOS.
+
+Antes de implementar código, analiza la arquitectura propuesta y valida que sea la mejor opción. Si identificas una alternativa superior, propónla y justifícala.
+
+El objetivo no es únicamente que funcione, sino construir una arquitectura escalable para los próximos años.
+
+Contexto
+
+Actualmente HELIOS ya desacopló el conocimiento del código.
+
+Existe la estructura:
+
+/content
+    /tic
+        metadata.json
+        contexto.json
+        hipotesis.json
+        pestel.json
+        chips.json
+
+Helios.tsx consume estos archivos correctamente.
+
+Ahora quiero que HELIOS deje de cargar siempre el Knowledge Pack TIC y sea capaz de decidir automáticamente cuál utilizar.
+
+Objetivo del Sprint
+
+Construir el Knowledge Router, un componente responsable de seleccionar el Knowledge Pack adecuado antes de iniciar el análisis.
+
+Principios de arquitectura (obligatorios)
+1. HELIOS
+
+HELIOS solamente controla la experiencia de usuario.
+
+No contiene conocimiento de dominio.
+
+No decide qué biblioteca cargar.
+
+2. Knowledge Router
+
+El Router es el único responsable de decidir qué Knowledge Pack utilizar.
+
+Debe leer únicamente la información disponible en los metadata.json.
+
+No debe contener conocimiento específico de TIC, Educación, Salud, etc.
+
+3. Knowledge Packs
+
+Cada Knowledge Pack contiene únicamente conocimiento.
+
+Nunca lógica.
+
+Cada paquete debe poder agregarse sin modificar Helios.tsx.
+
+Primera versión
+
+La primera versión será completamente determinista.
+
+No utilizar:
+
+IA
+OpenAI
+Claude
+Gemini
+Embeddings
+Bases vectoriales
+MCP
+APIs externas
+
+Solo reglas basadas en metadata.json.
+
+Quiero que propongas
+
+Antes de escribir código quiero revisar:
+
+1. Arquitectura completa
+estructura de carpetas
+responsabilidades
+flujo
+2. Interface del Router
+
+¿Qué métodos tendrá?
+
+¿Qué recibe?
+
+¿Qué devuelve?
+
+3. Algoritmo
+
+¿Cómo clasifica?
+
+¿Cómo calcula el puntaje?
+
+¿Cómo decide?
+
+4. Casos especiales
+
+¿Cómo manejarías:
+
+empate
+baja confianza
+ninguna coincidencia
+
+?
+
+5. Escalabilidad
+
+¿Cómo soportaría:
+
+10 Knowledge Packs
+50 Knowledge Packs
+100 Knowledge Packs
+
+sin modificar la arquitectura?
+
+Después de la revisión
+
+Una vez validada la arquitectura:
+
+Implementa todo el Sprint 0.5.
+
+Incluye:
+
+KnowledgeRouter.ts
+Integración con HELIOS
+Selección automática del Knowledge Pack
+Pruebas
+Build
+Commit
+Push
+Changelog
+Republish
+Restricciones
+
+No modificar la experiencia visual.
+
+El usuario debe seguir viendo exactamente el mismo flujo.
+
+Solo cambia la inteligencia que decide qué contenido cargar.
+
+Calidad esperada
+
+Quiero una arquitectura preparada para:
+
+IA futura
+Agentes
+Búsqueda científica
+Bases vectoriales
+RAG
+Más de 100 Knowledge Packs
+
+sin tener que rehacer el Router.
+
+Pregunta final
+
+Antes de implementar, responde:
+
+"Si este proyecto creciera durante cinco años y llegara a tener cientos de Knowledge Packs y millones de consultas, ¿seguirías recomendando esta arquitectura? Si no, propón una mejor antes de escribir código."

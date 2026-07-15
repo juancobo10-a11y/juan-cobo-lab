@@ -25,6 +25,12 @@
   ],
   "herramienta": "PESTEL",
   "nivelComplejidad": "Intermedio",
-  "version": "0.4",
-  "estado": "activo"
+  "version": "0.5",
+  "estado": "activo",
+  "autor": "Juan Cobo Lab",
+  "institucion": "Juan Cobo Lab",
+  "ultimaActualizacion": "2026-07-15",
+  "fuentes": [],
+  "licencia": "Todos los derechos reservados",
+  "estadoRevision": "experimental"
 }

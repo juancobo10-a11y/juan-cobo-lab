@@ -2,6 +2,158 @@
 
 ---
 
+## v0.5.1 — 2026-07-15
+
+### Consolidación de HELIOS Core
+
+**Objetivo:** reducir deuda técnica y preparar el núcleo para IA semántica, nuevos Knowledge Packs y mayor escala. Sin cambios visuales ni de flujo.
+
+---
+
+#### Tarea 1 — RoutingAlgorithm asíncrono
+
+`RoutingAlgorithm.score()` ahora retorna `Promise<{ score, terminosCoincidentes }>`.
+
+- `KeywordAlgorithm.ts`: marcado `async`; el cómputo sigue siendo síncrono pero satisface el contrato
+- `KnowledgeRouter.ts`: `await this.algorithm.score(...)` en todos los call-sites
+- `smoke.ts`: actualizado con `await`
+
+**Beneficio:** cualquier implementación futura (embeddings, LLM, RAG) es un drop-in sin tocar `KnowledgeRouter` ni `Helios.tsx`.
+
+---
+
+#### Tarea 2 — Decisión sobre descubrimiento de Knowledge Packs
+
+**Decisión: mantener registry explícito.**
+
+`import.meta.glob` fue evaluado contra el registro explícito bajo los siguientes criterios:
+
+| Criterio | Registry explícito | import.meta.glob |
+|---|---|---|
+| Compatibilidad con Vite + `fs.strict` | ✅ Funciona hoy | ❌ No puede cruzar el project root |
+| Tipado completo | ✅ | ⚠️ Requiere casting manual |
+| Lazy loading de contenido | ✅ | ✅ |
+| Facilidad para agregar packs | Modificar 1 archivo (registry.ts) | Automático |
+| Control sobre packs inactivos | ✅ Campo `estado` | ✅ |
+| Facilidad de prueba | ✅ Inyección por constructor | ⚠️ Más difícil de aislar |
+
+**Causa técnica de la incompatibilidad de glob:** Vite project root = `artifacts/juan-cobo-lab/`; `content/` está en el workspace root (2 niveles arriba). `server.fs.strict: true` bloquea el glob fuera del root. Los imports estáticos funcionan porque Rollup los resuelve antes que la restricción fs.
+
+**Path a auto-descubrimiento futuro:** mover `content/` dentro de `artifacts/juan-cobo-lab/` desbloquea `glob("./content/*/metadata.json")` sin cambios de seguridad.
+
+**Mejora implementada:** KnowledgeRouter ahora acepta un registry inyectable (`new KnowledgeRouter(algo, registry)`), lo que permite tests con packs mock sin modificar `Helios.tsx`.
+
+---
+
+#### Tarea 3 — PackMetadata enriquecido
+
+Nuevos campos en `types.ts` y en ambos `metadata.json`:
+
+```typescript
+autor: string;
+institucion: string;
+ultimaActualizacion: string;
+fuentes: string[];
+licencia: string;
+estadoRevision: "experimental" | "revisado" | "validado";
+```
+
+Valores iniciales en ambos packs: `"Juan Cobo Lab"`, `"2026-07-15"`, `[]`, `"Todos los derechos reservados"`, `"experimental"`. Los campos no se muestran en la UI todavía.
+
+---
+
+#### Tarea 4 — Caché del Router
+
+`KnowledgeRouter` ahora incluye una caché `Map<string, RouterResult>`:
+
+- Clave: texto normalizado del input (misma función `normalizeText` que usa el algoritmo)
+- Primer llamado calcula y cachea; llamados idénticos devuelven la misma instancia de `RouterResult`
+- `clearCache(): void` disponible para tests y actualizaciones de packs
+
+---
+
+#### Tarea 5 — PantallaSinPack dinámica
+
+La pantalla de "área no reconocida" ya no enumera dominios hardcodeados. Ahora consume `heliosRouter.getActivePacks()` y renderiza la lista desde el registry:
+
+```tsx
+packsActivos={heliosRouter.getActivePacks()}
+// → lista construida desde REGISTRY en tiempo de ejecución
+```
+
+Agregar un nuevo pack activo lo hace aparecer automáticamente en esta pantalla sin modificar `Helios.tsx`.
+
+---
+
+#### Tarea 6 — Constantes centralizadas
+
+Nuevo archivo `src/router/constants.ts` con `ROUTER_THRESHOLDS` como única fuente de verdad:
+
+```typescript
+{ ninguna: 0.05, baja: 0.20, alta: 0.42, tieDelta: 0.09 }
+```
+
+`KnowledgeRouter.ts` y `smoke.ts` importan desde aquí. Los valores duplicados en el test fueron eliminados.
+
+---
+
+#### Tarea 7 — Validación de scores
+
+`KnowledgeRouter._route()` aplica `guardScore()` a cada score retornado por el algoritmo:
+
+- Si el score está en `[0, 1]`: pasa sin modificación
+- Si está fuera de rango: se clampea a `[0, 1]` y en `DEV` se imprime `console.warn` con el pack ID y el valor problemático
+- Comportamiento estable garantizado cuando se integre un algoritmo que devuelva logits u otras distribuciones no normalizadas
+
+---
+
+#### Utilidades compartidas
+
+Nuevo `src/router/utils.ts` con `normalizeText()`:
+- Usada por `KeywordAlgorithm` (scoring) y `KnowledgeRouter` (clave de caché)
+- Elimina duplicación de la función de normalización
+
+---
+
+#### Resultados de pruebas — 9/9 ✅
+
+| # | Consulta | Resultado esperado | Score |
+|---|---|---|---|
+| 1 | "¿Por qué persiste la brecha digital en Colombia?" | TIC (alta) | 0.788 |
+| 2 | "¿Por qué aumenta la deserción escolar?" | Educación (alta) | 0.773 |
+| 3 | "Habilidades digitales en adultos mayores" | TIC (media) | 0.409 |
+| 4 | "¿Cómo reducir la mortalidad materna?" | ninguno | 0 |
+| 5 | "Conectividad en escuelas rurales" | candidatos (empate) | 0.242 / 0.182 |
+| 6 | Repetir consulta #1 | TIC (caché hit) | mismo objeto |
+| 7 | "¿Cómo reducir la mortalidad materna?" (3 packs) | Salud (alta) | 0.818 |
+| C1 | Misma consulta → misma instancia RouterResult | ✅ caché funciona | — |
+| C2 | `clearCache()` → nueva instancia | ✅ caché vaciada | — |
+
+---
+
+#### Deuda técnica eliminada en este sprint
+
+- ✅ `RoutingAlgorithm` bloqueaba IA asíncrona
+- ✅ Umbrales duplicados entre `KnowledgeRouter.ts` y `smoke.ts`
+- ✅ `normalizeText` duplicada entre `KeywordAlgorithm` y el router (ahora en `utils.ts`)
+- ✅ Scores sin validación de rango (ahora `guardScore()` con clamp + warn)
+- ✅ `PantallaSinPack` con dominios hardcodeados (ahora dinámica)
+- ✅ Registry sin documentación de la decisión de diseño (documentada en `registry.ts`)
+- ✅ KnowledgeRouter no testeable en aislamiento (ahora acepta registry inyectable)
+
+---
+
+#### Riesgos pendientes
+
+| Riesgo | Impacto | Decisión |
+|---|---|---|
+| Denominador de score sensible a longitud del input | Consultas largas con vocabulario neutro obtienen scores más bajos aunque el tema coincida | Aceptado — comportamiento correcto por diseño; documentar en guía de autoría de packs |
+| Stemmer con falsos colapsos en `-sis`, `-ción` | Packs de salud, derecho o economía pueden generar stems incorrectos | Bajo riesgo con packs actuales; revisar al agregar el tercer pack real |
+| Carga de contenido de packs secundarios en caso de ganador claro | Con 10+ packs, cargar todos los candidatos sobre el umbral mínimo puede ser innecesario | Mitigar al escalar: separar selección de carga, pasar pack ganador sin contenido y cargarlo en la transición |
+| Build requiere `PORT` y `BASE_PATH` como env vars | `pnpm run build` bare falla sin ellas | Pendiente: hacer opcionales con defaults en `vite.config.ts` |
+
+---
+
 ## v0.5 — 2026-07-14
 
 ### Knowledge Router (RFC-0001)
@@ -18,8 +170,8 @@
   - Reconocimiento de frases completas (`"brecha digital"` > `"digital"`)
   - Pesos por campo: keyword-frase 0.55 > keyword-token 0.30 > tema 0.20 > título 0.15 > descripción 0.10
   - Deduplicación: tokens cubiertos por una frase no se vuelven a puntuar
-- `src/router/KnowledgeRouter.ts` — instancia configurable; inyecta `RoutingAlgorithm`; umbrales de confianza (alta ≥ 0.42, media ≥ 0.20, ninguna < 0.05); detección de empate (delta ≤ 0.09); solo carga contenido del pack ganador (lazy imports)
-- `src/router/registry.ts` — registro explícito de packs; añadir un pack = 1 entrada nueva sin tocar Helios.tsx ni KnowledgeRouter.ts
+- `src/router/KnowledgeRouter.ts` — instancia configurable; singleton `heliosRouter`; umbrales alta ≥ 0.42, baja < 0.20, ninguna < 0.05, tieDelta = 0.09
+- `src/router/__tests__/smoke.ts` — script tsx que prueba los 5 criterios de aceptación contra el algoritmo directamente
 
 #### Knowledge Pack Educación (nuevo)
 
@@ -48,12 +200,6 @@
 | "Habilidades digitales en adultos mayores" | seleccionado | TIC | 0.409 (media) |
 | "¿Cómo reducir la mortalidad materna?" | ninguno | — | 0 |
 | "Conectividad en escuelas rurales" | candidatos (empate) | TIC + Educación | 0.242 / 0.182 |
-
-#### Preparado para escalar
-
-- Interfaz `RoutingAlgorithm` estable para reemplazar por embeddings, LLM o RAG sin modificar el Router
-- Registry como única línea de cambio al añadir un nuevo pack
-- Metadata lazy-loading: solo se carga el contenido del pack seleccionado
 
 ---
 

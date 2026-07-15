@@ -31,6 +31,13 @@ export type PackMetadata = {
   nivelComplejidad: string;
   version: string;
   estado: "activo" | "borrador" | "inactivo";
+  // ── Provenance fields (added v0.5.1) ─────────────────────────────────────
+  autor: string;
+  institucion: string;
+  ultimaActualizacion: string;
+  fuentes: string[];
+  licencia: string;
+  estadoRevision: "experimental" | "revisado" | "validado";
 };
 
 /** Fully-loaded pack ready for HELIOS to consume */
@@ -95,10 +102,14 @@ export type RouterResult =
  * Stable extension point. Implement this to swap in embeddings, LLM
  * reranking, RAG, or any future scoring strategy — without touching
  * KnowledgeRouter or Helios.
+ *
+ * score() is async so implementations can call external APIs, run
+ * local inference, or perform vector lookups without changing the
+ * Router or any UI code.
  */
 export interface RoutingAlgorithm {
   score(
     input: RouterInput,
     metadata: PackMetadata
-  ): { score: number; terminosCoincidentes: MatchedTerm[] };
+  ): Promise<{ score: number; terminosCoincidentes: MatchedTerm[] }>;
 }

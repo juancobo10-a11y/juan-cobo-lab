@@ -1,0 +1,202 @@
+Sprint 0.5.1 — Consolidación de HELIOS Core
+
+Quiero consolidar la arquitectura del núcleo antes de iniciar el Sprint 0.6.
+
+No agregues nuevas funcionalidades visibles.
+El objetivo es reducir deuda técnica y preparar HELIOS para IA semántica, más Knowledge Packs y mayor escala.
+
+Contexto actual
+
+HELIOS ya cuenta con:
+
+Helios.tsx como orquestador de la experiencia;
+KnowledgeRouter.ts;
+RoutingAlgorithm;
+KeywordAlgorithm;
+dos Knowledge Packs: TIC y Educación;
+fallback para consultas sin pack;
+lazy loading de contenido;
+clasificación determinista por keywords.
+
+La revisión de arquitectura identificó varios riesgos y mejoras pendientes. Implementa este sprint sin alterar la experiencia visual ni el flujo actual.
+
+Tarea 1 — Convertir RoutingAlgorithm en asíncrono
+
+Actualizar el contrato para que score() retorne una promesa:
+
+export interface RoutingAlgorithm {
+  score(
+    input: RouterInput,
+    metadata: PackMetadata
+  ): Promise<{
+    score: number;
+    terminosCoincidentes: MatchedTerm[];
+  }>;
+}
+
+Actualizar:
+
+KeywordAlgorithm.ts;
+KnowledgeRouter.ts;
+pruebas;
+cualquier consumidor del contrato.
+
+El comportamiento actual debe mantenerse exactamente igual.
+
+Objetivo arquitectónico: permitir incorporar después embeddings, LLM o RAG sin modificar Helios.tsx.
+
+Tarea 2 — Evaluar y mejorar el descubrimiento de Knowledge Packs
+
+Actualmente existe un registry.ts explícito.
+
+Quiero que compares dos alternativas:
+
+Alternativa A
+
+Registry explícito y tipado.
+
+Alternativa B
+
+Descubrimiento automático mediante import.meta.glob sobre /content/*/metadata.json y carga lazy de los archivos del pack.
+
+Antes de cambiar nada, determina cuál opción recomiendas para una plataforma que podría tener entre 50 y 100 Knowledge Packs.
+
+Criterios de evaluación:
+
+compatibilidad con Vite;
+tipado;
+lazy loading;
+mantenibilidad;
+facilidad para agregar packs;
+escalabilidad;
+control sobre packs inactivos o en borrador;
+facilidad de pruebas.
+Regla de decisión
+Si el descubrimiento automático es técnicamente sólido, impleméntalo.
+Si el registry explícito es superior por razones verificables, consérvalo, pero elimina cualquier duplicación innecesaria y documenta por qué.
+
+Criterio ideal: agregar un nuevo Knowledge Pack debería requerir únicamente crear su carpeta y archivos de contenido, sin modificar Helios.tsx.
+
+Tarea 3 — Enriquecer PackMetadata
+
+Extender el contrato y los metadata.json de TIC y Educación con:
+
+autor: string;
+institucion: string;
+ultimaActualizacion: string;
+fuentes: string[];
+licencia: string;
+estadoRevision: 'experimental' | 'revisado' | 'validado';
+
+Usar valores iniciales coherentes, por ejemplo:
+
+{
+  "autor": "Juan Cobo Lab",
+  "institucion": "Juan Cobo Lab",
+  "ultimaActualizacion": "2026-07-15",
+  "fuentes": [],
+  "licencia": "Todos los derechos reservados",
+  "estadoRevision": "experimental"
+}
+
+Estos campos no deben mostrarse todavía en la interfaz.
+
+Tarea 4 — Añadir caché del Router
+
+Implementar una caché simple con Map.
+
+Requisitos:
+
+clave: texto normalizado del usuario;
+valor: RouterResult;
+si la consulta se repite, reutilizar el resultado;
+no alterar la salida;
+incluir un método para limpiar la caché, útil para pruebas futuras.
+
+Ejemplo esperado:
+
+clearCache(): void
+Tarea 5 — Eliminar contenido hardcodeado en la pantalla sin pack
+
+Actualmente la pantalla de consulta no reconocida enumera manualmente los dominios disponibles.
+
+Quiero que esa información se construya dinámicamente a partir de los Knowledge Packs activos.
+
+La interfaz debe mostrar algo equivalente a:
+
+Actualmente HELIOS cubre:
+
+• TIC y brecha digital
+• Educación y deserción escolar
+
+Si mañana se agrega Salud, debe aparecer automáticamente sin modificar JSX.
+
+No cambies el diseño visual, solo el origen de los datos.
+
+Tarea 6 — Centralizar constantes y eliminar duplicaciones
+
+Revisar y corregir:
+
+umbrales duplicados entre KnowledgeRouter.ts y smoke.ts;
+constantes de confianza;
+tieDelta;
+cualquier otra duplicación relevante.
+
+Las pruebas deben consumir las mismas constantes de producción.
+
+Tarea 7 — Validar scores
+
+Agregar una validación defensiva en KnowledgeRouter para garantizar que cualquier RoutingAlgorithm retorne scores dentro de [0,1].
+
+Si el algoritmo devuelve un valor fuera del rango:
+
+aplicar clamp;
+registrar una advertencia en desarrollo;
+mantener funcionamiento estable.
+No modificar
+Diseño visual.
+Flujo de cuatro pantallas.
+Contenido sustantivo de TIC y Educación.
+Algoritmo de clasificación actual, salvo los cambios necesarios para hacerlo asíncrono.
+Comportamiento de los cuatro casos de prueba ya validados.
+Casos de prueba obligatorios
+¿Por qué persiste la brecha digital en Colombia?
+→ TIC.
+¿Por qué aumenta la deserción escolar?
+→ Educación.
+Habilidades digitales en adultos mayores
+→ TIC.
+¿Cómo reducir la mortalidad materna?
+→ ningún pack.
+Repetir una consulta ya ejecutada
+→ debe devolver el mismo resultado usando caché.
+Agregar temporalmente un tercer pack de prueba
+→ verificar si el sistema lo descubre sin modificar Helios.tsx.
+Entregables
+
+Al finalizar:
+
+Implementación completa.
+TypeScript sin errores.
+Pruebas exitosas.
+Diagrama actualizado de HELIOS Core.
+Decisión documentada sobre registry explícito vs. descubrimiento automático.
+Lista de deuda técnica eliminada.
+Riesgos pendientes.
+Actualización del changelog.
+Commit.
+Push a GitHub.
+
+No hagas republish todavía.
+Primero entrega los resultados de las pruebas y la decisión arquitectónica para revisión.
+
+Criterio final de éxito
+
+HELIOS Core debe quedar preparado para:
+
+incorporar IA semántica;
+soportar decenas de Knowledge Packs;
+agregar nuevos packs con mínima o ninguna modificación TypeScript;
+mantener trazabilidad, tipado y lazy loading.
+
+Procede con la implementación y detente antes del republish.

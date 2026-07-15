@@ -4,6 +4,7 @@ import type {
   PackMetadata,
   MatchedTerm,
 } from "../types";
+import { normalizeText } from "../utils";
 
 // ─── Stop words (Spanish) ──────────────────────────────────────────────────
 const STOPWORDS = new Set([
@@ -20,7 +21,7 @@ const STOPWORDS = new Set([
   // common copulas / aux verbs
   "es", "son", "hay", "ser", "estar", "era", "eran",
   // question words
-  "que", "que", "como", "donde", "cuando", "cual", "cuales",
+  "que", "como", "donde", "cuando", "cual", "cuales",
   "quien", "quienes",
   // content-neutral action verbs
   "persiste", "aumenta", "aumentan", "reduce", "reducir", "mejorar",
@@ -43,17 +44,6 @@ const W = {
 
 // ─── Text utilities ────────────────────────────────────────────────────────
 
-/** Lowercase + remove diacritics + normalize punctuation */
-function normalize(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[¿¡.,;:()?!"'«»\-–—]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 /**
  * Basic singular/plural stemmer for Spanish.
  * Handles common endings: -es, -s
@@ -67,7 +57,7 @@ function stem(token: string): string {
 
 /** Meaningful tokens: normalized, non-stopword, length > 2 */
 function tokenize(text: string): string[] {
-  return normalize(text)
+  return normalizeText(text)
     .split(/\s+/)
     .filter((t) => t.length > 2 && !STOPWORDS.has(t));
 }
@@ -79,11 +69,18 @@ function stemAll(tokens: string[]): string[] {
 // ─── KeywordAlgorithm ──────────────────────────────────────────────────────
 
 export class KeywordAlgorithm implements RoutingAlgorithm {
-  score(
+  /**
+   * Scores a pack against the user's input.
+   *
+   * Async to satisfy the RoutingAlgorithm contract (enables drop-in
+   * replacement with embedding or LLM-based implementations).
+   * The computation itself is synchronous and CPU-only.
+   */
+  async score(
     input: RouterInput,
     metadata: PackMetadata
-  ): { score: number; terminosCoincidentes: MatchedTerm[] } {
-    const normInput = normalize(input.texto);
+  ): Promise<{ score: number; terminosCoincidentes: MatchedTerm[] }> {
+    const normInput = normalizeText(input.texto);
     const inputTokens = tokenize(input.texto);
     const inputStemmed = stemAll(inputTokens);
 
@@ -98,7 +95,7 @@ export class KeywordAlgorithm implements RoutingAlgorithm {
 
     // ── Phase 1: multi-word keyword phrases (highest priority) ──────────────
     for (const kw of metadata.keywords) {
-      const normKw = normalize(kw);
+      const normKw = normalizeText(kw);
       const kwParts = normKw.split(/\s+/).filter((t) => t.length > 0);
 
       if (kwParts.length < 2) continue; // single-token keywords handled in phase 2
@@ -121,7 +118,7 @@ export class KeywordAlgorithm implements RoutingAlgorithm {
 
     // ── Phase 2: single keyword tokens (with stemming, respecting claims) ───
     for (const kw of metadata.keywords) {
-      const normKw = normalize(kw);
+      const normKw = normalizeText(kw);
       const kwParts = normKw.split(/\s+/).filter((t) => t.length > 0);
 
       if (kwParts.length !== 1) continue; // phrases handled above
@@ -150,7 +147,7 @@ export class KeywordAlgorithm implements RoutingAlgorithm {
     }
 
     // ── Phase 3: tema match ──────────────────────────────────────────────────
-    const normTema = normalize(metadata.tema);
+    const normTema = normalizeText(metadata.tema);
     if (
       normInput.includes(normTema) ||
       inputStemmed.includes(stem(normTema))

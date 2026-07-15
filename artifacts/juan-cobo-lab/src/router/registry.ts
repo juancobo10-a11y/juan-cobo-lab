@@ -1,12 +1,35 @@
-/**
- * Knowledge Pack Registry
- *
- * Single source of truth for pack registration. To add a new pack:
- *   1. Create content/<slug>/ with its JSON files.
- *   2. Add one entry below — metadata (eager) + a lazy loader for content.
- *
- * HELIOS and KnowledgeRouter never need to change.
- */
+// ─── Knowledge Pack Registry — explicit and typed ─────────────────────────
+//
+// WHY EXPLICIT, NOT import.meta.glob
+//
+// Vite's project root is `artifacts/juan-cobo-lab/` and server.fs.strict
+// is enabled. The `content/` directory lives two levels above the project
+// root (at the workspace root). While static imports that cross the root
+// boundary work at build time (Rollup resolves them independently of the
+// fs restriction), import.meta.glob patterns are processed by Vite's own
+// plugin pipeline which respects the strict fs boundary and cannot glob
+// outside the project root.
+//
+// Path to enable auto-discovery in the future:
+//   Option A — Move `content/` inside `artifacts/juan-cobo-lab/`. Changes
+//              the monorepo layout but unlocks glob("./content/*/metadata.json").
+//   Option B — Set server.fs.allow to include the workspace content dir.
+//              Requires a vite.config.ts change; widens the dev server's
+//              exposed filesystem.
+//
+// For the current scale (2–10 packs), the explicit registry is preferable:
+// full TypeScript types, zero runtime surprises, and it is the ONLY file
+// to update when a new pack is added — Helios.tsx never changes.
+//
+// HOW TO ADD A NEW PACK
+//
+//   1. Create content/<slug>/ with: metadata.json, contexto.json,
+//      hipotesis.json, pestel.json, chips.json.
+//   2. Add one entry below — import the metadata eagerly and provide a
+//      lazy loader for the content files.
+//
+// That is the only change required. KnowledgeRouter and Helios.tsx are
+// unaffected.
 
 import type { PackMetadata, KnowledgePack } from "./types";
 

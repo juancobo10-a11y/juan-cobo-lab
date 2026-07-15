@@ -8,6 +8,7 @@ import type {
   Hipotesis,
   NivelConfianza,
   PackCandidate,
+  PackMetadata,
   RouterResult,
 } from "@/router/types";
 
@@ -370,9 +371,12 @@ function PantallaConfirmacion({
 function PantallaSinPack({
   problema,
   onReiniciar,
+  packsActivos,
 }: {
   problema: string;
   onReiniciar: () => void;
+  /** Active pack metadata — built dynamically from the registry */
+  packsActivos: PackMetadata[];
 }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -418,11 +422,30 @@ function PantallaSinPack({
 
         <motion.p
           variants={fadeUp}
-          className="text-base text-foreground/60 leading-relaxed mb-12"
+          className="text-base text-foreground/60 leading-relaxed mb-4"
         >
-          HELIOS trabaja con Knowledge Packs especializados. Actualmente cubre{" "}
-          <strong className="text-primary font-medium">TIC y brecha digital</strong> y{" "}
-          <strong className="text-primary font-medium">educación y deserción escolar</strong>.
+          HELIOS trabaja con Knowledge Packs especializados. Actualmente cubre:
+        </motion.p>
+
+        {packsActivos.length > 0 && (
+          <motion.ul
+            variants={fadeUp}
+            className="mb-8 space-y-1.5 pl-1"
+            aria-label="Áreas de conocimiento disponibles"
+          >
+            {packsActivos.map((p) => (
+              <li key={p.id} className="flex items-center gap-2.5 text-base text-primary font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent/60 shrink-0" aria-hidden="true" />
+                {p.titulo}
+              </li>
+            ))}
+          </motion.ul>
+        )}
+
+        <motion.p
+          variants={fadeUp}
+          className="text-sm text-foreground/50 leading-relaxed mb-12"
+        >
           Pronto habrá más áreas disponibles.
         </motion.p>
 
@@ -883,6 +906,7 @@ export default function Helios() {
               key="sin-pack"
               problema={problema}
               onReiniciar={handleReiniciar}
+              packsActivos={heliosRouter.getActivePacks()}
             />
           )}
           {pantalla === "hipotesis" && packActivo && (

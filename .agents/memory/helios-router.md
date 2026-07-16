@@ -79,6 +79,24 @@ El build requiere `PORT` y `BASE_PATH` como env vars:
 PORT=3000 BASE_PATH=/juan-cobo-lab pnpm run build
 ```
 
+## Thinking Engine (Sprint 0.6)
+
+Infraestructura paralela al Knowledge Router. Vive en `src/thinking/` y `content/thinking/`.
+Singleton: `heliosThinkingEngine` exportado desde `ThinkingRouter.ts`.
+
+**Decisión arquitectónica clave — universalFloor:**
+Patrones con `esUniversal: true` en metadata reciben score garantizado (`THINKING_THRESHOLDS.universalFloor = 0.25`)
+cuando ningún patrón específico supera el umbral mínimo (`ninguna = 0.05`). Así el Socrático actúa como
+respaldo universal para cualquier problema de política, sin competir contra patrones específicos que ganen por keywords.
+
+**Cómo agregar un Thinking Pattern:**
+1. Crear `content/thinking/<slug>/metadata.json` y `preguntas.json`
+2. Añadir una entrada a `src/thinking/registry.ts` — único archivo a modificar
+3. `ThinkingRouter.ts` y `Helios.tsx` no requieren cambios
+
+**Patrón Socrático (v0.1):** 5 preguntas — clarificacion, supuestos, evidencia, perspectivas, implicaciones.
+Cada pregunta tiene: `pregunta` (con `{{problema}}` placeholder), `proposito`, `orientacion`.
+
 ## Estado del repositorio
 
-Sprint 0.5.1 mergeado a `main` (commit `7969f8e`). Push exitoso a GitHub.
+Sprint 0.5.1: commit `7969f8e`. Sprint 0.6 (Thinking Engine v0.1): commit `8c7320f`. Ambos en `main`.

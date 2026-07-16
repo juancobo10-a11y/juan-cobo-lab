@@ -1,0 +1,37 @@
+[
+  {
+    "numero": 1,
+    "categoria": "clarificacion",
+    "pregunta": "¿Qué entendemos exactamente por {{problema}}? ¿Cuáles son sus síntomas observables y medibles?",
+    "proposito": "Delimitar el problema con precisión antes de analizar causas o soluciones, evitando asumir que todos los actores lo definen igual.",
+    "orientacion": "Define el concepto central. Distingue entre síntoma y causa raíz. Identifica métricas o indicadores que hacen visible el problema."
+  },
+  {
+    "numero": 2,
+    "categoria": "supuestos",
+    "pregunta": "¿Qué supuestos subyacen al diagnóstico de {{problema}}? ¿Están explícita o implícitamente justificados?",
+    "proposito": "Hacer visibles los presupuestos no cuestionados que moldean el análisis y la agenda de política.",
+    "orientacion": "Identifica premisas sobre causalidad, actores o valores que el diagnóstico da por sentadas. Pregunta qué pasaría si esas premisas fueran falsas."
+  },
+  {
+    "numero": 3,
+    "categoria": "evidencia",
+    "pregunta": "¿Qué evidencia empírica sustenta el análisis de {{problema}}? ¿Es la evidencia suficiente, confiable y actualizada?",
+    "proposito": "Calibrar la solidez del fundamento empírico y detectar sesgos de selección o lagunas de datos.",
+    "orientacion": "Revisa fuentes, metodologías y temporalidad de los datos. Señala qué no sabemos y qué evidencia contradictoria existe."
+  },
+  {
+    "numero": 4,
+    "categoria": "perspectivas",
+    "pregunta": "¿Qué actores son afectados por {{problema}}? ¿Qué perspectivas o voces están ausentes del debate?",
+    "proposito": "Ampliar el análisis más allá del consenso institucional e incorporar las experiencias de quienes viven el problema directamente.",
+    "orientacion": "Mapea grupos de interés. Identifica asimetrías de poder y representación. Pregunta quién se beneficia del encuadre actual del problema."
+  },
+  {
+    "numero": 5,
+    "categoria": "implicaciones",
+    "pregunta": "Si las causas identificadas de {{problema}} son correctas, ¿qué consecuencias se derivan para la política pública? ¿Qué se vuelve posible — o imposible — con este diagnóstico?",
+    "proposito": "Cerrar el ciclo analítico explorando qué cursos de acción abre o cierra el análisis actual y cuáles son sus consecuencias de segundo orden.",
+    "orientacion": "Deriva implicaciones concretas de política. Identifica trade-offs. Señala qué alternativas quedan descartadas con el diagnóstico vigente."
+  }
+]

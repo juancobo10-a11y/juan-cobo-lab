@@ -1,0 +1,32 @@
+{
+  "id": "socratico",
+  "titulo": "Método Socrático de Análisis",
+  "descripcion": "Cinco preguntas fundamentales para examinar una política pública desde sus definiciones y supuestos hasta sus implicaciones y consecuencias de segundo orden.",
+  "etiqueta": "Socrático",
+  "keywords": [
+    "supuestos",
+    "evidencia",
+    "perspectivas",
+    "implicaciones",
+    "causas",
+    "consecuencias",
+    "análisis crítico",
+    "cuestionamiento",
+    "fundamento",
+    "justificación",
+    "diagnóstico",
+    "problema",
+    "política pública",
+    "actores",
+    "voces ausentes"
+  ],
+  "version": "0.1.0",
+  "estado": "activo",
+  "autor": "Juan Cobo Lab",
+  "institucion": "Juan Cobo Lab",
+  "ultimaActualizacion": "2026-07-16",
+  "fuentes": [],
+  "licencia": "Todos los derechos reservados",
+  "estadoRevision": "experimental",
+  "esUniversal": true
+}

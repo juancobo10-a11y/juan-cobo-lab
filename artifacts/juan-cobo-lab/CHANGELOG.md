@@ -1,5 +1,66 @@
 # HELIOS — Changelog
 
+## S-016 (2026-07-17) — Hardening técnico y validación reproducible
+
+### Resumen
+Establece la línea base técnica reproducible. Sin cambios funcionales ni metodológicos.
+El comando `pnpm run validate` ejecuta 9 suites secuenciales y devuelve exit code correcto.
+
+### Problema del build (PORT/BASE_PATH)
+`vite.config.ts` lanzaba excepción si `PORT` o `BASE_PATH` estaban ausentes (entorno limpio, CI).
+Se reemplazaron los throws por fallbacks seguros (`PORT → 5000`, `BASE_PATH → "/"`).
+El workflow de producción sigue inyectando `PORT=18800` y `BASE_PATH="/"` vía `artifact.toml`.
+
+### Problema de aliases en tests
+No existía un problema real. Los scripts de validación ya usaban imports relativos — el error
+anterior era causado por rutas incorrectas en los comandos del runner, no por resolución de aliases.
+Se fijaron las rutas correctas en los scripts de `package.json`.
+
+### Scripts añadidos a package.json
+```json
+"validate:s012": "tsx src/thinking/__tests__/validacion_s012.ts",
+"validate:s013": "tsx src/thinking/__tests__/validacion_s013.ts",
+"validate:s014": "tsx src/thinking/__tests__/validacion_s014.ts",
+"validate:s015": "tsx src/hypothesis/__tests__/validacion_s015.ts",
+"validate:s016": "tsx src/hypothesis/__tests__/validacion_s016.ts",
+"validate:smoke": "tsx src/thinking/__tests__/smoke.ts",
+"validate:integration": "tsx src/thinking/__tests__/integration_flow.ts",
+"validate": "tsx scripts/validate-all.ts"
+```
+
+### Runner unificado — scripts/validate-all.ts
+Ejecuta secuencialmente: Typecheck → S-012 → S-013 → S-014 → S-015 → S-016 → Smoke → Integration → Build.
+Continúa en fallos para diagnóstico completo. Devuelve exit 0 solo si 9/9 suites pasan.
+
+### Nuevo módulo — src/config/portConfig.ts
+Funciones puras `resolvePort()` y `resolveBasePath()` — testables de forma aislada (TC-05 a TC-08).
+
+### Nuevas suites
+- `src/hypothesis/__tests__/validacion_s016.ts` — 15/15 ✓ — hardening técnico
+- `src/thinking/__tests__/integration_flow.ts` — 29/29 ✓ — flujo completo Cases A-F
+
+### Correcciones de estado obsoleto (§10)
+Reglas implementadas en `Helios.tsx`:
+- **handleUpdateHypotheses**: cualquier cambio en la lista invalida `hypothesesReviewed` → false
+- **handleUpdateHypotheses**: si la hipótesis principal fue eliminada, `primaryHypothesisId` → undefined
+- **handleUserSelectPattern**: llama `markPatternChanged(prev)` para marcar hipótesis como potencialmente
+  desalineadas cuando el analista cambia el Thinking Pattern. El flag ya existía en S-015 pero nunca se activaba.
+
+### Resultados finales
+```
+Typecheck      PASS
+S-012          PASS   (B14 documentado — limitación del algoritmo, no regresión)
+S-013          PASS   24/24
+S-014          PASS   50/50
+S-015          PASS   18/18
+S-016          PASS   15/15
+Smoke          PASS   37/37
+Integration    PASS   29/29
+Build          PASS
+```
+
+---
+
 ## S-015 (2026-07-17) — Hypothesis Builder
 
 ### Resumen

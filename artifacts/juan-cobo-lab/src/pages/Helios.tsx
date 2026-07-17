@@ -1668,6 +1668,11 @@ export default function Helios() {
    */
   const handleUserSelectPattern = (selection: ThinkingUserSelection) => {
     setThinkingUserSelection(selection);
+    // §S-016: mark existing hypotheses as potentially misaligned when the
+    // analyst changes their pattern selection after building hypotheses.
+    setHypotheses((prev) =>
+      prev.length > 0 ? markPatternChanged(prev) : prev
+    );
     setPantallaVolverDesdePereque("seleccion-thinking-pattern");
     setPantalla("pereque");
   };
@@ -1744,7 +1749,18 @@ export default function Helios() {
   }, []);
 
   const handleUpdateHypotheses = useCallback(
-    (updated: PolicyHypothesis[]) => setHypotheses(updated),
+    (updated: PolicyHypothesis[]) => {
+      setHypotheses(updated);
+      // §S-016 state rules:
+      // 1. Any mutation of the hypothesis list invalidates the reviewed flag.
+      // 2. If the referenced primary hypothesis was removed, clear the pointer.
+      setHypothesesReviewed(false);
+      setPrimaryHypothesisId((prev) =>
+        prev !== undefined && updated.some((h) => h.id === prev)
+          ? prev
+          : undefined
+      );
+    },
     []
   );
 

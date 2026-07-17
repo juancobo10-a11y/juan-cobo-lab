@@ -1,0 +1,640 @@
+Sprint S-016 — Hardening técnico y validación reproducible de HELIOS
+Contexto
+
+Después del Sprint S-015, HELIOS ya cuenta con una cadena funcional que va desde el problema inicial hasta la formulación y revisión de hipótesis.
+
+El estado actual incluye:
+
+Knowledge Router;
+Thinking Router conceptual;
+Thinking Patterns Socrático, Sistémico y Economía Política;
+gestión de múltiples candidatos;
+selección individual o combinada;
+preguntas de reflexión;
+captura de respuestas;
+Hypothesis Builder;
+revisión de hipótesis;
+trazabilidad completa en sesión.
+
+Sin embargo, la validación técnica todavía tiene dos limitaciones:
+
+las pruebas de regresión S-012, S-013 y S-014 no se ejecutan de forma confiable fuera del entorno actual por problemas de resolución de aliases @/;
+el build depende de la variable de entorno PORT, lo que impide verificar de forma reproducible el proyecto en cualquier entorno limpio.
+
+El objetivo de este sprint es corregir esas limitaciones y establecer una línea base técnica confiable.
+
+No agregar funcionalidad nueva.
+
+No agregar Thinking Patterns.
+
+No modificar metadata metodológica.
+
+No modificar scores, umbrales ni reglas del Router.
+
+No introducir LLM, embeddings, base de datos ni servicios externos.
+
+Objetivo general
+
+Conseguir que HELIOS pueda validarse desde un entorno limpio mediante comandos reproducibles.
+
+Al finalizar, debe ser posible ejecutar:
+
+npm run validate
+
+y obtener en un solo flujo:
+
+Typecheck
+↓
+Validaciones S-012
+↓
+Validaciones S-013
+↓
+Validaciones S-014
+↓
+Validaciones S-015
+↓
+Smoke tests
+↓
+Build
+
+El comando debe:
+
+terminar con código 0 cuando todo pasa;
+terminar con código distinto de 0 cuando algo falla;
+mostrar claramente qué suite falló;
+no depender de configuración manual previa;
+no requerir iniciar el servidor.
+1. Revisión técnica inicial
+
+Antes de modificar código, revisar:
+
+package.json;
+tsconfig.json;
+vite.config.*;
+configuración de aliases;
+scripts actuales;
+estructura de validaciones;
+cómo se ejecutan los archivos validacion_s012.ts a validacion_s015.ts;
+smoke tests;
+configuración del servidor;
+lectura de PORT;
+proceso actual de build;
+dependencias disponibles para ejecutar TypeScript.
+
+Documentar brevemente:
+
+por qué tsx no resuelve actualmente @/;
+qué suites están afectadas;
+dónde se usa PORT;
+por qué el build falla sin esa variable;
+qué solución se propone;
+qué archivos se modificarán.
+
+No implementar hasta completar esta revisión.
+
+2. Principios del sprint
+A. No alterar comportamiento funcional
+
+Los cambios deben limitarse a:
+
+tooling;
+scripts;
+resolución de módulos;
+entorno;
+validación;
+build;
+pruebas de navegación y estado.
+
+No cambiar comportamiento metodológico.
+
+B. Un solo origen de verdad para aliases
+
+La definición de:
+
+@/
+
+debe ser coherente entre:
+
+TypeScript;
+Vite;
+test runner;
+scripts de validación.
+
+Evitar configuraciones duplicadas o divergentes.
+
+C. Fallar de forma explícita
+
+No usar comandos que oculten errores, por ejemplo:
+
+command || true
+
+No silenciar stderr.
+
+No declarar éxito cuando una suite no llegó a ejecutarse.
+
+3. Resolver aliases en validaciones
+
+Corregir la ejecución de los scripts TypeScript para que los imports como:
+
+import ... from '@/thinking/...'
+
+funcionen correctamente.
+
+Evaluar las alternativas compatibles con el proyecto:
+
+tsx con registro de paths;
+tsconfig-paths;
+configuración equivalente;
+sustitución por imports relativos únicamente en scripts de validación;
+runner que respete los paths de tsconfig.
+
+Elegir la solución más simple y mantenible.
+
+Preferencia:
+
+conservar aliases en código productivo;
+evitar reescribir masivamente imports;
+evitar duplicar aliases manualmente en cada script.
+
+Agregar las dependencias necesarias solo si están justificadas.
+
+4. Estandarizar las suites
+
+Cada suite debe poder ejecutarse individualmente.
+
+Crear scripts equivalentes a:
+
+{
+  "validate:s012": "...",
+  "validate:s013": "...",
+  "validate:s014": "...",
+  "validate:s015": "...",
+  "validate:smoke": "..."
+}
+
+Los nombres pueden ajustarse a las convenciones existentes.
+
+Cada script debe:
+
+imprimir el nombre de la suite;
+ejecutar todos sus casos;
+devolver exit code 0 si pasa;
+devolver exit code 1 si falla;
+mostrar cantidad de casos aprobados y fallidos;
+no depender del orden de ejecución de otras suites.
+5. Crear un runner unificado
+
+Crear un script central, por ejemplo:
+
+scripts/validate-all.ts
+
+o una solución equivalente.
+
+Debe ejecutar secuencialmente:
+
+TypeScript typecheck;
+S-012;
+S-013;
+S-014;
+S-015;
+smoke tests;
+build.
+
+Debe mostrar un resumen final como:
+
+HELIOS validation summary
+
+Typecheck       PASS
+S-012           PASS
+S-013           PASS
+S-014           PASS
+S-015           PASS
+Smoke           PASS
+Build           PASS
+
+Result: 7/7 suites passed
+
+Si una suite falla:
+
+puede detenerse inmediatamente o continuar para mostrar el resumen completo;
+documentar la decisión;
+el proceso final debe devolver código distinto de 0.
+
+Preferencia: continuar todas las suites para obtener diagnóstico completo.
+
+6. Resolver dependencia de PORT
+
+Localizar exactamente dónde se exige PORT.
+
+La aplicación debe poder:
+
+construir sin PORT;
+ejecutar validaciones sin PORT;
+iniciar el servidor con un puerto por defecto seguro cuando no se defina.
+
+Implementar una lectura equivalente a:
+
+const port = Number(process.env.PORT ?? 5000);
+
+pero adaptada a la arquitectura real.
+
+Validar:
+
+valores ausentes;
+valores no numéricos;
+valores fuera de rango;
+puerto configurado explícitamente.
+
+No hacer que el build inicie el servidor.
+
+No ejecutar lógica de escucha durante una importación utilizada por tests o build.
+
+Si actualmente servidor y configuración están acoplados, separar:
+
+createApp()
+
+de:
+
+startServer()
+
+solo si es necesario.
+
+7. Build reproducible
+
+Definir claramente qué significa npm run build.
+
+Debe:
+
+compilar frontend;
+compilar backend si aplica;
+no necesitar servidor activo;
+no depender de secretos;
+no depender de PORT;
+devolver error real si falla.
+
+Probar al menos:
+
+unset PORT
+npm run build
+
+y:
+
+PORT=5050 npm run build
+
+Ambos deben producir el mismo artefacto de build, salvo configuración legítima no relacionada con el puerto.
+
+8. Validación desde entorno limpio
+
+Simular una instalación reproducible.
+
+Ejecutar:
+
+rm -rf node_modules
+npm ci
+npm run validate
+
+Si el entorno no permite borrar node_modules, documentar la restricción y realizar la aproximación más cercana.
+
+Verificar que:
+
+package-lock.json esté actualizado;
+no haya dependencias implícitas del entorno;
+no se requieran paquetes instalados globalmente;
+no se dependa de archivos ignorados por Git.
+9. Pruebas de flujo completo
+
+Agregar una validación de integración determinística para el state machine de HELIOS.
+
+No usar navegador real si no es necesario.
+
+Cubrir el flujo:
+
+Problema
+↓
+Thinking Router
+↓
+Ganador o candidatos
+↓
+Selección
+↓
+Démosle pereque
+↓
+Respuestas
+↓
+Hypothesis Builder
+↓
+Revisión
+
+Casos mínimos:
+
+Caso A — Ganador claro
+no abre selección;
+llega a Pereque;
+conserva ThinkingResult.
+Caso B — Múltiples candidatos
+abre selección;
+guarda ThinkingUserSelection;
+conserva ThinkingResult original.
+Caso C — Reflexiones
+registra respuestas;
+las conserva al avanzar al Builder;
+las conserva al volver.
+Caso D — Hipótesis
+crea una hipótesis;
+la conserva al ir a revisión;
+la conserva al volver a editar.
+Caso E — Reinicio
+
+Debe limpiar:
+
+problema;
+pack activo;
+ThinkingResult;
+ThinkingUserSelection;
+reflectionAnswers;
+hypotheses;
+primaryHypothesisId;
+hypothesesReviewed.
+Caso F — Navegación hacia atrás
+
+No debe:
+
+ejecutar nuevamente el Router;
+duplicar hipótesis;
+perder respuestas;
+alterar la selección.
+10. Estado obsoleto
+
+Revisar posibles problemas de estado derivados de S-014 y S-015.
+
+Verificar especialmente:
+
+cambiar de patrón después de crear hipótesis;
+volver desde revisión;
+reiniciar después de confirmar;
+crear una hipótesis, eliminarla y regresar;
+marcar una principal y luego eliminarla;
+cambiar de modo combinado a individual;
+conservar respuestas asociadas a preguntas que ya no están visibles.
+
+Definir reglas claras.
+
+Reglas mínimas
+Si se elimina la hipótesis principal:
+primaryHypothesisId debe quedar vacío;
+no reasignar automáticamente salvo que ya exista esa conducta documentada.
+Si se eliminan todas las hipótesis:
+hypothesesReviewed debe volver a false.
+Si una hipótesis cambia después de ser revisada:
+hypothesesReviewed debe volver a false.
+Si cambia la selección de Thinking Pattern:
+conservar hipótesis;
+marcarlas como potencialmente desalineadas;
+no borrar respuestas.
+Si se reinicia:
+limpiar todo.
+
+Implementar ajustes únicamente si los tests demuestran un defecto.
+
+11. Typecheck estricto
+
+El script de typecheck debe ejecutar el compilador sin emitir archivos:
+
+tsc --noEmit
+
+o el equivalente real del proyecto.
+
+No aceptar errores existentes como “preexistentes”.
+
+Si aparecen errores, clasificarlos:
+
+introducidos por S-016;
+preexistentes;
+incompatibilidades de configuración.
+
+Corregirlos o documentar con precisión por qué no pueden corregirse dentro del sprint.
+
+El criterio de éxito exige cero errores.
+
+12. Revisión de consola
+
+Levantar la aplicación localmente y verificar:
+
+pantalla inicial;
+selección de enfoque;
+Pereque;
+Hypothesis Builder;
+revisión;
+navegación atrás;
+reinicio.
+
+Revisar consola del navegador y servidor.
+
+No debe haber:
+
+errores React;
+warnings de keys;
+HTML inválido;
+accesibilidad básica rota;
+excepciones no controladas;
+imports fallidos;
+errores de hydration, si aplica.
+
+Documentar el resultado.
+
+13. No modificar las métricas de validación
+
+Las métricas históricas deben mantenerse.
+
+Resultados esperados como línea base:
+
+Smoke: 37/37;
+S-013: 24/24;
+S-015: 18/18;
+S-012: conservar el resultado metodológicamente aceptado, incluyendo el caso B14 documentado si sigue siendo una limitación genuina;
+S-014: conservar su suite completa.
+
+No cambiar casos esperados únicamente para conseguir verde.
+
+Cualquier reclasificación debe:
+
+estar metodológicamente justificada;
+quedar documentada;
+no ocultar una regresión.
+14. Reporte de errores
+
+Si una suite falla, reportar:
+
+Suite
+Caso
+Expected
+Actual
+Error
+Probable cause
+
+Evitar logs excesivos en ejecuciones exitosas.
+
+Permitir un modo detallado opcional:
+
+npm run validate -- --verbose
+
+solo si es fácil de implementar.
+
+No es obligatorio.
+
+15. Scripts esperados
+
+El package.json debería terminar con una estructura equivalente a:
+
+{
+  "scripts": {
+    "typecheck": "...",
+    "validate:s012": "...",
+    "validate:s013": "...",
+    "validate:s014": "...",
+    "validate:s015": "...",
+    "validate:smoke": "...",
+    "validate:integration": "...",
+    "validate": "...",
+    "build": "..."
+  }
+}
+
+No duplicar scripts innecesarios.
+
+No usar herramientas globales.
+
+16. Documentación
+
+Crear:
+
+docs/validation/technical-hardening-s016.md
+
+Debe incluir:
+
+diagnóstico inicial;
+causa del problema de aliases;
+solución implementada;
+causa de dependencia de PORT;
+solución implementada;
+comandos disponibles;
+suites incluidas;
+resultados finales;
+prueba desde entorno limpio;
+limitaciones restantes.
+
+Actualizar:
+
+README, si contiene instrucciones de ejecución;
+CHANGELOG;
+ADR, solo si se tomó una decisión arquitectónica relevante.
+
+No crear un ADR para una decisión puramente operativa.
+
+17. Pruebas obligatorias S-016
+
+Crear una suite específica:
+
+validacion_s016.ts
+
+Casos mínimos:
+
+TC-01 — Alias productivo
+
+Un módulo con @/ debe poder importarse desde el runner.
+
+TC-02 — Suite independiente
+
+S-012 puede ejecutarse sin haber ejecutado otra suite.
+
+TC-03 — Exit code de éxito
+
+Una suite aprobada devuelve 0.
+
+TC-04 — Exit code de fallo
+
+Una suite simulada con fallo devuelve código distinto de 0.
+
+TC-05 — Build sin PORT
+
+Debe completar.
+
+TC-06 — Puerto por defecto
+
+Sin PORT, la configuración obtiene un puerto válido.
+
+TC-07 — Puerto explícito
+
+Con PORT=5050, se usa 5050 al iniciar servidor.
+
+TC-08 — Puerto inválido
+
+Un valor no numérico se rechaza o reemplaza con default de manera documentada.
+
+TC-09 — Reinicio total
+
+Limpia todo el estado de sesión.
+
+TC-10 — Edición invalida revisión
+
+Modificar una hipótesis cambia hypothesesReviewed a false.
+
+TC-11 — Eliminación de principal
+
+Limpia primaryHypothesisId.
+
+TC-12 — Eliminación total
+
+Deja lista vacía y revisión en false.
+
+TC-13 — Navegación
+
+Volver conserva respuestas e hipótesis.
+
+TC-14 — Cambio de patrón
+
+Conserva hipótesis y marca desalineación.
+
+TC-15 — Runner completo
+
+Ejecuta todas las suites en el orden definido.
+
+18. Architecture Review
+
+Al finalizar responder:
+
+¿Cuál era la causa exacta del fallo de aliases?
+¿Qué solución se implementó?
+¿Existe ahora un único origen de verdad para aliases?
+¿Por qué el build dependía de PORT?
+¿Cómo se desacopló el build del servidor?
+¿Qué comando ejecuta toda la validación?
+¿Qué suites incluye?
+¿Todos los scripts devuelven exit codes correctos?
+¿Se probó una instalación limpia?
+¿Qué resultados obtuvo cada suite?
+¿Se detectaron regresiones funcionales?
+¿Qué problemas de estado obsoleto se encontraron?
+¿Cómo se corrigieron?
+¿Existen errores o warnings en consola?
+¿Está HELIOS listo para continuar con variables e indicadores?
+¿Qué deuda técnica permanece?
+19. Entrega
+
+Entregar:
+
+revisión técnica inicial;
+resolución de aliases;
+scripts individuales;
+runner unificado;
+build sin dependencia obligatoria de PORT;
+pruebas de estado;
+validación S-016;
+ejecución completa;
+documentación;
+actualización de README si aplica;
+actualización de CHANGELOG;
+commit;
+push;
+no hacer republish;
+detenerse para revisión.

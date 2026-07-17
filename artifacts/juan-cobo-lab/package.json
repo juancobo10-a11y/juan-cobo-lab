@@ -7,7 +7,15 @@
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "validate:s012": "tsx src/thinking/__tests__/validacion_s012.ts",
+    "validate:s013": "tsx src/thinking/__tests__/validacion_s013.ts",
+    "validate:s014": "tsx src/thinking/__tests__/validacion_s014.ts",
+    "validate:s015": "tsx src/hypothesis/__tests__/validacion_s015.ts",
+    "validate:s016": "tsx src/hypothesis/__tests__/validacion_s016.ts",
+    "validate:smoke": "tsx src/thinking/__tests__/smoke.ts",
+    "validate:integration": "tsx src/thinking/__tests__/integration_flow.ts",
+    "validate": "tsx scripts/validate-all.ts"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",

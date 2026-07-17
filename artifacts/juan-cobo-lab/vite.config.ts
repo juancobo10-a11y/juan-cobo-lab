@@ -5,27 +5,17 @@ import { defineConfig } from 'vite';
 
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
 
+// S-016: PORT and BASE_PATH are optional — safe defaults allow `vite build`
+// to run in any environment without requiring env vars to be pre-set.
+// The workflow sets PORT=18800 and BASE_PATH="/" via artifact.toml [services.env].
 const rawPort = process.env.PORT;
+const port = (() => {
+  if (!rawPort || !rawPort.trim()) return 5000;
+  const n = Number(rawPort.trim());
+  return Number.isFinite(n) && n > 0 && n <= 65535 ? Math.floor(n) : 5000;
+})();
 
-if (!rawPort) {
-  throw new Error(
-    'PORT environment variable is required but was not provided.',
-  );
-}
-
-const port = Number(rawPort);
-
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
-
-const basePath = process.env.BASE_PATH;
-
-if (!basePath) {
-  throw new Error(
-    'BASE_PATH environment variable is required but was not provided.',
-  );
-}
+const basePath = process.env.BASE_PATH ?? '/';
 
 export default defineConfig({
   base: basePath,

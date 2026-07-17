@@ -1,5 +1,99 @@
 # HELIOS — Changelog
 
+## S-019 (2026-07-17) — Matriz de Contrastación de Hipótesis
+
+### Resumen
+Extiende la cadena metodológica con la etapa de contrastación explícita:
+… → Modelo Conceptual → Operacionalización → **Matriz de Contrastación** → Revisión Final.
+
+La matriz fuerza al analista a especificar explícitamente qué evidencia apoyaría la hipótesis
+y qué evidencia la pondría en duda — antes de que la hipótesis sea considerada metodológicamente
+lista para uso. HELIOS no decide si la hipótesis es verdadera; estructura el proceso de
+contrastación.
+
+### ADR-0008 — Toda hipótesis debe tener criterios explícitos de contrastación
+Una hipótesis sin criterios de contrastación es irrefutable en la práctica.
+HELIOS no genera criterios automáticamente — el analista debe escribirlos explícitamente.
+
+### Nuevos tipos — src/contrastation/types.ts
+- `Prioridad` — catálogo: alta | media | baja (no asignada automáticamente)
+- `PRIORIDAD_LABELS` + `PRIORIDAD_LIST` — catálogo exportado
+- `ContrastationRow` — `id`, `hypothesisId`, `indicadorId` (FK|null), `fuenteId` (FK|null),
+  `evidenciaEsperada`, `evidenciaContraria`, `criterioInterpretacion`, `limitaciones`,
+  `prioridad`, `observaciones`, `orden`
+- `ContrastationMatrix` — `hypothesisId`, `rows[]`, `confirmed` (1:1 con OperationalizationMatrix)
+- `ContrastationValidation` — 5 blocking + 3 warnings
+- `ContrastationIssue` — discriminated union de 8 tipos de issue
+- `ContrastationRowUpdate` — payload de actualización parcial
+
+### Nuevo servicio — src/contrastation/ContrastationService.ts
+Funciones puras sin conocimiento sectorial:
+- `createEmptyContrastationMatrix`, `createContrastationRow`, `updateContrastationRow`
+- `removeContrastationRow`, `reorderContrastationRows`
+- `reutilizarIndicadorEnContrastation`, `reutilizarFuenteEnContrastation` — FK, sin copiar datos
+- `isContrastationRowDuplicate` — deduplicación por par (indicadorId, fuenteId)
+- `validateContrastation` — 5 blocking + 3 warnings
+- `findContrastationMatrixByHypothesisId`, `upsertContrastationMatrix`, `confirmContrastationMatrix`
+
+Guards: createContrastationRow/updateContrastationRow rechazan indicadorId/fuenteId inválidos.
+Deduplicación: filas con null indicadorId o fuenteId nunca se consideran duplicadas.
+
+### Nueva pantalla — src/components/PantallaContrastationMatrix.tsx
+Tabla editable de criterios de contrastación:
+- Columnas (summary): Indicador · Fuente · Evidencia esperada · Prioridad (badge coloreado)
+- Edición inline al expandir: todos los campos editables en el panel expandido
+- Formulario de agregar: evidenciaEsperada y evidenciaContraria son requeridos en el form
+- Selector de indicadores y fuentes (lista completa del modelo conceptual)
+- Panel de validación en tiempo real (aria-live)
+- "Ver cadena metodológica" → aparece solo después de confirmar
+- Keyboard accessible — sin drag-and-drop
+
+### Nueva pantalla — src/components/PantallaRevisionFinal.tsx (§16)
+Vista consolidada de toda la cadena metodológica navegable:
+- Secciones: Problema · Thinking Pattern · Hipótesis · Modelo Conceptual · Operacionalización · Contrastación
+- Cada sección muestra badge verde (confirmada) o gris (pendiente)
+- Botón "Ir a esta etapa" en cada sección — navegación sin edición directa
+- Tabla de operacionalización con variables, indicadores, escala y fuentes
+- Criterios de contrastación con evidencia esperada/contraria, prioridad y limitaciones
+- Badge coloreado por prioridad (rojo=alta, amber=media, emerald=baja)
+
+### PantallaOperationalizationMatrix modificada
+- Nuevo prop `onConstruirContrastation?: () => void`
+- Botón "Construir matriz de contrastación" — solo visible cuando `matrix.confirmed === true`
+
+### Helios.tsx extendido
+- Nuevas pantallas `"contrastation-matrix"` y `"revision-final"` en el tipo `Pantalla`
+- Nuevo estado `contrastationMatrices: ContrastationMatrix[]`
+- Handlers: `handleConstruirContrastation`, `handleUpdateContrastationMatrix`,
+  `handleConfirmarContrastationMatrix`, `handleVolverDesdeContrastation`, `handleVerCadenaMetodologica`
+- `handleReiniciar` limpia `contrastationMatrices`
+- Derivación de `patternTitulo` desde `perequeMode.pattern.metadata.titulo` para PantallaRevisionFinal
+- `onConstruirContrastation` conectado a PantallaOperationalizationMatrix
+
+### Suite S-019 — src/contrastation/__tests__/validacion_s019.ts
+55 asserts en 26 TCs ✓ — cubre crear, agregar, reutilizar indicador, reutilizar fuente,
+validar (5 blocking + 3 warnings), eliminar, reordenar, múltiples hipótesis, múltiples matrices,
+navegación, reinicio, integración, confirmación, deduplicación, prioridades, criterios
+de interpretación, limitaciones, persistencia en sesión, guard indicador inválido.
+
+### Regresión — 12/12 suites
+```
+Typecheck      PASS
+S-012          PASS
+S-013          PASS
+S-014          PASS
+S-015          PASS
+S-016          PASS
+S-017          PASS   20/20
+S-018          PASS   34/34
+S-019          PASS   55/55
+Smoke          PASS   37/37
+Integration    PASS   29/29
+Build          PASS
+```
+
+---
+
 ## S-018 (2026-07-17) — Matriz de Operacionalización
 
 ### Resumen

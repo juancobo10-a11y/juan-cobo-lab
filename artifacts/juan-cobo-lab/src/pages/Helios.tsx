@@ -15,6 +15,13 @@ import {
   findMatrixByHypothesisId,
   upsertMatrix,
 } from "@/operationalization/OperationalizationService";
+import { PantallaContrastationMatrix } from "@/components/PantallaContrastationMatrix";
+import { PantallaRevisionFinal } from "@/components/PantallaRevisionFinal";
+import type { ContrastationMatrix } from "@/contrastation/types";
+import {
+  findContrastationMatrixByHypothesisId,
+  upsertContrastationMatrix,
+} from "@/contrastation/ContrastationService";
 import { heliosRouter } from "@/router/KnowledgeRouter";
 import type {
   KnowledgePack,
@@ -1501,6 +1508,8 @@ type Pantalla =
   | "revision-hipotesis"         // S-015: final session review before confirming
   | "conceptual-model"           // S-017: operacionalización de hipótesis
   | "operationalization-matrix"  // S-018: matriz de operacionalización
+  | "contrastation-matrix"       // S-019: matriz de contrastación
+  | "revision-final"             // S-019: cadena metodológica completa
   | "hipotesis"
   | "pestel"
   | "descubrimiento";
@@ -1571,6 +1580,10 @@ export default function Helios() {
   // S-018: Operationalization matrices (session-only)
   const [operationalizationMatrices, setOperationalizationMatrices] = useState<
     OperationalizationMatrix[]
+  >([]);
+  // S-019: Contrastation matrices (session-only)
+  const [contrastationMatrices, setContrastationMatrices] = useState<
+    ContrastationMatrix[]
   >([]);
 
   const handleSubmitProblema = async (p: string) => {
@@ -1752,6 +1765,35 @@ export default function Helios() {
     setPantalla("conceptual-model");
   }, []);
 
+  // ── S-019: Contrastation matrix handlers ────────────────────────────────────
+
+  const handleConstruirContrastation = useCallback(() => {
+    setPantalla("contrastation-matrix");
+  }, []);
+
+  const handleUpdateContrastationMatrix = useCallback(
+    (matrix: ContrastationMatrix) => {
+      setContrastationMatrices((prev) => upsertContrastationMatrix(prev, matrix));
+    },
+    []
+  );
+
+  const handleConfirmarContrastationMatrix = useCallback(
+    (matrix: ContrastationMatrix) => {
+      setContrastationMatrices((prev) => upsertContrastationMatrix(prev, matrix));
+      // Stay on contrastation screen — matrix is now confirmed
+    },
+    []
+  );
+
+  const handleVolverDesdeContrastation = useCallback(() => {
+    setPantalla("operationalization-matrix");
+  }, []);
+
+  const handleVerCadenaMetodologica = useCallback(() => {
+    setPantalla("revision-final");
+  }, []);
+
   const handleReiniciar = () => {
     setProblema("");
     setPackActivo(null);
@@ -1769,6 +1811,7 @@ export default function Helios() {
     setHypothesesReviewed(false);
     setConceptualModels([]);
     setOperationalizationMatrices([]);
+    setContrastationMatrices([]);
     setPantalla("entrada");
   };
 
@@ -2008,7 +2051,78 @@ export default function Helios() {
                 )}
                 onUpdateMatrix={handleUpdateOperationalizationMatrix}
                 onConfirmar={handleConfirmarOperationalizationMatrix}
+                onConstruirContrastation={handleConstruirContrastation}
                 onVolver={handleVolverDesdeMatriz}
+                onReiniciar={handleReiniciar}
+              />
+            );
+          })()}
+          {/* S-019: Contrastation Matrix */}
+          {pantalla === "contrastation-matrix" && hypotheses.length > 0 && (() => {
+            const activeHyp =
+              (primaryHypothesisId
+                ? hypotheses.find((h) => h.id === primaryHypothesisId)
+                : undefined) ?? hypotheses[0];
+            const activeModel = findModelByHypothesisId(
+              conceptualModels,
+              activeHyp?.id ?? ""
+            );
+            if (!activeHyp || !activeModel) return null;
+            return (
+              <PantallaContrastationMatrix
+                key="contrastation-matrix"
+                problema={problema}
+                hypothesis={activeHyp}
+                conceptualModel={activeModel}
+                matrix={findContrastationMatrixByHypothesisId(
+                  contrastationMatrices,
+                  activeHyp.id
+                )}
+                onUpdateMatrix={handleUpdateContrastationMatrix}
+                onConfirmar={handleConfirmarContrastationMatrix}
+                onVerCadena={handleVerCadenaMetodologica}
+                onVolver={handleVolverDesdeContrastation}
+                onReiniciar={handleReiniciar}
+              />
+            );
+          })()}
+          {/* S-019: Revisión Final — cadena metodológica completa */}
+          {pantalla === "revision-final" && hypotheses.length > 0 && (() => {
+            const activeHyp =
+              (primaryHypothesisId
+                ? hypotheses.find((h) => h.id === primaryHypothesisId)
+                : undefined) ?? hypotheses[0];
+            const activeModel = findModelByHypothesisId(
+              conceptualModels,
+              activeHyp?.id ?? ""
+            );
+            const activeOpMatrix = activeHyp
+              ? findMatrixByHypothesisId(operationalizationMatrices, activeHyp.id)
+              : null;
+            const activeCtMatrix = activeHyp
+              ? findContrastationMatrixByHypothesisId(contrastationMatrices, activeHyp.id)
+              : null;
+            const patternTitulo =
+              perequeMode?.mode === "single"
+                ? perequeMode.pattern.metadata.titulo
+                : perequeMode?.mode === "combined"
+                ? `${perequeMode.primaryPattern.metadata.titulo} + ${perequeMode.secondaryPattern.metadata.titulo}`
+                : null;
+            if (!activeHyp) return null;
+            return (
+              <PantallaRevisionFinal
+                key="revision-final"
+                problema={problema}
+                patternTitulo={patternTitulo}
+                hypothesis={activeHyp}
+                conceptualModel={activeModel}
+                operationalizationMatrix={activeOpMatrix}
+                contrastationMatrix={activeCtMatrix}
+                onIrAProblema={() => setPantalla("entrada")}
+                onIrAHipotesis={() => setPantalla("revision-hipotesis")}
+                onIrAModelo={() => setPantalla("conceptual-model")}
+                onIrAOperacionalizacion={() => setPantalla("operationalization-matrix")}
+                onIrAContrastation={() => setPantalla("contrastation-matrix")}
                 onReiniciar={handleReiniciar}
               />
             );

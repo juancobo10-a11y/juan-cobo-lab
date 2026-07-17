@@ -66,6 +66,8 @@ interface Props {
   matrix: OperationalizationMatrix | null;
   onUpdateMatrix: (matrix: OperationalizationMatrix) => void;
   onConfirmar: (matrix: OperationalizationMatrix) => void;
+  /** S-019: navigate to contrastation matrix; only shown when matrix.confirmed */
+  onConstruirContrastation?: () => void;
   onVolver: () => void;
   onReiniciar: () => void;
 }
@@ -101,6 +103,7 @@ export function PantallaOperationalizationMatrix({
   matrix: matrixProp,
   onUpdateMatrix,
   onConfirmar,
+  onConstruirContrastation,
   onVolver,
   onReiniciar,
 }: Props) {
@@ -697,6 +700,19 @@ export function PantallaOperationalizationMatrix({
               aria-hidden="true"
             />
           </button>
+          {matrix.confirmed && onConstruirContrastation && (
+            <button
+              type="button"
+              onClick={onConstruirContrastation}
+              className="group flex items-center gap-2.5 px-6 py-3.5 rounded-xl border border-primary/30 bg-primary/5 text-primary text-sm font-medium tracking-wide hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all duration-200"
+            >
+              Construir matriz de contrastación
+              <ArrowRight
+                className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200"
+                aria-hidden="true"
+              />
+            </button>
+          )}
           <button
             type="button"
             onClick={onVolver}

@@ -1,0 +1,400 @@
+Sprint S-019 — Matriz de Contrastación de Hipótesis
+Contexto
+
+Después de los Sprint S-011 a S-018, HELIOS permite construir una cadena metodológica completa:
+
+Problema
+↓
+Thinking Pattern
+↓
+Reflexión
+↓
+Hipótesis
+↓
+Modelo Conceptual
+↓
+Variables
+↓
+Indicadores
+↓
+Fuentes
+↓
+Matriz de Operacionalización
+
+La siguiente etapa consiste en definir explícitamente cómo una hipótesis podría ser contrastada con evidencia.
+
+Este sprint implementa una Matriz de Contrastación, cuyo propósito es organizar de manera estructurada la lógica de validación de cada hipótesis.
+
+No agregar nuevos Thinking Patterns.
+
+No modificar el Router.
+
+No modificar el Hypothesis Builder.
+
+No modificar el Modelo Conceptual.
+
+No modificar la Matriz de Operacionalización.
+
+No introducir IA generativa, LLM, APIs externas ni bases de datos.
+
+Objetivo general
+
+Agregar una nueva etapa:
+
+Hipótesis
+↓
+Modelo Conceptual
+↓
+Matriz de Operacionalización
+↓
+Matriz de Contrastación
+
+La matriz permitirá responder:
+
+¿Qué evidencia apoyaría esta hipótesis?
+¿Qué evidencia la debilitaría?
+¿Cómo podría observarse?
+¿Con qué indicadores?
+¿Con qué fuentes?
+¿Qué limitaciones existen?
+ADR-0008
+
+Agregar:
+
+ADR-0008 — Toda hipótesis debe tener criterios explícitos de contrastación
+
+Una hipótesis no está lista para ser utilizada mientras no existan criterios claros para decidir qué tipo de evidencia la apoyaría o la refutaría.
+
+HELIOS no debe decidir si una hipótesis es verdadera.
+
+Debe ayudar al usuario a definir cómo podría contrastarse.
+
+1. Revisión inicial
+
+Antes de implementar revisar:
+
+OperationalizationMatrix
+OperationalizationRow
+ConceptualModel
+PolicyHypothesis
+EvidenceSource
+navegación
+estado de sesión
+
+Responder:
+
+qué información ya existe;
+qué puede reutilizarse;
+qué falta;
+cómo evitar duplicidad.
+
+No implementar hasta completar la revisión.
+
+2. Modelo de datos
+
+Crear:
+
+ContrastationMatrix
+
+Cada matriz pertenece a una hipótesis.
+
+Cada fila representa un criterio de contrastación.
+
+ContrastationRow
+
+Debe contener:
+
+id
+hypothesisId
+indicadorId
+fuenteId
+evidenciaEsperada
+evidenciaContraria
+criterioInterpretacion
+limitaciones
+prioridad
+observaciones
+3. Prioridad
+
+Catálogo:
+
+alta
+media
+baja
+
+No asignar automáticamente.
+
+4. Evidencia esperada
+
+Texto libre.
+
+Debe responder:
+
+¿Qué observaríamos si la hipótesis fuera consistente?
+
+5. Evidencia contraria
+
+Texto libre.
+
+Debe responder:
+
+¿Qué resultado pondría seriamente en duda la hipótesis?
+
+6. Criterio de interpretación
+
+Texto libre.
+
+Ejemplo:
+
+Si el indicador permanece estable pese a la intervención, la hipótesis pierde plausibilidad.
+
+No generar automáticamente.
+
+7. Servicio
+
+Crear:
+
+ContrastationService.ts
+
+Funciones puras:
+
+crear matriz
+agregar fila
+editar
+eliminar
+reordenar
+validar
+confirmar
+deduplicar
+
+Sin conocimiento del dominio.
+
+8. Validación
+
+Crear:
+
+validateContrastation()
+
+Errores:
+
+fila sin indicador
+fila sin fuente
+fila sin evidencia esperada
+fila sin evidencia contraria
+
+Advertencias:
+
+sin criterio de interpretación
+sin limitaciones
+prioridad vacía
+
+No bloquear edición.
+
+Bloquear únicamente confirmación.
+
+9. Pantalla
+
+Crear:
+
+PantallaContrastationMatrix.tsx
+
+Mostrar:
+
+hipótesis
+variables relacionadas
+indicadores reutilizados
+fuentes reutilizadas
+
+Tabla editable.
+
+Columnas:
+
+Indicador
+
+↓
+
+Fuente
+
+↓
+
+Evidencia esperada
+
+↓
+
+Evidencia contraria
+
+↓
+
+Interpretación
+
+↓
+
+Prioridad
+
+↓
+
+Limitaciones
+
+Todo editable.
+
+10. Reutilización
+
+Los indicadores y fuentes deben seleccionarse mediante referencia.
+
+Nunca duplicar registros.
+
+11. Navegación
+
+Agregar:
+
+Matriz de operacionalización
+
+↓
+
+Matriz de contrastación
+
+↓
+
+Continuar
+
+Conservando todo el estado.
+
+12. Estado
+
+Extender la sesión:
+
+contrastationMatrices
+
+No modificar las estructuras anteriores.
+
+13. Accesibilidad
+
+Mantener todas las reglas ya implementadas.
+
+14. Casos de prueba
+
+Crear:
+
+validacion_s019.ts
+
+Como mínimo:
+
+crear matriz;
+agregar fila;
+reutilizar indicador;
+reutilizar fuente;
+validar errores;
+validar advertencias;
+eliminar fila;
+reordenar;
+múltiples hipótesis;
+múltiples matrices;
+navegación;
+reinicio;
+integración;
+confirmación;
+deduplicación;
+prioridades;
+criterios de interpretación;
+limitaciones;
+persistencia en sesión;
+regresión.
+15. Integración
+
+Agregar un botón en la pantalla de Matriz de Operacionalización:
+
+Construir matriz de contrastación
+
+Solo debe habilitarse cuando la matriz de operacionalización esté confirmada.
+
+16. Revisión final
+
+Crear una vista consolidada donde el usuario pueda visualizar toda la cadena metodológica:
+
+Problema
+
+↓
+
+Thinking Pattern
+
+↓
+
+Hipótesis
+
+↓
+
+Modelo Conceptual
+
+↓
+
+Variables
+
+↓
+
+Indicadores
+
+↓
+
+Fuentes
+
+↓
+
+Operacionalización
+
+↓
+
+Contrastación
+
+Cada etapa debe ser navegable.
+
+No permitir edición directa desde esta vista.
+
+17. Regresión
+
+Ejecutar:
+
+S-012
+S-013
+S-014
+S-015
+S-016
+S-017
+S-018
+Smoke
+Integration
+Build
+
+Todos deben permanecer en verde.
+
+18. Architecture Review
+
+Responder:
+
+¿Cómo se representa una matriz de contrastación?
+¿Qué diferencia existe entre operacionalización y contrastación?
+¿Cómo se reutilizan indicadores?
+¿Cómo se reutilizan fuentes?
+¿Qué validaciones se implementaron?
+¿Cómo se evita duplicidad?
+¿Cómo se preserva la trazabilidad?
+¿Qué limitaciones metodológicas permanecen?
+¿Qué deuda técnica queda?
+¿Está HELIOS preparado para construir diseños completos de evaluación?
+19. Entrega
+
+Entregar:
+
+revisión inicial;
+ADR-0008;
+nuevos tipos;
+ContrastationService;
+PantallaContrastationMatrix;
+integración completa;
+validación S-019;
+regresión completa;
+documentación;
+actualización de CHANGELOG;
+commit;
+push;
+no hacer republish;
+detenerse para revisión.

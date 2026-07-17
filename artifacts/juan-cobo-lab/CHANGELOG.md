@@ -1,5 +1,83 @@
 # HELIOS — Changelog
 
+## S-018 (2026-07-17) — Matriz de Operacionalización
+
+### Resumen
+Extiende el flujo de HELIOS con la etapa de operacionalización explícita:
+Problema → Thinking Pattern → Reflexión → Hipótesis → Modelo Conceptual → **Matriz de Operacionalización**.
+
+La matriz es el puente entre el modelo conceptual y el diseño empírico. Cada fila
+representa una dimensión de una variable, vinculada a un indicador, una escala de medición
+y una fuente de evidencia — todos reutilizados del modelo conceptual sin duplicación.
+
+### ADR-0007 — Todo constructo debe poder operacionalizarse explícitamente
+Los conceptos utilizados en una hipótesis deben transformarse en variables observables
+mediante una matriz explícita. No deben existir indicadores sin una operacionalización
+previa. Sin generación automática — la operacionalización exige el juicio del analista.
+
+### Nuevos tipos — src/operationalization/types.ts
+- `EscalaMedicion` — catálogo: nominal, ordinal, intervalo, razón, índice-compuesto
+- `ESCALAS_LABELS` + `ESCALAS_LIST` — catálogo exportado
+- `Dimension` — nombre, definicionOperacional, orden (embebida en OperationalizationRow)
+- `OperationalizationRow` — variableId (FK), dimension (embedded), indicatorId (FK|null), escala, sourceId (FK|null), observaciones, orden
+- `OperationalizationMatrix` — hypothesisId, rows[], confirmed (1:1 con ConceptualModel)
+- `OperationalizationValidation` — blockingIssues (5 tipos) + warnings (3 tipos)
+- `RowUpdate`, `DimensionUpdate` — update payloads
+
+### Nuevo servicio — src/operationalization/OperationalizationService.ts
+Funciones puras sin conocimiento sectorial:
+- `createEmptyMatrix`, `createRow`, `updateRow`, `updateDimension`, `removeRow`, `reorderRows`
+- `reutilizarIndicador`, `reutilizarFuente` — reutilización por ID sin duplicar datos
+- `isDimensionNameDuplicate` — deduplicación normalizada por variable
+- `validateOperationalization` — 5 blocking + 3 warnings; validación contra ConceptualModel
+- `findMatrixByHypothesisId`, `upsertMatrix`, `confirmMatrix`
+
+Restricciones de integridad:
+- `createRow`/`updateRow` rechazan variableId, indicatorId, sourceId inválidos
+- No puede existir un indicador "de la matriz" — solo FKs al ConceptualModel
+- Edición nunca bloqueada; solo confirmación bloqueada por issues estructurales
+
+### Nueva pantalla — src/components/PantallaOperationalizationMatrix.tsx
+Tabla editable con filas expandibles:
+- Columnas: Variable/Dimensión, Definición operacional, Indicador, Escala, Unidad, Fuente
+- Formulario de agregar fila: selección de variable, dimensión, indicador (filtrado por variable), fuente (filtrada por variable), escala, observaciones
+- Edición inline al expandir cada fila
+- Panel de validación en tiempo real (aria-live)
+- Cadena de trazabilidad completa en lectura
+- Keyboard accessible — sin drag-and-drop
+
+### PantallaConceptualModel modificada
+- Nuevo prop `onConstruirMatriz?: () => void`
+- Botón "Construir matriz de operacionalización" siempre visible
+
+### Helios.tsx extendido
+- Nueva pantalla `"operationalization-matrix"` en el tipo `Pantalla`
+- Nuevo estado `operationalizationMatrices: OperationalizationMatrix[]`
+- Handlers: `handleConstruirMatriz`, `handleUpdateOperationalizationMatrix`, `handleConfirmarOperationalizationMatrix`, `handleVolverDesdeMatriz`
+- `handleReiniciar` limpia `operationalizationMatrices`
+
+### Suite S-018 — src/operationalization/__tests__/validacion_s018.ts
+34 asserts en 15 TCs ✓ — cubre crear, agregar, editar, reutilizar indicador, reutilizar fuente,
+deduplicación, validación (4 blocking), eliminación, navegación, reinicio, múltiples hipótesis,
+múltiples variables, integración completa.
+
+### Regresión — 11/11 suites
+```
+Typecheck      PASS
+S-012          PASS
+S-013          PASS
+S-014          PASS
+S-015          PASS
+S-016          PASS
+S-017          PASS   20/20
+S-018          PASS   34/34
+Smoke          PASS   37/37
+Integration    PASS   29/29
+Build          PASS
+```
+
+---
+
 ## S-017 (2026-07-17) — Modelo Conceptual de Variables, Indicadores y Evidencia
 
 ### Resumen

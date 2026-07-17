@@ -708,6 +708,7 @@ export function PantallaConceptualModel({
   model: initialModel,
   onUpdateModel,
   onConfirmar,
+  onConstruirMatriz,
   onVolver,
   onReiniciar,
 }: {
@@ -716,6 +717,8 @@ export function PantallaConceptualModel({
   model: ConceptualModel | null;
   onUpdateModel: (model: ConceptualModel) => void;
   onConfirmar: (model: ConceptualModel) => void;
+  /** S-018: navigate to operationalization matrix */
+  onConstruirMatriz?: () => void;
   onVolver: () => void;
   onReiniciar: () => void;
 }) {
@@ -975,6 +978,16 @@ export function PantallaConceptualModel({
           Confirmar modelo
           <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" aria-hidden />
         </button>
+        {onConstruirMatriz && (
+          <button
+            type="button"
+            onClick={onConstruirMatriz}
+            className="group flex items-center gap-2.5 px-6 py-3.5 rounded-xl border border-primary/40 text-primary bg-primary/5 text-sm font-medium hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all duration-200"
+          >
+            Construir matriz de operacionalización
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" aria-hidden />
+          </button>
+        )}
         <button
           type="button"
           onClick={onVolver}

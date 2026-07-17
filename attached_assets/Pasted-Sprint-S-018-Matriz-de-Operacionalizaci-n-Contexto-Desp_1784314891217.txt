@@ -1,0 +1,341 @@
+Sprint S-018 — Matriz de Operacionalización
+Contexto
+
+Después de los Sprint S-011 a S-017, HELIOS ya permite construir una cadena metodológica completa desde el problema hasta la identificación de variables, indicadores y fuentes de evidencia.
+
+Actualmente el flujo termina en:
+
+Problema
+↓
+Thinking Pattern
+↓
+Reflexión
+↓
+Hipótesis
+↓
+Modelo conceptual
+↓
+Variables
+↓
+Indicadores
+↓
+Fuentes
+
+Sin embargo, todavía no existe una estructura explícita que conecte de manera sistemática cada constructo conceptual con su definición operacional.
+
+En metodología de investigación, esa función la cumple la Matriz de Operacionalización.
+
+Este sprint implementa esa capa.
+
+No agregar nuevos Thinking Patterns.
+
+No modificar el Router.
+
+No modificar el Hypothesis Builder.
+
+No introducir IA generativa, LLM ni APIs externas.
+
+No modificar el modelo conceptual existente.
+
+Objetivo general
+
+Agregar una nueva etapa:
+
+Hipótesis
+↓
+Modelo conceptual
+↓
+Matriz de operacionalización
+↓
+Variables observables
+↓
+Indicadores
+↓
+Fuentes
+
+La matriz será el puente entre el modelo conceptual y el diseño empírico.
+
+ADR-0007
+
+Agregar un nuevo ADR.
+
+ADR-0007 — Todo constructo debe poder operacionalizarse explícitamente
+
+Los conceptos utilizados en una hipótesis deben transformarse en variables observables mediante una matriz explícita.
+
+No deben existir indicadores sin una operacionalización previa.
+
+1. Revisión inicial
+
+Antes de implementar revisar:
+
+ConceptualModel
+ConceptualVariable
+ConceptualIndicator
+EvidenceSource
+ConceptualModelService
+PantallaConceptualModel
+
+Responder:
+
+qué información ya existe;
+qué información falta;
+cómo reutilizar el modelo existente;
+cómo evitar duplicidad.
+
+No implementar hasta completar esta revisión.
+
+2. Nuevo modelo
+
+Crear:
+
+OperationalizationMatrix
+
+Cada fila representa una variable conceptual.
+
+Debe contener:
+
+variable conceptual
+definición conceptual
+definición operacional
+dimensión
+indicador asociado
+unidad
+escala
+fuente
+observaciones
+3. Dimensiones
+
+Una variable podrá tener múltiples dimensiones.
+
+Ejemplo:
+
+Calidad educativa
+
+↓
+
+Infraestructura
+
+↓
+
+Docentes
+
+↓
+
+Resultados
+
+No imponer límites.
+
+4. Definición operacional
+
+Cada dimensión debe responder:
+
+¿Cómo sabré que esta dimensión está presente?
+
+Debe ser texto libre.
+
+5. Escalas
+
+Agregar catálogo genérico:
+
+nominal
+ordinal
+intervalo
+razón
+índice compuesto
+
+No asumir automáticamente ninguna.
+
+6. Indicadores
+
+Permitir reutilizar indicadores existentes.
+
+No duplicarlos.
+
+Si no existe uno compatible, crear uno nuevo.
+
+7. Fuentes
+
+Permitir reutilizar EvidenceSource.
+
+No crear copias innecesarias.
+
+8. Servicio
+
+Crear:
+
+OperationalizationService.ts
+
+Funciones:
+
+crear fila
+editar
+eliminar
+reordenar
+reutilizar indicador
+reutilizar fuente
+validación
+deduplicación
+
+Todo puro.
+
+9. Validación
+
+Crear:
+
+validateOperationalization()
+
+Errores:
+
+variable sin dimensión
+dimensión sin definición operacional
+indicador ausente
+fuente ausente
+
+Advertencias:
+
+unidad vacía
+escala vacía
+observaciones vacías
+
+No bloquear edición.
+
+Bloquear únicamente la confirmación final.
+
+10. Pantalla
+
+Crear:
+
+PantallaOperationalizationMatrix.tsx
+
+Debe mostrar una tabla editable.
+
+Cada fila:
+
+Variable
+
+↓
+
+Dimensión
+
+↓
+
+Definición operacional
+
+↓
+
+Indicador
+
+↓
+
+Unidad
+
+↓
+
+Escala
+
+↓
+
+Fuente
+
+Todo editable.
+
+11. Navegación
+
+Agregar:
+
+Modelo conceptual
+↓
+
+Matriz de operacionalización
+↓
+
+Continuar
+
+Mantener navegación hacia atrás sin pérdida de estado.
+
+12. Estado
+
+Extender la sesión:
+
+operationalizationMatrices
+
+No modificar estructuras previas.
+
+13. Accesibilidad
+
+Mantener todas las reglas ya existentes:
+
+teclado
+labels
+foco
+aria-live
+14. Casos de prueba
+
+Crear:
+
+validacion_s018.ts
+
+Casos mínimos:
+
+crear matriz;
+agregar dimensión;
+editar dimensión;
+reutilizar indicador;
+reutilizar fuente;
+deduplicación;
+validación;
+navegación;
+reinicio;
+múltiples hipótesis;
+múltiples variables;
+persistencia en sesión;
+integración;
+eliminación;
+regresión.
+15. Regresión
+
+Ejecutar:
+
+S-012
+S-013
+S-014
+S-015
+S-016
+S-017
+Smoke
+Integration
+Build
+
+Todos deben permanecer en verde.
+
+16. Architecture Review
+
+Responder:
+
+¿Cómo se representa una matriz de operacionalización?
+¿Qué diferencia existe entre variable conceptual y dimensión?
+¿Cómo se reutilizan indicadores?
+¿Cómo se reutilizan fuentes?
+¿Qué validaciones existen?
+¿Cómo se evita duplicidad?
+¿Qué deuda técnica permanece?
+¿Está HELIOS preparado para diseñar un plan de contrastación?
+17. Entrega
+
+Entregar:
+
+revisión inicial;
+ADR-0007;
+nuevos tipos;
+OperationalizationService;
+PantallaOperationalizationMatrix;
+integración;
+validación S-018;
+regresión completa;
+documentación;
+CHANGELOG;
+commit;
+push;
+no hacer republish;
+detenerse para revisión.

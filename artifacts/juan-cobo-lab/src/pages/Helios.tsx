@@ -9,6 +9,12 @@ import { PantallaRevisionHipotesis } from "@/components/PantallaRevisionHipotesi
 import { PantallaConceptualModel } from "@/components/PantallaConceptualModel";
 import type { ConceptualModel } from "@/conceptual/types";
 import { findModelByHypothesisId, upsertModel } from "@/conceptual/ConceptualModelService";
+import { PantallaOperationalizationMatrix } from "@/components/PantallaOperationalizationMatrix";
+import type { OperationalizationMatrix } from "@/operationalization/types";
+import {
+  findMatrixByHypothesisId,
+  upsertMatrix,
+} from "@/operationalization/OperationalizationService";
 import { heliosRouter } from "@/router/KnowledgeRouter";
 import type {
   KnowledgePack,
@@ -1494,6 +1500,7 @@ type Pantalla =
   | "hypothesis-builder"         // S-015: structured hypothesis formulation
   | "revision-hipotesis"         // S-015: final session review before confirming
   | "conceptual-model"           // S-017: operacionalización de hipótesis
+  | "operationalization-matrix"  // S-018: matriz de operacionalización
   | "hipotesis"
   | "pestel"
   | "descubrimiento";
@@ -1561,6 +1568,10 @@ export default function Helios() {
   const [hypothesesReviewed, setHypothesesReviewed] = useState(false);
   /** S-017: conceptual models — one per hypothesis, session-only */
   const [conceptualModels, setConceptualModels] = useState<ConceptualModel[]>([]);
+  // S-018: Operationalization matrices (session-only)
+  const [operationalizationMatrices, setOperationalizationMatrices] = useState<
+    OperationalizationMatrix[]
+  >([]);
 
   const handleSubmitProblema = async (p: string) => {
     setProblema(p);
@@ -1716,6 +1727,31 @@ export default function Helios() {
     setPantalla("revision-hipotesis");
   }, []);
 
+  // ── S-018: Operationalization matrix handlers ───────────────────────────────
+
+  const handleConstruirMatriz = useCallback(() => {
+    setPantalla("operationalization-matrix");
+  }, []);
+
+  const handleUpdateOperationalizationMatrix = useCallback(
+    (matrix: OperationalizationMatrix) => {
+      setOperationalizationMatrices((prev) => upsertMatrix(prev, matrix));
+    },
+    []
+  );
+
+  const handleConfirmarOperationalizationMatrix = useCallback(
+    (matrix: OperationalizationMatrix) => {
+      setOperationalizationMatrices((prev) => upsertMatrix(prev, matrix));
+      // Stay on matrix screen — matrix is now confirmed
+    },
+    []
+  );
+
+  const handleVolverDesdeMatriz = useCallback(() => {
+    setPantalla("conceptual-model");
+  }, []);
+
   const handleReiniciar = () => {
     setProblema("");
     setPackActivo(null);
@@ -1732,6 +1768,7 @@ export default function Helios() {
     setPrimaryHypothesisId(undefined);
     setHypothesesReviewed(false);
     setConceptualModels([]);
+    setOperationalizationMatrices([]);
     setPantalla("entrada");
   };
 
@@ -1943,10 +1980,39 @@ export default function Helios() {
               )}
               onUpdateModel={handleUpdateConceptualModel}
               onConfirmar={handleConfirmarConceptualModel}
+              onConstruirMatriz={handleConstruirMatriz}
               onVolver={handleVolverDesdeConceptualModel}
               onReiniciar={handleReiniciar}
             />
           )}
+          {/* S-018: Operationalization Matrix */}
+          {pantalla === "operationalization-matrix" && hypotheses.length > 0 && (() => {
+            const activeHyp =
+              (primaryHypothesisId
+                ? hypotheses.find((h) => h.id === primaryHypothesisId)
+                : undefined) ?? hypotheses[0];
+            const activeModel = findModelByHypothesisId(
+              conceptualModels,
+              activeHyp?.id ?? ""
+            );
+            if (!activeHyp || !activeModel) return null;
+            return (
+              <PantallaOperationalizationMatrix
+                key="operationalization-matrix"
+                problema={problema}
+                hypothesis={activeHyp}
+                conceptualModel={activeModel}
+                matrix={findMatrixByHypothesisId(
+                  operationalizationMatrices,
+                  activeHyp.id
+                )}
+                onUpdateMatrix={handleUpdateOperationalizationMatrix}
+                onConfirmar={handleConfirmarOperationalizationMatrix}
+                onVolver={handleVolverDesdeMatriz}
+                onReiniciar={handleReiniciar}
+              />
+            );
+          })()}
           {pantalla === "hipotesis" && packActivo && (
             <PantallaHipotesis
               key="hipotesis"

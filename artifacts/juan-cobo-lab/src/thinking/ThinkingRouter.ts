@@ -60,10 +60,10 @@ export class ThinkingRouter {
   // ── Public API ────────────────────────────────────────────────────────────
 
   async route(input: ThinkingRouterInput): Promise<ThinkingResult> {
+    // Cache key includes packId so the same problem text routed through
+    // different Knowledge Packs produces distinct, correctly-enriched results.
     const cacheKey = normalizeText(
-      input.contexto
-        ? `${input.texto}::${input.contexto}`
-        : input.texto
+      `${input.texto}::${input.packId ?? "ninguno"}`
     );
     const cached = this._cache.get(cacheKey);
     if (cached) return cached;
@@ -126,10 +126,22 @@ export class ThinkingRouter {
       (s) => !s.entry.metadata.esUniversal && s.score >= THINKING_THRESHOLDS.ninguna
     );
 
+    // Universal-floor threshold: promote any universal pattern to `universalFloor`
+    // when its raw score is below the "baja" threshold AND no specific pattern won.
+    //
+    // Using `< baja` (0.20) instead of `< ninguna` (0.05) because enriching the
+    // ThinkingRouterInput with pack context (packNombre + packContextoResumido)
+    // increases `meaningfulCount`, which dilutes the normalised score. A universal
+    // pattern that scored 0.00–0.19 should always be promoted to "media" confidence
+    // when it is the only applicable pattern — that is the semantic contract of
+    // `esUniversal: true`.
+    //
+    // A universal pattern that already scored ≥ baja (0.20) via its own keywords
+    // is left as-is so it can compete normally against specific patterns.
     const withFloor = scored.map((s) => {
       if (
         s.entry.metadata.esUniversal &&
-        s.score < THINKING_THRESHOLDS.ninguna &&
+        s.score < THINKING_THRESHOLDS.baja &&
         !hasSpecificAboveThreshold
       ) {
         return { ...s, score: THINKING_THRESHOLDS.universalFloor };

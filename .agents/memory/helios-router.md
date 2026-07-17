@@ -1,102 +1,68 @@
 ---
-name: HELIOS Knowledge Router
-description: Arquitectura, decisiones de diseño y umbrales del Knowledge Router (Sprint 0.5 y 0.5.1) para HELIOS en Juan Cobo Lab
+name: HELIOS Knowledge Router & Thinking Engine
+description: Arquitectura de routers de Sprint 0.5–S-008; decisiones de algoritmo, umbrales, caché y flujo de integración
 ---
 
-## Contexto
+## Knowledge Router (Sprint 0.5 / 0.5.1)
 
-HELIOS es un copiloto editorial de análisis de política pública en `artifacts/juan-cobo-lab/src/pages/Helios.tsx`, ruta `/helios`. El contenido vive en `content/<pack>/` como archivos JSON.
+- `src/router/` — KnowledgeRouter, KeywordAlgorithm, registry, types, constants
+- Registry usa imports estáticos para metadata + lazy loaders para content (fs.strict:true bloquea import.meta.glob cross-root)
+- Singleton: `heliosRouter`
+- Smoke tests: 9/9 ✅
 
-## Estructura del Router
+## Thinking Engine (Sprint 0.6 / S-007 / S-008)
 
-```
-src/router/
-  types.ts                    ← contratos públicos (no modificar sin revisar todos los consumidores)
-  constants.ts                ← ROUTER_THRESHOLDS — fuente única; importar aquí, no duplicar
-  utils.ts                    ← normalizeText() compartida entre KeywordAlgorithm y KnowledgeRouter
-  KnowledgeRouter.ts          ← clase configurable; acepta algoritmo + registry inyectables
-  registry.ts                 ← lista explícita de packs; añadir pack = 1 entrada aquí
-  algorithms/
-    KeywordAlgorithm.ts       ← v1 determinista (async, lógica síncrona internamente)
-  __tests__/
-    smoke.ts                  ← 9 criterios de aceptación; ejecutar con:
-                                 pnpm exec tsx src/router/__tests__/smoke.ts
-```
+- `src/thinking/` — ThinkingRouter, KeywordThinkingAlgorithm, registry, types, constants
+- Singleton: `heliosThinkingEngine`
 
-## Umbrales de KnowledgeRouter (en constants.ts)
-
-| Parámetro | Valor | Significado |
-|---|---|---|
-| `ninguna` | 0.05 | Mínimo para ser candidato |
-| `baja` | 0.20 | Por debajo → pedir confirmación al usuario |
-| `alta` | 0.42 | Alta confianza → auto-seleccionar |
-| `tieDelta` | 0.09 | Diferencia entre top-2 que define empate |
-
-## Pesos del algoritmo (KeywordAlgorithm)
-
-- Frase multi-palabra en keywords: **0.55**
-- Token único en keywords: **0.30**
-- Coincidencia en campo `tema`: **0.20**
-- Token en `titulo`: **0.15**
-- Token en `descripcion`: **0.10**
-
-Normalización: `raw_score / (inputTokenCount × 0.55)`, clamped a [0,1].
-
-## Caché del Router
-
-`KnowledgeRouter` tiene un `Map<string, RouterResult>` interno. Clave = `normalizeText(input.texto)`.
-`clearCache()` disponible para tests y actualizaciones de packs.
-
-## Registry — Por qué explícito (decisión documentada)
-
-`fs.strict: true` en vite.config.ts impide que `import.meta.glob` cruce el límite del project root (`artifacts/juan-cobo-lab/`) hacia `content/` (en el workspace root). Los imports estáticos sí funcionan porque Rollup los resuelve antes de la restricción.
-
-Path a auto-descubrimiento: mover `content/` dentro de `artifacts/juan-cobo-lab/`.
-
-## Cómo añadir un nuevo Pack
-
-1. Crear `content/<slug>/` con: `metadata.json` (incluir campo `keywords` y todos los campos de provenance), `contexto.json`, `hipotesis.json`, `pestel.json`, `chips.json`
-2. Agregar una entrada a `src/router/registry.ts` — **único archivo a modificar**
-3. Helios.tsx no necesita cambios (incluyendo `PantallaSinPack`, que lee el registry dinámicamente)
-
-## Cómo reemplazar el algoritmo (futuro — IA semántica)
-
-`RoutingAlgorithm.score()` ya es async. Drop-in sin tocar Router ni Helios:
+### ThinkingRouterInput (S-008)
 ```typescript
-const router = new KnowledgeRouter(new EmbeddingAlgorithm(...));
+{ texto, packId?, packNombre?, packContextoResumido? }
 ```
+- `contexto?` (S-007) fue reemplazado por los tres campos estructurados
+- El algoritmo combina `texto + packNombre + packContextoResumido` como superficie de scoring
 
-## Tests con registry inyectable (para mocks)
+### Clave de caché
+`normalizeText(texto + "::" + (packId ?? "ninguno"))`
 
-```typescript
-const router = new KnowledgeRouter(new KeywordAlgorithm(), mockRegistry);
-```
+**Why:** el mismo texto del problema enrutado a distintos packs produce resultados distintos (vocabulario de contexto diferente). La clave por texto-solo daba cache hits incorrectos en el path candidatos.
 
-## Build
+### universalFloor — condición crítica
 
-El build requiere `PORT` y `BASE_PATH` como env vars:
-```
-PORT=3000 BASE_PATH=/juan-cobo-lab pnpm run build
-```
+**Condición actual (S-008):** el floor se aplica cuando `score < THINKING_THRESHOLDS.baja` (0.20), NO cuando `< ninguna` (0.05).
 
-## Thinking Engine (Sprint 0.6)
+**Why:** enriquecer el input con packNombre+packContextoResumido aumenta `meaningfulCount` (tokenizador), lo que dilata el denominador de normalización. Un patrón universal puede llegar a score=0.10 si matchea algunas keywords del contexto — este score está sobre `ninguna` (0.05) pero bajo `baja` (0.20), así que la condición original `< ninguna` no activaba el floor y devolvía "candidatos-baja". Semánticamente incorrecto para un patrón universal.
 
-Infraestructura paralela al Knowledge Router. Vive en `src/thinking/` y `content/thinking/`.
-Singleton: `heliosThinkingEngine` exportado desde `ThinkingRouter.ts`.
+**How to apply:** si se añaden nuevos patrones `esUniversal: true`, asegurarse que el test con input enriquecido verifica "seleccionado" (no "candidatos-baja"). Si la condición de floor vuelve a dar problemas, revisar si `meaningfulCount` creció demasiado.
 
-**Decisión arquitectónica clave — universalFloor:**
-Patrones con `esUniversal: true` en metadata reciben score garantizado (`THINKING_THRESHOLDS.universalFloor = 0.25`)
-cuando ningún patrón específico supera el umbral mínimo (`ninguna = 0.05`). Así el Socrático actúa como
-respaldo universal para cualquier problema de política, sin competir contra patrones específicos que ganen por keywords.
+### Smoke tests (v0.2.0 / S-008)
+- 15/15 ✅
+- Tests 1-6: heredados de S-007, migrados al nuevo ThinkingRouterInput
+- Test 7: Pack TIC + input enriquecido → seleccionado:socratico
+- Test 8: Pack Educación + input enriquecido → seleccionado:socratico
+- Test 9: Selección manual candidatos → seleccionado:socratico
+- Test 10: Sin patrón universal → ninguno
+- Cache tests A-D: hit por texto::packId, clearCache, caché diferenciada, hit diferenciado
+- Test Volver: misma consulta+packId → caché hit (problema preservado)
 
-**Cómo agregar un Thinking Pattern:**
-1. Crear `content/thinking/<slug>/metadata.json` y `preguntas.json`
-2. Añadir una entrada a `src/thinking/registry.ts` — único archivo a modificar
-3. `ThinkingRouter.ts` y `Helios.tsx` no requieren cambios
+## Flujo de integración en Helios.tsx (S-008)
 
-**Patrón Socrático (v0.1):** 5 preguntas — clarificacion, supuestos, evidencia, perspectivas, implicaciones.
-Cada pregunta tiene: `pregunta` (con `{{problema}}` placeholder), `proposito`, `orientacion`.
+**Orden estricto:**
+1. `handleSubmitProblema`: KnowledgeRouter → (si seleccionado) ThinkingRouter con pack enriquecido → pereque o hipotesis
+2. `handleSeleccionarPack` (path candidatos): async → ThinkingRouter con pack enriquecido → pereque o hipotesis
 
-## Estado del repositorio
+**Estado en Helios:**
+- `thinkingResult: ThinkingResult | null` — resultado completo (score, confianza, motivo, esFallback preservados)
+- `pantallaVolverDesdePereque: Pantalla` — "entrada" o "confirmacion-candidatos"
+- `PantallaEntrada` acepta `initialValue?: string` para pre-llenar el textarea al volver desde pereque
 
-Sprint 0.5.1: commit `7969f8e`. Sprint 0.6 (Thinking Engine v0.1): commit `8c7320f`. Ambos en `main`.
+**Volver desde pereque:**
+- Path seleccionado: → "entrada" con `initialValue={problema}` (textarea pre-llenado, sin reiniciar)
+- Path candidatos: → "confirmacion-candidatos" (candidatos todavía en estado)
+- `handleReiniciar` NO se llama desde pereque — solo desde descubrimiento o sin-pack
+
+## ADRs en vigor
+- ADR-0001: HELIOS no es chatbot (flujo forward)
+- ADR-0002: Conocimiento no vive en código (JSON externos)
+- ADR-0003: Packs composables y no exclusivos
+- ADR-0004: Razonamiento precede a metodología (TR corre antes de hipótesis)

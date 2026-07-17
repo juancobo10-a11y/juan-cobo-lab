@@ -52,8 +52,19 @@ export type ThinkingPattern = {
 export type ThinkingRouterInput = {
   /** The policy problem text */
   texto: string;
-  /** Optional domain context from the selected Knowledge Pack */
-  contexto?: string;
+  /**
+   * Unique identifier of the Knowledge Pack that was selected — used as the
+   * second component of the cache key so the same problem routed through
+   * different packs produces distinct, correctly-enriched results.
+   */
+  packId?: string;
+  /** Human-readable domain label (PackMetadata.tema) — added to scoring surface */
+  packNombre?: string;
+  /**
+   * First 300 characters of the pack's contexto.texto — enriches keyword
+   * matching with domain-specific vocabulary without blowing up the surface.
+   */
+  packContextoResumido?: string;
 };
 
 /** A single matched term with its provenance and weight */

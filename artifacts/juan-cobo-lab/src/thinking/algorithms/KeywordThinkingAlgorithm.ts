@@ -74,9 +74,14 @@ export class KeywordThinkingAlgorithm implements ThinkingAlgorithm {
     input: ThinkingRouterInput,
     metadata: ThinkingPatternMetadata
   ): Promise<{ score: number; terminosCoincidentes: ThinkingMatchedTerm[] }> {
-    // Combine texto + optional contexto for a richer signal surface
-    const fullInput = input.contexto
-      ? `${input.texto} ${input.contexto}`
+    // Build the scoring surface from all available context signals.
+    // packNombre + packContextoResumido enrich keyword matching with
+    // domain-specific vocabulary without duplicating the full pack content.
+    const contextParts = [input.packNombre, input.packContextoResumido]
+      .filter(Boolean)
+      .join(" ");
+    const fullInput = contextParts
+      ? `${input.texto} ${contextParts}`
       : input.texto;
 
     const normInput = normalizeText(fullInput);

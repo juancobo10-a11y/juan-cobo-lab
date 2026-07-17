@@ -12,7 +12,7 @@ import type {
   RouterResult,
 } from "@/router/types";
 import { heliosThinkingEngine } from "@/thinking/ThinkingRouter";
-import type { ThinkingPattern } from "@/thinking/types";
+import type { ThinkingPattern, ThinkingResult } from "@/thinking/types";
 
 // ─── Animation variants ─────────────────────────────────────────────────────
 const screenEnter: Variants = {
@@ -59,10 +59,13 @@ const confianzaRouterStyle: Record<string, string> = {
 // ─── Pantalla 1: Entrada ────────────────────────────────────────────────────
 function PantallaEntrada({
   onSubmit,
+  initialValue = "",
 }: {
   onSubmit: (problema: string) => void;
+  /** Pre-fills the textarea — used when the user returns from pereque via "Volver" */
+  initialValue?: string;
 }) {
-  const [valor, setValor] = useState("");
+  const [valor, setValor] = useState(initialValue);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -1052,52 +1055,82 @@ export default function Helios() {
   const [packActivo, setPackActivo] = useState<KnowledgePack | null>(null);
   const [routerResult, setRouterResult] = useState<RouterResult | null>(null);
   const [hipotesisActiva, setHipotesisActiva] = useState<Hipotesis | null>(null);
-  // Thinking Engine state — null when no pattern matched or not yet computed
-  const [thinkingPatternActivo, setThinkingPatternActivo] =
-    useState<ThinkingPattern | null>(null);
+  /**
+   * Full ThinkingResult preserved in state — includes score, confianza,
+   * motivo and esFallback flag for future transparency UI.
+   * null before the Thinking Router has run for the current session.
+   */
+  const [thinkingResult, setThinkingResult] = useState<ThinkingResult | null>(null);
+  /**
+   * Tracks which screen the user was on immediately before "pereque" so that
+   * "Volver" can return there without resetting the session.
+   * - "entrada"                 → reached pereque via automatic routing (seleccionado)
+   * - "confirmacion-candidatos" → reached pereque after manual pack selection
+   */
+  const [pantallaVolverDesdePereque, setPantallaVolverDesdePereque] =
+    useState<Pantalla>("entrada");
 
   const handleSubmitProblema = async (p: string) => {
     setProblema(p);
     setPantalla("enrutando");
 
     try {
-      // Run both routers concurrently — single loading state, no extra transition
-      const [knowledgeResult, thinkingResult] = await Promise.all([
-        heliosRouter.route({ texto: p }),
-        heliosThinkingEngine.route({ texto: p }),
-      ]);
-
+      // Step 1: Knowledge Router determines the disciplinary context.
+      const knowledgeResult = await heliosRouter.route({ texto: p });
       setRouterResult(knowledgeResult);
 
-      // Store the thinking pattern if the engine selected one
-      const pattern =
-        thinkingResult.decision === "seleccionado"
-          ? thinkingResult.seleccionado.pattern
-          : null;
-      setThinkingPatternActivo(pattern);
-
       if (knowledgeResult.decision === "seleccionado") {
-        setPackActivo(knowledgeResult.seleccionado.pack);
-        // ADR-0004: reasoning precedes methodology — show pereque before hipótesis
-        setPantalla(pattern ? "pereque" : "hipotesis");
+        const pack = knowledgeResult.seleccionado.pack;
+        setPackActivo(pack);
+
+        // Step 2: Thinking Router runs after the pack is known — enriched with
+        // pack context so scoring surface includes domain-specific vocabulary.
+        const tr = await heliosThinkingEngine.route({
+          texto: p,
+          packId: pack.metadata.id,
+          packNombre: pack.metadata.tema,
+          packContextoResumido: pack.contexto.texto.slice(0, 300),
+        });
+        setThinkingResult(tr);
+        setPantallaVolverDesdePereque("entrada");
+
+        // ADR-0004: reasoning precedes methodology
+        setPantalla(tr.decision === "seleccionado" ? "pereque" : "hipotesis");
       } else if (knowledgeResult.decision === "candidatos") {
+        // ThinkingRouter deferred until user selects a pack — see handleSeleccionarPack
         setPantalla("confirmacion-candidatos");
       } else {
         setPantalla("sin-pack");
       }
     } catch {
-      // Fallback: go back to entrada on unexpected error
       setPantalla("entrada");
     }
   };
 
-  const handleSeleccionarPack = (pack: KnowledgePack) => {
+  const handleSeleccionarPack = async (pack: KnowledgePack) => {
     setPackActivo(pack);
-    // Use the pre-computed thinking pattern from enrutando (if any)
-    setPantalla(thinkingPatternActivo ? "pereque" : "hipotesis");
+
+    // ThinkingRouter runs here — now we know the definitively chosen pack.
+    const tr = await heliosThinkingEngine.route({
+      texto: problema,
+      packId: pack.metadata.id,
+      packNombre: pack.metadata.tema,
+      packContextoResumido: pack.contexto.texto.slice(0, 300),
+    });
+    setThinkingResult(tr);
+    setPantallaVolverDesdePereque("confirmacion-candidatos");
+
+    setPantalla(tr.decision === "seleccionado" ? "pereque" : "hipotesis");
   };
 
   const handleContinuarDesdePereque = () => setPantalla("hipotesis");
+
+  /**
+   * Returns to the screen that preceded pereque, preserving the problem text.
+   * - "entrada" path: textarea is pre-filled via initialValue prop.
+   * - "confirmacion-candidatos" path: all pack candidates are still in state.
+   */
+  const handleVolverDesdePereque = () => setPantalla(pantallaVolverDesdePereque);
 
   const handleSeleccionarHipotesis = (h: Hipotesis) => {
     setHipotesisActiva(h);
@@ -1111,7 +1144,8 @@ export default function Helios() {
     setPackActivo(null);
     setRouterResult(null);
     setHipotesisActiva(null);
-    setThinkingPatternActivo(null);
+    setThinkingResult(null);
+    setPantallaVolverDesdePereque("entrada");
     setPantalla("entrada");
   };
 
@@ -1123,7 +1157,11 @@ export default function Helios() {
       <main id="helios-main">
         <AnimatePresence mode="wait">
           {pantalla === "entrada" && (
-            <PantallaEntrada key="entrada" onSubmit={handleSubmitProblema} />
+            <PantallaEntrada
+              key="entrada"
+              onSubmit={handleSubmitProblema}
+              initialValue={problema}
+            />
           )}
           {pantalla === "enrutando" && (
             <PantallaEnrutando key="enrutando" problema={problema} />
@@ -1147,15 +1185,16 @@ export default function Helios() {
               packsActivos={heliosRouter.getActivePacks()}
             />
           )}
-          {pantalla === "pereque" && thinkingPatternActivo && (
-            <PantallaPereque
-              key="pereque"
-              problema={problema}
-              pattern={thinkingPatternActivo}
-              onContinuar={handleContinuarDesdePereque}
-              onVolver={handleReiniciar}
-            />
-          )}
+          {pantalla === "pereque" &&
+            thinkingResult?.decision === "seleccionado" && (
+              <PantallaPereque
+                key="pereque"
+                problema={problema}
+                pattern={thinkingResult.seleccionado.pattern}
+                onContinuar={handleContinuarDesdePereque}
+                onVolver={handleVolverDesdePereque}
+              />
+            )}
           {pantalla === "hipotesis" && packActivo && (
             <PantallaHipotesis
               key="hipotesis"

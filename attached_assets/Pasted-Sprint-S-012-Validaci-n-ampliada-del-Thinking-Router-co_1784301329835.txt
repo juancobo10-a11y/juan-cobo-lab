@@ -1,0 +1,299 @@
+Sprint S-012 — Validación ampliada del Thinking Router conceptual
+Contexto
+
+El Sprint S-011 migró los patrones Socrático y Sistémico desde una lista plana de keywords hacia un modelo conceptual compuesto por:
+
+conceptos;
+términos;
+sinónimos;
+expresiones;
+coincidencias trazables por superficie.
+
+Las pruebas de regresión muestran que los cinco casos sistémicos que fallaban anteriormente ahora seleccionan correctamente Pensamiento Sistémico.
+
+Sin embargo, antes de incorporar un tercer patrón, es necesario validar que la mejora se generaliza y que no produjo nuevos falsos positivos.
+
+Este sprint es principalmente de validación y calibración.
+
+No agregar nuevos Thinking Patterns.
+
+No modificar la interfaz visual.
+
+No hacer cambios algorítmicos antes de ejecutar la primera ronda completa de validación.
+
+1. Reejecutar la batería original completa
+
+Reejecutar exactamente los 12 casos utilizados en la validación anterior.
+
+Para cada caso registrar:
+
+identificador;
+texto exacto;
+Knowledge Pack utilizado;
+patrón esperado;
+patrón obtenido;
+score;
+nivel de confianza;
+esFallback;
+motivoSeleccion;
+fuentePrincipal;
+conceptos activados;
+superficies que generaron cada coincidencia;
+explicación presentada al usuario;
+coincidencia, ambigüedad o error.
+
+Comparar explícitamente:
+
+Resultado S-010
+vs.
+Resultado S-012
+
+Calcular:
+
+acuerdo total;
+acuerdo sobre casos no ambiguos;
+precisión de Socrático;
+recall de Socrático;
+precisión de Sistémico;
+recall de Sistémico;
+porcentaje de casos resueltos mediante fallback;
+porcentaje de decisiones sustentadas principalmente en el texto del problema;
+porcentaje sustentado principalmente en el contexto del pack.
+
+No utilizar únicamente accuracy global.
+
+2. Crear una batería independiente
+
+Crear al menos 20 consultas nuevas que no hayan sido utilizadas para construir los conceptos de S-011.
+
+Distribución mínima:
+
+7 claramente socráticas;
+7 claramente sistémicas;
+4 ambiguas;
+2 genéricas para fallback.
+
+Las consultas deben usar lenguaje natural de política pública y evitar copiar literalmente las expresiones del metadata.
+
+Ejemplos de variación lingüística:
+
+no usar siempre “interdependencia”;
+expresar relaciones como “lo que hace una entidad altera el trabajo de las demás”;
+no usar siempre “supuestos”;
+expresar cuestionamientos como “¿qué tendría que ser cierto para aceptar esta conclusión?”;
+no usar siempre “efectos no intencionados”;
+usar formulaciones como “la intervención solucionó un problema, pero creó otro”.
+
+La evaluación esperada debe definirse antes de ejecutar el Router.
+
+3. Pruebas adversariales
+
+Crear al menos 12 casos diseñados para provocar falsos positivos.
+
+Posibles falsos positivos sistémicos
+
+Consultas con palabras como:
+
+sistema de información;
+sistema educativo;
+sistema tributario;
+actores;
+persistencia;
+barrera;
+ciclo presupuestal;
+estructura administrativa;
+
+pero sin una verdadera necesidad de pensamiento sistémico.
+
+Ejemplo:
+
+¿Qué evidencia demuestra que el nuevo sistema de información redujo los tiempos de atención?
+
+Debe favorecer Socrático por evidencia, aunque contenga la palabra “sistema”.
+
+Posibles falsos positivos socráticos
+
+Consultas con palabras como:
+
+evidencia;
+supuestos;
+diagnóstico;
+
+pero insertadas dentro de un problema cuya estructura dominante sea sistémica.
+
+Ejemplo:
+
+Aunque existe evidencia suficiente sobre la cobertura, la coordinación entre entidades, operadores y gobiernos territoriales sigue generando retrasos y efectos acumulativos.
+
+Debe evaluarse si Sistémico sigue siendo el patrón dominante.
+
+4. Validación del contexto del Knowledge Pack
+
+Ejecutar pares controlados con el mismo texto:
+
+mismo problema
++ pack diferente
+
+Como mínimo:
+
+texto neutral sin pack;
+texto neutral con pack TIC;
+texto neutral con pack Educación;
+texto neutral con un pack sintético de alto contenido sistémico;
+texto socrático explícito con pack sistémico;
+texto sistémico explícito con pack socrático.
+
+Objetivo:
+
+Determinar cuándo el contexto:
+
+ayuda correctamente;
+no cambia la decisión;
+domina indebidamente;
+genera falsos positivos.
+
+La señal del problema debe seguir siendo principal.
+
+5. Analizar el scoring conceptual
+
+Para cada decisión incorrecta identificar si la causa fue:
+
+concepto ausente;
+término demasiado general;
+expresión demasiado específica;
+peso del concepto;
+peso del tipo de coincidencia;
+diversity bonus;
+superficie del pack;
+umbral;
+fallback;
+ambigüedad real.
+
+No asumir automáticamente que todo error se corrige agregando vocabulario.
+
+Evitar expandir el metadata con términos excesivamente generales.
+
+6. Coherencia explicación–decisión
+
+Verificar que:
+
+la explicación mencione únicamente conceptos realmente activados;
+no declare “no hay señales suficientes” cuando existen conceptos claros;
+no atribuya al texto del usuario señales provenientes únicamente del pack;
+no presente como directa una selección que fue fallback;
+no exponga scores, pesos ni campos internos.
+
+Registrar cualquier incoherencia.
+
+7. Cambios permitidos después de la validación
+
+Solo después de entregar la primera matriz completa, realizar ajustes si están claramente justificados.
+
+Cambios permitidos:
+
+retirar términos ambiguos;
+agregar sinónimos o expresiones precisas;
+ajustar pesos conceptuales;
+ajustar diminishing returns;
+ajustar diversity bonus;
+corregir explicación;
+eliminar código deprecado si ya no tiene consumidores.
+
+Cambios no permitidos:
+
+agregar un tercer patrón;
+introducir embeddings;
+introducir LLM;
+crear condicionales por patrón;
+mover vocabulario de metadata a TypeScript;
+optimizar únicamente para que pasen los casos conocidos.
+
+Después de cada cambio, reejecutar las tres baterías:
+
+original;
+independiente;
+adversarial.
+8. Compatibilidad y deuda técnica
+
+Revisar si todavía es necesario mantener:
+
+keywords;
+ThinkingMatchedTerm;
+terminosCoincidentes;
+KeywordThinkingAlgorithm;
+legacy path del algoritmo.
+
+Si no existen consumidores reales fuera de pruebas, proponer su eliminación.
+
+No eliminar compatibilidad sin comprobar:
+
+registry;
+mocks;
+tests;
+imports;
+tipos;
+build.
+
+Revisar también si NEUTRAL_TERMS quedó completamente huérfano.
+
+9. Entregable
+
+Generar un informe en:
+
+docs/validation/thinking-router-s012.md
+
+Debe incluir:
+
+metodología;
+casos originales;
+casos independientes;
+casos adversariales;
+matriz antes/después;
+métricas por patrón;
+análisis del fallback;
+influencia de los Knowledge Packs;
+errores encontrados;
+ajustes realizados;
+resultados posteriores a los ajustes;
+limitaciones;
+recomendación sobre si HELIOS está preparado para un tercer patrón.
+10. Architecture Review
+
+Responder:
+
+¿Qué tanto mejoró el acuerdo frente a S-010?
+¿Cuál es la precisión y el recall de cada patrón?
+¿Cuántas decisiones siguen dependiendo del fallback?
+¿Qué falsos positivos aparecieron?
+¿Qué falsos negativos permanecen?
+¿El contexto del pack ayuda o domina?
+¿Qué conceptos son demasiado amplios?
+¿Qué conceptos son demasiado estrechos?
+¿Las explicaciones siguen siendo fieles a la decisión?
+¿Debe eliminarse el legacy path?
+¿Está HELIOS preparado para un tercer patrón?
+¿Qué riesgo metodológico sigue abierto?
+11. Entrega técnica
+ejecutar validación inicial;
+documentar resultados antes de cambiar código;
+realizar únicamente ajustes justificados;
+reejecutar todas las pruebas;
+TypeScript limpio;
+build limpio;
+actualizar changelog;
+commit;
+push;
+no hacer republish;
+detenerse para revisión.
+Criterio de éxito
+
+El criterio no es obtener 100 % de coincidencia.
+
+El criterio es demostrar que:
+
+Socrático y Sistémico se distinguen con lenguaje natural;
+los errores son identificables y explicables;
+el fallback se usa únicamente cuando corresponde;
+el contexto del pack ayuda sin dominar;
+las decisiones son trazables;
+el modelo se generaliza a casos que no participaron en su diseño.

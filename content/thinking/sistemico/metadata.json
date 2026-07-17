@@ -37,7 +37,10 @@
         "interactúan entre sí",
         "funcionan en conjunto",
         "dependen unos de otros",
-        "entre entidades"
+        "entre entidades",
+        "altera el trabajo de las demás",
+        "ninguna tiene control sobre el resultado",
+        "ningún actor controla el resultado"
       ]
     },
     {
@@ -56,7 +59,6 @@
       "sinonimos": [
         "espiral",
         "resistencia al cambio",
-        "ciclo",
         "perpetúa"
       ],
       "expresiones": [
@@ -72,7 +74,9 @@
         "se refuerza",
         "se reproduce",
         "resistente al cambio",
-        "se autoperpetúa"
+        "se autoperpetúa",
+        "se retroalimenta",
+        "a pesar de los programas de"
       ]
     },
     {
@@ -102,7 +106,10 @@
         "impactos en otros sectores",
         "traslado del problema",
         "trasladado hacia",
-        "ha trasladado el problema"
+        "ha trasladado el problema",
+        "solucionó un problema pero",
+        "pero creó otro",
+        "resolvió en un lugar pero"
       ]
     },
     {
@@ -138,7 +145,10 @@
         "se deben a múltiples",
         "factores institucionales",
         "factores territoriales",
-        "factores financieros"
+        "factores financieros",
+        "efectos tan distintos entre territorios",
+        "efectos diferentes entre territorios",
+        "responde diferente en cada"
       ]
     },
     {
@@ -150,7 +160,8 @@
         "demoras",
         "trayectoria",
         "inercia",
-        "dependencia de trayectoria"
+        "dependencia de trayectoria",
+        "manifestarse"
       ],
       "sinonimos": [
         "efectos a largo plazo",
@@ -167,7 +178,10 @@
         "en el largo plazo",
         "en el corto plazo",
         "a largo plazo",
-        "resultados diferentes en el"
+        "resultados diferentes en el",
+        "tardan en manifestarse",
+        "tarda años en",
+        "generación tras generación"
       ]
     },
     {
@@ -176,7 +190,6 @@
       "descripcion": "Barreras institucionales, fallas de coordinación o incentivos desalineados que limitan la efectividad de las soluciones.",
       "peso": 0.40,
       "terminos": [
-        "barreras",
         "cuellos de botella",
         "fragmentación",
         "incentivos desalineados",
@@ -195,6 +208,8 @@
         "fallas sistémicas",
         "falta de coordinación",
         "incentivos mal alineados",
+        "incentivos no alineados",
+        "falta de incentivos alineados",
         "fragmentación institucional",
         "debilidad institucional",
         "falta de capacidad",

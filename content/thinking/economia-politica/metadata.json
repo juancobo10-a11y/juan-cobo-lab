@@ -1,0 +1,253 @@
+{
+  "id": "economia-politica",
+  "titulo": "Economía Política",
+  "descripcion": "Marco de análisis para políticas públicas donde los resultados dependen de la distribución del poder, los incentivos de los actores, la estructura de costos y beneficios, la posibilidad de captura institucional y los conflictos entre grupos con intereses divergentes.",
+  "etiqueta": "Economía Política",
+  "enfoqueBreve": "analizar cómo los incentivos, el poder y los intereses de los actores explican el problema y condicionan cualquier solución",
+  "esUniversal": false,
+  "conceptos": [
+    {
+      "id": "incentivos",
+      "nombre": "Incentivos",
+      "descripcion": "Los actores responden a la estructura de incentivos que enfrentan, no necesariamente a las intenciones del diseño de la política.",
+      "peso": 0.45,
+      "terminos": [
+        "incentivos económicos",
+        "incentivos políticos",
+        "incentivos regulatorios",
+        "estructura de incentivos",
+        "diseño de incentivos",
+        "cálculo de incentivos",
+        "incentivos perversos"
+      ],
+      "sinonimos": [
+        "costo-beneficio",
+        "recompensas",
+        "sanciones económicas",
+        "señales económicas",
+        "cálculo racional",
+        "incentivo"
+      ],
+      "expresiones": [
+        "no tienen incentivos para",
+        "tienen incentivos para",
+        "incentivos para no cooperar",
+        "incentivos para no cumplir",
+        "incentivo para",
+        "sin incentivos para",
+        "incompatibles con los objetivos",
+        "incentivos incompatibles",
+        "estructura de incentivos",
+        "incentivos para el cumplimiento"
+      ]
+    },
+    {
+      "id": "actores_intereses",
+      "nombre": "Actores e intereses",
+      "descripcion": "Los resultados de la política reflejan los intereses y la capacidad de acción de distintos grupos, no solo la racionalidad técnica.",
+      "peso": 0.45,
+      "terminos": [
+        "grupos de interés",
+        "intereses creados",
+        "intereses políticos",
+        "beneficiarios directos",
+        "perdedores de la reforma",
+        "coalición política",
+        "aliados políticos",
+        "actores con poder",
+        "lobby"
+      ],
+      "sinonimos": [
+        "presión política",
+        "negociación entre actores",
+        "actores beneficiados",
+        "sectores afectados",
+        "stakeholders",
+        "interesados",
+        "grupos organizados",
+        "statu quo"
+      ],
+      "expresiones": [
+        "quién gana y quién pierde",
+        "grupos que se benefician",
+        "grupos que pierden",
+        "actores que se oponen",
+        "actores políticos",
+        "intereses de los grupos",
+        "grupos de presión",
+        "coalición que apoya",
+        "coalición que se opone",
+        "quien pierde con",
+        "quien gana con",
+        "grupos beneficiados",
+        "se benefician del statu quo",
+        "mantienen el statu quo",
+        "beneficiarios del statu quo"
+      ]
+    },
+    {
+      "id": "poder_institucional",
+      "nombre": "Poder institucional",
+      "descripcion": "Algunos actores tienen la capacidad de bloquear, capturar o desviar la política según sus intereses.",
+      "peso": 0.50,
+      "terminos": [
+        "captura regulatoria",
+        "captura del Estado",
+        "poder de veto",
+        "capacidad de bloqueo",
+        "influencia política",
+        "gobernabilidad política",
+        "liderazgo político",
+        "voluntad política"
+      ],
+      "sinonimos": [
+        "captura",
+        "bloqueo político",
+        "resistencia política",
+        "poder político",
+        "influencia indebida",
+        "presión de grupos"
+      ],
+      "expresiones": [
+        "poder suficiente para bloquear",
+        "capacidad de veto",
+        "puede bloquear la",
+        "capturado por",
+        "influencia sobre el regulador",
+        "control político sobre",
+        "fue capturado",
+        "dejó de regular",
+        "dejó de sancionar",
+        "no tiene voluntad política",
+        "falta de voluntad política",
+        "influencia suficiente para",
+        "influencia para neutralizar",
+        "neutralizar cualquier intento",
+        "neutralizar la reforma",
+        "organización e influencia"
+      ]
+    },
+    {
+      "id": "implementacion_politica",
+      "nombre": "Implementación",
+      "descripcion": "Los problemas de implementación reflejan incentivos adversos, resistencia de actores o falta de apoyo político, no solo deficiencias técnicas.",
+      "peso": 0.35,
+      "terminos": [
+        "implementación fallida",
+        "brecha de implementación",
+        "cumplimiento formal",
+        "ejecución de la política",
+        "coordinación política",
+        "reforma bloqueada",
+        "política varada"
+      ],
+      "sinonimos": [
+        "falla de ejecución",
+        "problemas de cumplimiento",
+        "incumplimiento estratégico",
+        "resistencia a la ejecución"
+      ],
+      "expresiones": [
+        "bloqueó la reforma",
+        "bloqueada por",
+        "no se implementó",
+        "difícil de implementar",
+        "no se cumple",
+        "fracasó en la implementación",
+        "barreras para implementar",
+        "bloqueo a la implementación",
+        "imposible de implementar",
+        "nunca se implementó"
+      ]
+    },
+    {
+      "id": "distribucion",
+      "nombre": "Distribución",
+      "descripcion": "La distribución de costos y beneficios entre grupos explica por qué ciertas políticas se aprueban, distorsionan o bloquean.",
+      "peso": 0.50,
+      "terminos": [
+        "distribución de beneficios",
+        "distribución de costos",
+        "costos concentrados",
+        "beneficios concentrados",
+        "costos dispersos",
+        "beneficios dispersos",
+        "redistribución política",
+        "subsidios capturados"
+      ],
+      "sinonimos": [
+        "quién paga",
+        "quién se beneficia",
+        "transferencia política",
+        "desigualdad de beneficios",
+        "reparto"
+      ],
+      "expresiones": [
+        "beneficios concentrados y costos dispersos",
+        "costos distribuidos y beneficios concentrados",
+        "quién asume los costos",
+        "quién recibe los beneficios",
+        "los que pagan no son los que se benefician",
+        "beneficia principalmente a",
+        "costos recaen sobre",
+        "no llegan a los más pobres",
+        "captados por grupos",
+        "no benefician a los destinatarios",
+        "capturado por grupos de interés"
+      ]
+    },
+    {
+      "id": "conflictos",
+      "nombre": "Conflictos",
+      "descripcion": "El problema involucra disputas activas entre actores con intereses incompatibles que dificultan el acuerdo y la acción colectiva.",
+      "peso": 0.40,
+      "terminos": [
+        "conflicto político",
+        "resistencia organizada",
+        "oposición política",
+        "disputa política",
+        "bloqueo político",
+        "negociación política",
+        "acción colectiva"
+      ],
+      "sinonimos": [
+        "tensión política",
+        "disputas",
+        "resistencia a la reforma",
+        "obstrucción",
+        "conflicto de intereses",
+        "enfrentamiento"
+      ],
+      "expresiones": [
+        "se opusieron a",
+        "resistencia de los",
+        "conflicto entre el gobierno",
+        "conflicto entre actores",
+        "disputa entre",
+        "negociación fallida",
+        "ninguno cede",
+        "no llegan a un acuerdo",
+        "objetivos incompatibles",
+        "intereses contrapuestos",
+        "gremios empresariales",
+        "sindicatos bloquearon"
+      ]
+    }
+  ],
+  "keywords": [],
+  "cuandoUsarlo": "Cuando el problema refleja la acción estratégica de actores con intereses divergentes, cuando los resultados de la política parecen beneficiar a grupos específicos en detrimento de otros, cuando existe captura institucional o bloqueo político, o cuando la distribución de costos y beneficios explica la resistencia o el apoyo a la política.",
+  "cuandoNoUsarlo": "Cuando la pregunta central es sobre la solidez del diagnóstico técnico o sus supuestos (Socrático), o cuando el problema involucra múltiples actores cuyas acciones se condicionan mutuamente de forma no intencional a través de retroalimentaciones sistémicas (Sistémico).",
+  "version": "0.1.0",
+  "estado": "activo",
+  "autor": "Juan Cobo Lab",
+  "institucion": "Juan Cobo Lab",
+  "ultimaActualizacion": "2026-07-17",
+  "fuentes": [
+    "Olson, M. (1965). The Logic of Collective Action. Harvard University Press.",
+    "North, D. (1990). Institutions, Institutional Change and Economic Performance. Cambridge University Press.",
+    "Acemoglu, D. & Robinson, J. (2006). Economic Origins of Dictatorship and Democracy. Cambridge University Press.",
+    "Tsebelis, G. (2002). Veto Players: How Political Institutions Work. Princeton University Press."
+  ],
+  "licencia": "Todos los derechos reservados",
+  "estadoRevision": "experimental"
+}

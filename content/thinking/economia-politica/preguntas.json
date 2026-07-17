@@ -1,0 +1,58 @@
+[
+  {
+    "numero": 1,
+    "categoria": "incentivos",
+    "pregunta": "¿Qué incentivos enfrentan los distintos actores involucrados con {{problema}}, y son esos incentivos compatibles con los objetivos de la política?",
+    "proposito": "Identificar si la estructura de incentivos alinea o contradice el comportamiento esperado de los actores.",
+    "orientacion": "Pregunta quién se beneficia de actuar de una forma y quién pierde si actúa de otra. Detecta incentivos perversos: situaciones donde el cálculo individual óptimo produce el peor resultado colectivo."
+  },
+  {
+    "numero": 2,
+    "categoria": "distribucion",
+    "pregunta": "¿Quién gana y quién pierde con esta política o con el statu quo? ¿Cómo afecta esa distribución al apoyo u oposición a las soluciones propuestas?",
+    "proposito": "Mapear la distribución de costos y beneficios para anticipar resistencias y coaliciones.",
+    "orientacion": "Identifica si los costos están concentrados en pocos actores organizados o dispersos entre muchos actores desorganizados. Aplica la lógica de Olson: beneficios concentrados activan organización; costos dispersos no la activan."
+  },
+  {
+    "numero": 3,
+    "categoria": "poder",
+    "pregunta": "¿Qué actores tienen la capacidad de bloquear, capturar o desviar la implementación de esta política según sus propios intereses?",
+    "proposito": "Detectar puntos de veto y riesgos de captura institucional que condicionan la viabilidad política.",
+    "orientacion": "Identifica actores con poder de veto formal o informal. Pregunta si el ente regulador tiene independencia real o si hay riesgo de captura por el sector regulado. Evalúa qué tan costoso sería para cada actor bloquear o redirigir la política."
+  },
+  {
+    "numero": 4,
+    "categoria": "coaliciones",
+    "pregunta": "¿Qué coaliciones favorecen {{problema}} y cuáles se oponen? ¿Tienen suficiente organización e influencia para incidir en el resultado?",
+    "proposito": "Evaluar la economía política de la formación de coaliciones y la acción colectiva.",
+    "orientacion": "Distingue entre grupos con intereses similares que actúan coordinadamente y grupos con intereses difusos que no logran organizarse. Pregunta qué incentivos tendrían actores clave para cambiar de bando o mantenerse neutrales."
+  },
+  {
+    "numero": 5,
+    "categoria": "implementacion",
+    "pregunta": "¿Los incentivos que enfrentan quienes implementan la política son consistentes con sus objetivos? ¿Hay razones para esperar cumplimiento estratégico o incumplimiento?",
+    "proposito": "Detectar brechas de implementación originadas en incentivos adversos dentro de la propia institucionalidad.",
+    "orientacion": "Pregunta si los funcionarios que implementan la política tienen razones para preferir el resultado diseñado o si les conviene más el statu quo. Evalúa si el sistema de rendición de cuentas premia los resultados reales o el cumplimiento formal."
+  },
+  {
+    "numero": 6,
+    "categoria": "captura",
+    "pregunta": "¿Existe evidencia de que la institución responsable prioriza los intereses de los grupos regulados o beneficiados sobre el interés público? ¿Qué mecanismos podrían revertirlo?",
+    "proposito": "Diagnosticar si la debilidad regulatoria tiene raíz en la captura y no solo en la falta de capacidad técnica.",
+    "orientacion": "Revisa la historia de decisiones del regulador o ejecutor. Identifica si las sanciones se aplican con equidad. Pregunta por la puerta giratoria entre el sector privado y el regulador. Distingue captura de simple incompetencia técnica."
+  },
+  {
+    "numero": 7,
+    "categoria": "statu-quo",
+    "pregunta": "¿Por qué persiste {{problema}} si produce resultados subóptimos para la mayoría? ¿Quién se beneficia del statu quo y qué recursos moviliza para mantenerlo?",
+    "proposito": "Identificar la economía política del equilibrio actual y los grupos que lo perpetúan.",
+    "orientacion": "Busca el grupo de actores con más que perder si el problema se resuelve. Evalúa su organización, acceso a recursos y capacidad de influencia. El statu quo persiste mientras esos actores puedan neutralizar los intentos de cambio."
+  },
+  {
+    "numero": 8,
+    "categoria": "negociacion",
+    "pregunta": "¿Qué mecanismos de negociación, compensación o diseño institucional podrían transformar a los opositores en aliados o reducir su capacidad de bloqueo?",
+    "proposito": "Explorar alternativas de diseño que modifiquen la economía política de la implementación.",
+    "orientacion": "Considera compensaciones explícitas, secuenciación estratégica, coaliciones ampliadas o cambios en el diseño que redistribuyan los costos de forma más aceptable. No asumas que la oposición es irrazonable: a menudo refleja intereses legítimos que deben ser procesados políticamente."
+  }
+]

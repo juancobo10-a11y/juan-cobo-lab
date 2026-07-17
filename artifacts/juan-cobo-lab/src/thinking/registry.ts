@@ -25,8 +25,9 @@
 
 import type { ThinkingPatternMetadata, ThinkingPattern } from "./types";
 
-import socraticoMeta  from "../../../../content/thinking/socratico/metadata.json";
-import sistemicoMeta  from "../../../../content/thinking/sistemico/metadata.json";
+import socraticoMeta       from "../../../../content/thinking/socratico/metadata.json";
+import sistemicoMeta       from "../../../../content/thinking/sistemico/metadata.json";
+import economiaPoliticaMeta from "../../../../content/thinking/economia-politica/metadata.json";
 
 export type ThinkingRegistryEntry = {
   metadata: ThinkingPatternMetadata;
@@ -54,6 +55,18 @@ export const THINKING_REGISTRY: ThinkingRegistryEntry[] = [
       preguntas: (
         await import(
           "../../../../content/thinking/sistemico/preguntas.json"
+        )
+      ).default as ThinkingPattern["preguntas"],
+    }),
+  },
+
+  // ── Economía Política ──────────────────────────────────────────────────────
+  {
+    metadata: economiaPoliticaMeta as ThinkingPatternMetadata,
+    load: async () => ({
+      preguntas: (
+        await import(
+          "../../../../content/thinking/economia-politica/preguntas.json"
         )
       ).default as ThinkingPattern["preguntas"],
     }),

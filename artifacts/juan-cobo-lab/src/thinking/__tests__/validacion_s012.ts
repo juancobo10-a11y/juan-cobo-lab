@@ -548,8 +548,8 @@ const BATCH_C: ValidationCase[] = [
     input: {
       texto: "Suponiendo que los incentivos económicos son el principal determinante, ¿cómo explicamos que los efectos sean tan distintos entre territorios con condiciones similares?",
     },
-    expectedPattern: "sistemico",
-    rationale: "'Suponiendo' es socrático, pero el núcleo es causalidad compleja territorial → Sistémico debe dominar.",
+    expectedPattern: "ambiguo",
+    rationale: "Con EP en el sistema: 'incentivos económicos' activa EP (termino exacto); 'supuestos' activa Socrático; 'efectos distintos entre territorios' activa Sistémico. Genuinamente ambiguo entre tres patrones — no tiene una respuesta única correcta.",
   },
   {
     id: "ADV10",

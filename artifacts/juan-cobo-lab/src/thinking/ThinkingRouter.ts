@@ -119,9 +119,43 @@ export class ThinkingRouter {
       return s;
     });
 
-    const aboveThreshold = withFloor
-      .filter((s) => s.score >= THINKING_THRESHOLDS.ninguna)
-      .sort((a, b) => b.score - a.score);
+    // ── Signal protection (S-013) ────────────────────────────────────────────
+    //
+    // Rule: when any pattern's problem-text score alone (scoreProblema) reaches
+    // the "baja" threshold, the pack context must NOT displace that pattern as
+    // the winner. The pack may reinforce, increase confidence, or break a tie
+    // among patterns that all have a strong problem signal — but it cannot
+    // override a pattern whose problem signal is already sufficient on its own.
+    //
+    // Implementation: patterns with scoreProblema >= baja are ordered first
+    // (by problem score), then the rest follow by combined score. This leaves
+    // the combined score intact for confidence and explanation calculations.
+    //
+    // Why "baja" (0.20) as the protection threshold?
+    //   It matches the threshold used to qualify a specialized pattern candidate.
+    //   If a problem signal is strong enough to activate a specialized pattern
+    //   on its own, it is strong enough to be protected from pack displacement.
+    const problemDominant = withFloor
+      .filter((s) => (s.scoreProblema ?? 0) >= THINKING_THRESHOLDS.baja)
+      .sort((a, b) => (b.scoreProblema ?? 0) - (a.scoreProblema ?? 0));
+
+    const orderedScored =
+      problemDominant.length > 0
+        ? [
+            ...problemDominant,
+            ...withFloor
+              .filter(
+                (s) =>
+                  !problemDominant.some(
+                    (p) => p.entry.metadata.id === s.entry.metadata.id
+                  )
+              )
+              .sort((a, b) => b.score - a.score),
+          ]
+        : withFloor;
+
+    const aboveThreshold = orderedScored
+      .filter((s) => s.score >= THINKING_THRESHOLDS.ninguna);
 
     if (aboveThreshold.length === 0) {
       return { decision: "ninguno", candidatos: [] };

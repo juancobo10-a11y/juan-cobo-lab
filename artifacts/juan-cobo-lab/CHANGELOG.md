@@ -1,5 +1,56 @@
 # HELIOS — Changelog
 
+## S-013 (2026-07-17) — Incorporación del patrón Economía Política
+
+### Resumen
+Tercer Thinking Pattern incorporado sin modificar el algoritmo ConceptualThinkingAlgorithm.
+Sin cambios en la interfaz de usuario. Sin cambios en el flujo de HELIOS.
+La única intervención estructural fue la regla de protección de la señal del problema en ThinkingRouter.
+
+### Resultados de validación S-013
+
+| Batería | n | Acuerdo |
+|---------|---|---------|
+| EP — Casos puros EP | 8 | 100% (8/8) |
+| MX — Mixtos | 6 | 100% (6/6) |
+| FP — Anti-falsos-positivos | 6 | 100% (6/6) |
+| SP — Protección de señal | 4 | 100% (4/4) |
+| **Global** | 24 | **100% (24/24)** |
+
+EP: precisión 92%, recall 100% | Smoke tests: 37/37 ✅ | Regresión S-012: 96.8% (↑ desde 93.5%)
+
+### Nuevos archivos
+
+- `content/thinking/economia-politica/metadata.json` — 6 conceptos ThinkingConcept (v0.1.0)
+- `content/thinking/economia-politica/preguntas.json` — 8 preguntas guiadas
+- `src/thinking/__tests__/validacion_s013.ts` — 24 casos en 4 baterías
+- `docs/validation/thinking-router-s013.md` — informe completo
+
+### Cambios en TypeScript
+
+- `src/thinking/registry.ts` — +1 entrada para Economía Política
+- `src/thinking/ThinkingRouter.ts` — regla de protección de señal del problema (spec §6):
+  cuando `scoreProblema >= baja` para algún patrón, el pack no puede desplazarlo como ganador
+- `src/thinking/__tests__/validacion_s012.ts` — ADV09 reclasificado a "ambiguo"
+  (con EP activo, "incentivos económicos" + "efectos distintos entre territorios" es genuinamente ambiguo)
+
+### Ajustes en metadata
+
+- `content/thinking/economia-politica/metadata.json`:
+  - Distribución sinonimos: −`"subsidio"` (causaba FP en "subsidios directos" socrático)
+  - Actores e intereses: +"statu quo" (sinonimo), +"grupos beneficiados", "se benefician del statu quo"
+  - Poder institucional: +"influencia suficiente para", "organización e influencia", "neutralizar cualquier intento"
+- `content/thinking/sistemico/metadata.json`:
+  - Efectos indirectos: +"se trasladaron hacia", "se trasladó hacia", "trasladaron hacia", "trasladado a los"
+    (corrige FP05 falso negativo: "se trasladaron" no coincidía con "trasladado hacia")
+
+### Limitaciones documentadas
+
+- SP01/SP02 producen CANDIDATOS cuando la señal del problema es de confianza "media" — la UI necesita manejar tres candidatos
+- B14 (cadena causal implícita) persiste como límite estructural
+
+---
+
 ## S-012 (2026-07-17) — Validación ampliada del Thinking Router conceptual
 
 ### Resumen

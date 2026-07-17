@@ -1,0 +1,283 @@
+Sprint S-013 — Incorporación del Thinking Pattern "Economía Política"
+Contexto
+
+Después de los Sprint S-011 y S-012, HELIOS cuenta con un Router conceptual que distingue satisfactoriamente entre Pensamiento Socrático y Pensamiento Sistémico.
+
+La validación mostró que:
+
+el modelo conceptual basado en conceptos funciona;
+el Router discrimina correctamente entre dos patrones especializados;
+las decisiones son trazables;
+el conocimiento permanece fuera del código;
+el fallback universal opera correctamente.
+
+El siguiente paso no consiste en mejorar nuevamente el algoritmo, sino en demostrar que la arquitectura soporta múltiples formas de razonamiento sin modificaciones estructurales.
+
+El objetivo principal de este sprint es incorporar un tercer Thinking Pattern especializado.
+
+No modificar la interfaz de usuario.
+
+No cambiar el flujo de HELIOS.
+
+No introducir LLM, embeddings ni servicios externos.
+
+Objetivo general
+
+Agregar el patrón:
+
+Economía Política
+
+utilizando exactamente la misma arquitectura conceptual desarrollada en S-011.
+
+El algoritmo no debe contener ninguna condición específica para este patrón.
+
+La incorporación debe lograrse únicamente mediante:
+
+metadata;
+preguntas;
+registro en el registry.
+Principios arquitectónicos
+
+Mantener:
+
+ADR-0001
+ADR-0002
+ADR-0003
+ADR-0004
+
+No introducir conocimiento de dominio en TypeScript.
+
+Todo el conocimiento debe vivir en metadata.json.
+
+1. Crear el nuevo Thinking Pattern
+
+Crear:
+
+content/thinking/economia-politica/
+
+con:
+
+metadata.json
+preguntas.json
+
+Agregar la entrada correspondiente en:
+
+src/thinking/registry.ts
+
+No modificar el algoritmo para reconocer este patrón.
+
+2. Modelo conceptual
+
+Utilizar exclusivamente la estructura:
+
+ThinkingConcept[]
+
+No utilizar keywords como fuente principal.
+
+3. Conceptos sugeridos
+A. Incentivos
+
+Ejemplos de señales:
+
+incentivos;
+incentivos económicos;
+incentivos políticos;
+incentivos regulatorios;
+costos;
+beneficios;
+recompensas;
+sanciones;
+señales económicas.
+B. Actores e intereses
+intereses;
+grupos de interés;
+actores poderosos;
+beneficiarios;
+perdedores;
+coaliciones;
+aliados;
+oposición;
+negociación.
+C. Poder institucional
+captura;
+captura regulatoria;
+influencia;
+poder;
+capacidad de veto;
+gobernabilidad;
+liderazgo político;
+institucionalidad.
+D. Implementación
+implementación;
+cumplimiento;
+incentivos para cumplir;
+capacidades institucionales;
+coordinación política;
+ejecución.
+E. Distribución
+distribución;
+equidad;
+redistribución;
+costos distribuidos;
+beneficios concentrados;
+desigualdad.
+F. Conflictos
+conflicto;
+resistencia;
+oposición;
+tensiones;
+disputa;
+negociación;
+bloqueo;
+conflicto territorial.
+
+No limitarse literalmente a estos ejemplos.
+
+Completar el vocabulario con criterio técnico de políticas públicas.
+
+4. Preguntas
+
+Construir preguntas coherentes con el patrón.
+
+Por ejemplo:
+
+¿Qué incentivos enfrentan los distintos actores?
+¿Quién gana y quién pierde con esta política?
+¿Existen actores con capacidad para bloquear la implementación?
+¿Qué coaliciones favorecen u obstaculizan la política?
+¿La distribución de costos y beneficios explica el comportamiento observado?
+¿Los incentivos institucionales son consistentes con los objetivos de la política?
+
+No reutilizar preguntas de otros patrones.
+
+5. ExplanationService
+
+Actualizar las explicaciones para incorporar este nuevo patrón.
+
+Ejemplo:
+
+El problema hace referencia a incentivos, intereses y distribución de costos y beneficios. HELIOS recomienda analizarlo desde una perspectiva de Economía Política.
+
+Las dimensiones visibles deben ser:
+
+Incentivos;
+Actores e intereses;
+Poder institucional;
+Implementación;
+Distribución;
+Conflictos.
+
+Nunca mostrar:
+
+scores;
+pesos;
+identificadores internos.
+6. Protección de la señal del problema
+
+Implementar una regla metodológica:
+
+Cuando la señal proveniente del problema alcance un nivel suficiente para seleccionar un patrón, el contexto del Knowledge Pack no debe poder desplazar esa decisión.
+
+El contexto del pack puede:
+
+reforzar;
+aumentar confianza;
+desempatar;
+
+pero no reemplazar una señal fuerte proveniente del texto del usuario.
+
+Documentar claramente la regla implementada.
+
+No crear excepciones por patrón.
+
+7. Pruebas
+
+Construir al menos:
+
+Casos de Economía Política
+subsidios capturados por grupos de interés;
+reforma bloqueada por actores políticos;
+beneficios concentrados y costos dispersos;
+incentivos incompatibles con los objetivos;
+conflicto entre gobierno nacional y territorios;
+captura regulatoria.
+Casos mixtos
+
+Crear consultas donde compitan:
+
+Economía Política vs Sistémico
+
+Ejemplo:
+
+La política fracasa porque varias entidades no coordinan sus acciones y además existen incentivos para no cooperar.
+
+Determinar cuál patrón domina.
+
+Economía Política vs Socrático
+
+Ejemplo:
+
+¿Qué evidencia demuestra que los incentivos realmente modificaron el comportamiento de los actores?
+
+Determinar cuál patrón domina.
+
+8. Validación
+
+Construir una matriz comparativa.
+
+Para cada caso registrar:
+
+problema;
+patrón esperado;
+patrón obtenido;
+score;
+conceptos activados;
+fuente principal;
+explicación;
+resultado.
+
+Calcular:
+
+precisión;
+recall;
+matriz de confusión;
+uso del fallback;
+influencia del pack.
+9. Compatibilidad
+
+Verificar que:
+
+Socrático siga funcionando;
+Sistémico siga funcionando;
+Economía Política no degrade los resultados anteriores.
+
+Ejecutar nuevamente todas las pruebas de S-012.
+
+10. Architecture Review
+
+Responder:
+
+¿Fue necesario modificar el algoritmo?
+¿Qué cambios ocurrieron únicamente en metadata?
+¿Cómo compite Economía Política con Sistémico?
+¿Cómo compite con Socrático?
+¿Qué conceptos generaron más discriminación?
+¿La protección de la señal del problema funcionó?
+¿Aumentó el uso del fallback?
+¿Hubo falsos positivos nuevos?
+¿Qué deuda técnica permanece?
+¿Puede HELIOS seguir creciendo a un cuarto patrón sin modificar el Router?
+11. Entrega
+implementación completa;
+metadata;
+preguntas;
+actualización de registry;
+actualización de ExplanationService;
+validación completa;
+TypeScript limpio;
+build limpio;
+changelog;
+commit;
+push;
+no hacer republish;
+detenerse para revisión.

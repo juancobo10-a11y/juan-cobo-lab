@@ -13,6 +13,7 @@
     "validate:s014": "tsx src/thinking/__tests__/validacion_s014.ts",
     "validate:s015": "tsx src/hypothesis/__tests__/validacion_s015.ts",
     "validate:s016": "tsx src/hypothesis/__tests__/validacion_s016.ts",
+    "validate:s017": "tsx src/conceptual/__tests__/validacion_s017.ts",
     "validate:smoke": "tsx src/thinking/__tests__/smoke.ts",
     "validate:integration": "tsx src/thinking/__tests__/integration_flow.ts",
     "validate": "tsx scripts/validate-all.ts"

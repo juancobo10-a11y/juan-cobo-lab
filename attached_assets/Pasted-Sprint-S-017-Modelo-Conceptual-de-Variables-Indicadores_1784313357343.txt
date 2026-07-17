@@ -1,0 +1,448 @@
+Sprint S-017 — Modelo Conceptual de Variables, Indicadores y Evidencia
+Contexto
+
+Después de los Sprint S-011 a S-016, HELIOS cuenta con una arquitectura estable para:
+
+identificar Thinking Patterns;
+gestionar múltiples candidatos;
+capturar reflexiones;
+construir hipótesis;
+revisar hipótesis;
+validar metodológicamente;
+preservar la trazabilidad completa desde el problema hasta las hipótesis.
+
+La siguiente etapa consiste en transformar las hipótesis en un modelo inicial de investigación.
+
+HELIOS debe ayudar al usuario a responder:
+
+¿Qué tendría que observar para evaluar si esta hipótesis es correcta?
+
+Este sprint no busca generar indicadores automáticamente.
+
+Busca construir la estructura conceptual necesaria para que posteriormente puedan diseñarse indicadores, fuentes de datos y estrategias de evaluación.
+
+No agregar nuevos Thinking Patterns.
+
+No modificar el Router.
+
+No modificar el Hypothesis Builder.
+
+No introducir LLM, embeddings ni servicios externos.
+
+Objetivo general
+
+Agregar una nueva etapa al flujo:
+
+Problema
+↓
+Thinking Pattern
+↓
+Reflexión
+↓
+Hipótesis
+↓
+Modelo conceptual
+↓
+Variables
+↓
+Indicadores
+↓
+Fuentes de evidencia
+
+Cada hipótesis podrá transformarse en uno o varios modelos conceptuales de investigación.
+
+Principios metodológicos
+
+Mantener todos los ADR existentes.
+
+Agregar:
+
+ADR-0006 — Toda hipótesis debe poder operacionalizarse
+
+Una hipótesis adquiere valor analítico cuando puede traducirse en variables observables, indicadores verificables y fuentes de evidencia identificables.
+
+HELIOS no debe producir indicadores automáticamente.
+
+Debe ayudar a estructurarlos.
+
+1. Revisión inicial
+
+Antes de implementar revisar:
+
+PolicyHypothesis
+HypothesisBuilderService
+PantallaHypothesisBuilder
+PantallaRevisionHipotesis
+flujo de navegación
+estado de sesión
+validaciones existentes
+
+Responder:
+
+¿qué información ya existe?
+¿qué información puede reutilizarse?
+¿qué debe incorporarse?
+¿cómo evitar duplicidad?
+2. Nuevo estado
+
+Agregar:
+
+conceptual-model
+
+Flujo:
+
+Revisión de hipótesis
+↓
+Modelo conceptual
+↓
+Continuar
+
+No eliminar ninguna pantalla existente.
+
+3. Modelo de datos
+
+Crear entidades independientes.
+
+Variable
+
+Debe contener:
+
+id
+nombre
+descripción conceptual
+definición operacional
+rol
+
+Roles mínimos:
+
+causa
+resultado
+mediadora
+moderadora
+control
+Indicador
+
+Debe contener:
+
+id
+nombre
+descripción
+variable asociada
+unidad
+fórmula o criterio
+periodicidad
+nivel territorial
+disponibilidad
+Fuente de evidencia
+
+Debe contener:
+
+id
+nombre
+tipo
+
+Tipos:
+
+administrativo
+encuesta
+observacional
+documental
+experimental
+mixto
+
+Además:
+
+responsable
+frecuencia
+acceso
+limitaciones
+4. Servicio
+
+Crear:
+
+ConceptualModelService.ts
+
+Debe contener únicamente lógica pura para:
+
+crear variables
+crear indicadores
+crear fuentes
+validaciones
+relaciones
+deduplicación
+orden
+
+No conocimiento sectorial.
+
+5. Modelo conceptual
+
+Cada hipótesis podrá contener:
+
+Hipótesis
+
+↓
+
+Variables
+
+↓
+
+Indicadores
+
+↓
+
+Fuentes
+
+No permitir indicadores sin variable.
+
+No permitir fuentes huérfanas.
+
+6. Variable
+
+Cada variable debe responder:
+
+¿Qué representa?
+
+¿Cómo se observaría?
+
+¿Qué papel cumple?
+
+No exigir completitud para guardar.
+
+7. Indicadores
+
+Cada indicador debe responder:
+
+¿Qué mediría?
+
+¿Cómo?
+
+¿Con qué unidad?
+
+¿Cada cuánto?
+
+¿En qué nivel territorial?
+
+Ejemplo:
+
+Variable:
+
+Continuidad del servicio
+
+↓
+
+Indicador:
+
+Horas promedio de disponibilidad mensual
+
+↓
+
+Unidad:
+
+Horas
+
+↓
+
+Periodicidad:
+
+Mensual
+
+8. Evidencia
+
+Cada indicador puede asociarse a varias fuentes.
+
+Ejemplo:
+
+DANE
+
+MinTIC
+
+CRC
+
+Registros administrativos
+
+Encuestas
+
+No precargar instituciones.
+
+El usuario las define.
+
+9. Relaciones
+
+Mostrar visualmente:
+
+Hipótesis
+
+↓
+
+Variable causa
+
+↓
+
+Variable mediadora
+
+↓
+
+Variable resultado
+
+↓
+
+Indicadores
+
+↓
+
+Fuentes
+
+No generar aún diagramas complejos.
+
+Una vista jerárquica es suficiente.
+
+10. Validación
+
+Crear:
+
+validateConceptualModel()
+
+Debe revisar:
+
+variables sin rol
+indicadores sin variable
+fuentes sin indicador
+variables sin indicadores
+hipótesis sin variables
+duplicados
+
+No bloquear edición.
+
+Bloquear únicamente la confirmación final cuando existan errores estructurales.
+
+11. Navegación
+
+Agregar:
+
+PantallaConceptualModel
+
+Desde revisión:
+
+Construir modelo conceptual
+
+Debe poder volver sin perder información.
+
+12. Revisión
+
+Crear una nueva revisión:
+
+Problema
+
+↓
+
+Thinking Pattern
+
+↓
+
+Hipótesis
+
+↓
+
+Variables
+
+↓
+
+Indicadores
+
+↓
+
+Fuentes
+
+Todo debe permanecer trazable.
+
+13. Estado de sesión
+
+Extender la sesión para incluir:
+
+conceptualModels
+variables
+indicators
+evidenceSources
+
+No sobrescribir hipótesis.
+
+14. Accesibilidad
+
+Mantener:
+
+navegación por teclado
+labels
+foco visible
+botones reales
+
+No usar drag-and-drop.
+
+15. Casos de prueba
+
+Crear una nueva suite:
+
+validacion_s017.ts
+
+Como mínimo validar:
+
+crear variable;
+crear indicador;
+crear fuente;
+relación variable-indicador;
+relación indicador-fuente;
+duplicación;
+eliminación;
+orden;
+validación estructural;
+múltiples hipótesis;
+navegación;
+conservación del estado;
+reinicio;
+revisión;
+integración completa.
+16. Regresión
+
+Ejecutar:
+
+S-012
+S-013
+S-014
+S-015
+S-016
+Smoke
+Integration
+
+Todos deben permanecer en verde.
+
+17. Architecture Review
+
+Responder:
+
+¿Cómo se representa un modelo conceptual?
+¿Qué diferencia existe entre hipótesis y variable?
+¿Cómo se relacionan variables e indicadores?
+¿Cómo se vinculan las fuentes?
+¿Qué validaciones se implementaron?
+¿Cómo se preserva la trazabilidad?
+¿Qué decisiones metodológicas quedaron fuera?
+¿Qué deuda técnica permanece?
+¿Cómo prepara este sprint la generación futura de indicadores automáticos?
+¿Está HELIOS listo para una etapa de diseño de investigación?
+18. Entrega
+
+Entregar:
+
+revisión inicial;
+ADR-0006;
+nuevos tipos;
+ConceptualModelService;
+PantallaConceptualModel;
+integración completa;
+validación S-017;
+pruebas de regresión;
+documentación;
+actualización de CHANGELOG;
+commit;
+push;
+no hacer republish;
+detenerse para revisión.

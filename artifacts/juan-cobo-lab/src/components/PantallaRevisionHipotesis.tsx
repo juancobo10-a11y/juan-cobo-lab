@@ -255,6 +255,7 @@ export function PantallaRevisionHipotesis({
   hypothesesReviewed,
   onEditar,
   onConfirmar,
+  onConstruirModelo,
   onVolverPereque,
   onReiniciar,
 }: {
@@ -269,6 +270,8 @@ export function PantallaRevisionHipotesis({
   hypothesesReviewed: boolean;
   onEditar: () => void;
   onConfirmar: () => void;
+  /** S-017: navigate to conceptual model builder */
+  onConstruirModelo?: () => void;
   onVolverPereque: () => void;
   onReiniciar: () => void;
 }) {
@@ -521,13 +524,25 @@ export function PantallaRevisionHipotesis({
               </button>
             </>
           ) : (
-            <button
-              type="button"
-              onClick={onEditar}
-              className="px-5 py-3 rounded-xl border border-border bg-white text-sm font-medium text-foreground/70 hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 transition-all duration-200"
-            >
-              Volver al editor
-            </button>
+            <>
+              {onConstruirModelo && (
+                <button
+                  type="button"
+                  onClick={onConstruirModelo}
+                  className="group flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-primary text-white text-sm font-medium tracking-wide hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 transition-all duration-200"
+                >
+                  Construir modelo conceptual
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" aria-hidden="true" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onEditar}
+                className="px-5 py-3 rounded-xl border border-border bg-white text-sm font-medium text-foreground/70 hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 transition-all duration-200"
+              >
+                Volver al editor
+              </button>
+            </>
           )}
           <button
             type="button"

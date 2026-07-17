@@ -3,9 +3,12 @@ import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Navbar } from "@/components/layout/Navbar";
 import { ArrowRight, ChevronRight, Sparkles, AlertCircle, FlaskConical } from "lucide-react";
 import type { PolicyHypothesis, ReflectionAnswer } from "@/hypothesis/types";
-import { markPatternChanged } from "@/hypothesis/HypothesisBuilderService";
+import { markPatternChanged, getPrimaryHypothesis } from "@/hypothesis/HypothesisBuilderService";
 import { PantallaHypothesisBuilder } from "@/components/PantallaHypothesisBuilder";
 import { PantallaRevisionHipotesis } from "@/components/PantallaRevisionHipotesis";
+import { PantallaConceptualModel } from "@/components/PantallaConceptualModel";
+import type { ConceptualModel } from "@/conceptual/types";
+import { findModelByHypothesisId, upsertModel } from "@/conceptual/ConceptualModelService";
 import { heliosRouter } from "@/router/KnowledgeRouter";
 import type {
   KnowledgePack,
@@ -1490,6 +1493,7 @@ type Pantalla =
   | "pereque"                    // Thinking Engine — reflexión antes de hipótesis
   | "hypothesis-builder"         // S-015: structured hypothesis formulation
   | "revision-hipotesis"         // S-015: final session review before confirming
+  | "conceptual-model"           // S-017: operacionalización de hipótesis
   | "hipotesis"
   | "pestel"
   | "descubrimiento";
@@ -1555,6 +1559,8 @@ export default function Helios() {
   const [hypotheses, setHypotheses] = useState<PolicyHypothesis[]>([]);
   const [primaryHypothesisId, setPrimaryHypothesisId] = useState<string | undefined>(undefined);
   const [hypothesesReviewed, setHypothesesReviewed] = useState(false);
+  /** S-017: conceptual models — one per hypothesis, session-only */
+  const [conceptualModels, setConceptualModels] = useState<ConceptualModel[]>([]);
 
   const handleSubmitProblema = async (p: string) => {
     setProblema(p);
@@ -1691,6 +1697,25 @@ export default function Helios() {
 
   const handleContinuar = () => setPantalla("descubrimiento");
 
+  // ── S-017: Conceptual model handlers ──────────────────────────────────────
+
+  const handleConstruirModelo = useCallback(() => {
+    setPantalla("conceptual-model");
+  }, []);
+
+  const handleUpdateConceptualModel = useCallback((model: ConceptualModel) => {
+    setConceptualModels((prev) => upsertModel(prev, model));
+  }, []);
+
+  const handleConfirmarConceptualModel = useCallback((model: ConceptualModel) => {
+    setConceptualModels((prev) => upsertModel(prev, model));
+    // Stay on conceptual-model screen — model is now confirmed
+  }, []);
+
+  const handleVolverDesdeConceptualModel = useCallback(() => {
+    setPantalla("revision-hipotesis");
+  }, []);
+
   const handleReiniciar = () => {
     setProblema("");
     setPackActivo(null);
@@ -1706,6 +1731,7 @@ export default function Helios() {
     setHypotheses([]);
     setPrimaryHypothesisId(undefined);
     setHypothesesReviewed(false);
+    setConceptualModels([]);
     setPantalla("entrada");
   };
 
@@ -1894,7 +1920,30 @@ export default function Helios() {
               hypothesesReviewed={hypothesesReviewed}
               onEditar={handleVolverDesdeRevision}
               onConfirmar={handleConfirmarRevision}
+              onConstruirModelo={handleConstruirModelo}
               onVolverPereque={handleVolverRevisionAPereque}
+              onReiniciar={handleReiniciar}
+            />
+          )}
+          {/* S-017: Conceptual Model */}
+          {pantalla === "conceptual-model" && hypotheses.length > 0 && (
+            <PantallaConceptualModel
+              key="conceptual-model"
+              problema={problema}
+              hypothesis={
+                (primaryHypothesisId
+                  ? hypotheses.find((h) => h.id === primaryHypothesisId)
+                  : undefined) ?? hypotheses[0]
+              }
+              model={findModelByHypothesisId(
+                conceptualModels,
+                (primaryHypothesisId
+                  ? hypotheses.find((h) => h.id === primaryHypothesisId)?.id
+                  : undefined) ?? hypotheses[0]?.id ?? ""
+              )}
+              onUpdateModel={handleUpdateConceptualModel}
+              onConfirmar={handleConfirmarConceptualModel}
+              onVolver={handleVolverDesdeConceptualModel}
               onReiniciar={handleReiniciar}
             />
           )}

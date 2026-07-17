@@ -1,5 +1,74 @@
 # HELIOS — Changelog
 
+## S-017 (2026-07-17) — Modelo Conceptual de Variables, Indicadores y Evidencia
+
+### Resumen
+Extiende el flujo de HELIOS con una nueva etapa de operacionalización:
+Problema → Thinking Pattern → Reflexión → Hipótesis → **Modelo Conceptual** → Variables → Indicadores → Fuentes de evidencia.
+
+### ADR-0006 — Toda hipótesis debe poder operacionalizarse
+Una hipótesis adquiere valor analítico cuando puede traducirse en variables observables,
+indicadores verificables y fuentes de evidencia identificables.
+HELIOS no produce indicadores automáticamente — ayuda a estructurarlos.
+
+### Nuevos tipos — src/conceptual/types.ts
+- `ConceptualVariable` — nombre, descripcion, definicionOperacional, rol (causa/resultado/mediadora/moderadora/control), orden
+- `ConceptualIndicator` — nombre, variableId (FK), unidad, formulaOCriterio, periodicidad, nivelTerritorial, disponibilidad
+- `EvidenceSource` — nombre, tipo, responsable, frecuencia, acceso, limitaciones, indicadorIds[] (many-to-many)
+- `ConceptualModel` — agrupa las tres colecciones bajo hypothesisId
+- `ConceptualModelValidation` — blockingIssues (bloquean confirmación) + warnings (informan sin bloquear)
+
+### Nuevo servicio — src/conceptual/ConceptualModelService.ts
+Funciones puras sin conocimiento sectorial:
+- `createEmptyConceptualModel`, `createVariable`, `updateVariable`, `removeVariable`, `reorderVariables`
+- `createIndicator`, `updateIndicator`, `removeIndicator`, `reorderIndicators`
+- `createEvidenceSource`, `updateEvidenceSource`, `removeEvidenceSource`
+- `validateConceptualModel` — 3 blocking + 6 warnings
+- `isVariableNameDuplicate`, `isIndicatorNameDuplicate`, `isSourceNameDuplicate`
+- `findModelByHypothesisId`, `upsertModel`, `confirmModel`
+
+Restricciones de integridad:
+- Indicadores sin variable → error bloqueante
+- Fuentes sin indicador válido → error bloqueante
+- Eliminación en cascada: removeVariable elimina sus indicadores y limpia fuentes huérfanas
+
+### Nueva pantalla — src/components/PantallaConceptualModel.tsx
+Vista jerárquica editable: hipótesis → variables → indicadores → fuentes
+- Keyboard accessible — sin drag-and-drop
+- Panel de validación en tiempo real
+- Cadena de trazabilidad en lectura (problema → hipótesis → variables → indicadores → fuentes)
+- Confirmación bloqueada cuando existan errores estructurales
+
+### PantallaRevisionHipotesis modificada
+- Nuevo prop `onConstruirModelo?: () => void`
+- Botón "Construir modelo conceptual" aparece cuando `hypothesesReviewed === true`
+
+### Helios.tsx extendido
+- Nueva pantalla `"conceptual-model"` en el tipo `Pantalla`
+- Nuevo estado `conceptualModels: ConceptualModel[]`
+- Handlers: `handleConstruirModelo`, `handleUpdateConceptualModel`, `handleConfirmarConceptualModel`, `handleVolverDesdeConceptualModel`
+- `handleReiniciar` limpia `conceptualModels`
+
+### Suite S-017 — src/conceptual/__tests__/validacion_s017.ts
+20/20 ✓ — cubre crear, actualizar, eliminar, relaciones, cascada, duplicados, validación estructural,
+múltiples hipótesis, navegación, conservación de estado, reinicio, integración completa.
+
+### Regresión — 10/10 suites
+```
+Typecheck      PASS
+S-012          PASS
+S-013          PASS
+S-014          PASS
+S-015          PASS
+S-016          PASS
+S-017          PASS   20/20
+Smoke          PASS   37/37
+Integration    PASS   29/29
+Build          PASS
+```
+
+---
+
 ## S-016 (2026-07-17) — Hardening técnico y validación reproducible
 
 ### Resumen

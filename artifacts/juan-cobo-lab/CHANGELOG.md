@@ -1,5 +1,103 @@
 # HELIOS — Changelog
 
+## S-020 (2026-07-17) — Knowledge Graph & Dependency Engine
+
+### Resumen
+Introduce un motor interno de relaciones: todas las conexiones entre entidades HELIOS
+(problema, hipótesis, variables, indicadores, fuentes, filas de operacionalización y
+contrastación) se representan explícitamente como nodos y aristas en un Knowledge Graph.
+El grafo es consultable, validable y navegable. No reemplaza las estructuras de sesión
+existentes — las enriquece con trazabilidad bidireccional y cálculo de impacto en cascada.
+
+### ADR-0009 — Las relaciones son entidades de primer nivel
+`docs/adr/ADR-0009-relations-as-first-class.md` — Las relaciones entre entidades
+constituyen conocimiento y deben representarse explícitamente. El grafo se construye
+bajo demanda, no se persiste, y siempre es reconstruible desde el estado de sesión.
+
+### Nuevos tipos — src/knowledge-graph/types.ts
+- `NodeType` — 7 tipos: problem, hypothesis, conceptual-variable, indicator,
+  evidence-source, operationalization-row, contrastation-row
+- `RelationType` — 7 tipos: supports, belongs-to, derives-from, measures, uses,
+  operationalizes, contrasts
+- `KnowledgeNode` — id determinista, type, refId, metadata.label
+- `KnowledgeEdge` — id determinista, source, target, relationType
+- `KnowledgeGraph` — { nodes[], edges[] }
+- `HeliosGraphInput` — snapshot de sesión para buildGraph()
+- `OrphanReport` — 5 categorías: isolatedNodes, brokenEdges, indicatorsWithoutVariable,
+  sourcesWithoutIndicator, opRowsWithoutVariable, contrastationWithoutHypothesis
+- `GraphValidation` — isValid, errors (4 tipos), warnings (2 tipos)
+
+### Nuevo servicio — src/knowledge-graph/KnowledgeGraphService.ts
+Funciones puras, sin efectos secundarios:
+- `buildGraph(input)` — construye grafo completo desde sesión; idempotente
+- `addNode(graph, node)` — puro; ignora IDs duplicados
+- `removeNode(graph, nodeId)` — puro; elimina aristas conectadas automáticamente
+- `addEdge(graph, edge)` — guard: valida existencia de source/target y rechaza duplicados
+- `removeEdge(graph, edgeId)` — puro; silencioso si no existe
+- `findDependencies(graph, nodeId)` — aristas salientes → targets (directo)
+- `findAllDependencies(graph, nodeId)` — BFS recursivo outgoing (transitivo)
+- `findDependents(graph, nodeId)` — aristas entrantes → sources (directo)
+- `findAllDependents(graph, nodeId)` — BFS recursivo incoming (para impacto)
+- `detectOrphans(graph)` — 5 categorías de huérfanos estructurales
+- `validateGraph(graph)` — ciclos (DFS tricolor), referencias rotas, duplicados, huérfanos
+- `topologicalTraversal(graph)` — Kahn's algorithm; dependientes primero
+- `computeImpact(graph, nodeId)` — impacto en cascada agrupado por tipo
+- `inDegree(graph, nodeId)`, `outDegree(graph, nodeId)`, `edgesOf(graph, nodeId)`
+
+### Nueva pantalla — src/components/PantallaKnowledgeGraph.tsx
+- Árbol navegable: Problema → Hipótesis → Variables → Indicadores → Fuentes (colapsable)
+- Cada nodo muestra: tipo (badge coloreado), ↗ dependencias, ↙ dependientes, total relaciones
+- Filas de operacionalización y contrastación en sección separada
+- Panel lateral "Impacto del cambio": muestra dependencias directas, dependientes directos,
+  y cascada completa agrupada por tipo con badge de advertencia
+- Stats bar: total nodos, relaciones, hipótesis, variables
+- Panel de advertencias con `aria-live` para huérfanos y errores de validación
+- Teclado: Tab entre nodos, Enter para seleccionar, ArrowRight/ArrowLeft para expandir/colapsar
+- Sin canvas, sin librerías de grafos
+
+### PantallaRevisionFinal modificada
+- Nuevo prop `onVerKnowledgeGraph?: () => void`
+- Botón "Ver Knowledge Graph" en la sección de navegación (solo cuando el prop está presente)
+
+### Helios.tsx extendido
+- Pantalla `"knowledge-graph"` en el tipo Pantalla
+- Import de `PantallaKnowledgeGraph`
+- Handler `handleVerKnowledgeGraph`
+- Render block para `"knowledge-graph"` (construye el grafo desde todo el estado de sesión)
+- `onVerKnowledgeGraph={handleVerKnowledgeGraph}` en PantallaRevisionFinal
+
+### Suite S-020 — src/knowledge-graph/__tests__/validacion_s020.ts
+52 asserts en 20 TCs ✓ — cubre buildGraph (9 tipos de nodo), addNode/addEdge/removeNode/
+removeEdge, detectOrphans, validateGraph (duplicados, referencias rotas, ciclos), 
+findDependencies, findDependents, computeImpact, reconstrucción idempotente, múltiples
+hipótesis, múltiples variables, múltiples indicadores, navegación transitiva, reinicio,
+integración (impacto de fuente), consistencia, topologicalTraversal, referencias cruzadas,
+inDegree/outDegree.
+
+### Revisión inicial (§1) — completada antes de implementar
+Todos los FKs implícitos mapeados: hypothesisId, variableId, indicadorIds[], indicatorId,
+sourceId, indicadorId, fuenteId. Ninguna estructura duplicada. Compatibilidad preservada
+al 100% — el grafo enriquece sin modificar las entidades originales.
+
+### Regresión — 13/13 suites
+```
+Typecheck      PASS
+S-012          PASS
+S-013          PASS
+S-014          PASS
+S-015          PASS
+S-016          PASS
+S-017          PASS   20/20
+S-018          PASS   34/34
+S-019          PASS   55/55
+S-020          PASS   52/52
+Smoke          PASS   37/37
+Integration    PASS   29/29
+Build          PASS
+```
+
+---
+
 ## S-019 (2026-07-17) — Matriz de Contrastación de Hipótesis
 
 ### Resumen

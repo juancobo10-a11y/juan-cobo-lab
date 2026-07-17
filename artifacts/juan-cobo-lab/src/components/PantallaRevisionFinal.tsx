@@ -59,6 +59,8 @@ interface Props {
   onIrAModelo: () => void;
   onIrAOperacionalizacion: () => void;
   onIrAContrastation: () => void;
+  /** S-020: navigate to Knowledge Graph screen */
+  onVerKnowledgeGraph?: () => void;
   onReiniciar: () => void;
 }
 
@@ -120,6 +122,7 @@ export function PantallaRevisionFinal({
   onIrAModelo,
   onIrAOperacionalizacion,
   onIrAContrastation,
+  onVerKnowledgeGraph,
   onReiniciar,
 }: Props) {
 
@@ -413,6 +416,15 @@ export function PantallaRevisionFinal({
 
         {/* ── Navigation ────────────────────────────────────────────────── */}
         <motion.div variants={fadeUp} className="mt-10 flex flex-wrap items-center gap-4">
+          {onVerKnowledgeGraph && (
+            <button
+              type="button"
+              onClick={onVerKnowledgeGraph}
+              className="group flex items-center gap-2.5 px-6 py-3.5 rounded-xl border border-primary/30 bg-primary/5 text-primary text-sm font-medium tracking-wide hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all duration-200"
+            >
+              Ver Knowledge Graph
+            </button>
+          )}
           <button
             type="button"
             onClick={onIrAContrastation}

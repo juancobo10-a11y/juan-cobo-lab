@@ -17,6 +17,7 @@ import {
 } from "@/operationalization/OperationalizationService";
 import { PantallaContrastationMatrix } from "@/components/PantallaContrastationMatrix";
 import { PantallaRevisionFinal } from "@/components/PantallaRevisionFinal";
+import { PantallaKnowledgeGraph } from "@/components/PantallaKnowledgeGraph";
 import type { ContrastationMatrix } from "@/contrastation/types";
 import {
   findContrastationMatrixByHypothesisId,
@@ -1510,6 +1511,7 @@ type Pantalla =
   | "operationalization-matrix"  // S-018: matriz de operacionalización
   | "contrastation-matrix"       // S-019: matriz de contrastación
   | "revision-final"             // S-019: cadena metodológica completa
+  | "knowledge-graph"            // S-020: knowledge graph navegable
   | "hipotesis"
   | "pestel"
   | "descubrimiento";
@@ -1792,6 +1794,10 @@ export default function Helios() {
 
   const handleVerCadenaMetodologica = useCallback(() => {
     setPantalla("revision-final");
+  }, []);
+
+  const handleVerKnowledgeGraph = useCallback(() => {
+    setPantalla("knowledge-graph");
   }, []);
 
   const handleReiniciar = () => {
@@ -2086,6 +2092,19 @@ export default function Helios() {
               />
             );
           })()}
+          {/* S-020: Knowledge Graph navegable */}
+          {pantalla === "knowledge-graph" && (
+            <PantallaKnowledgeGraph
+              key="knowledge-graph"
+              problema={problema}
+              hypotheses={hypotheses}
+              conceptualModels={conceptualModels}
+              operationalizationMatrices={operationalizationMatrices}
+              contrastationMatrices={contrastationMatrices}
+              onVolver={() => setPantalla("revision-final")}
+              onReiniciar={handleReiniciar}
+            />
+          )}
           {/* S-019: Revisión Final — cadena metodológica completa */}
           {pantalla === "revision-final" && hypotheses.length > 0 && (() => {
             const activeHyp =
@@ -2123,6 +2142,7 @@ export default function Helios() {
                 onIrAModelo={() => setPantalla("conceptual-model")}
                 onIrAOperacionalizacion={() => setPantalla("operationalization-matrix")}
                 onIrAContrastation={() => setPantalla("contrastation-matrix")}
+                onVerKnowledgeGraph={handleVerKnowledgeGraph}
                 onReiniciar={handleReiniciar}
               />
             );

@@ -1,0 +1,421 @@
+Sprint S-020 — Knowledge Graph & Dependency Engine
+Contexto
+
+Después de los Sprint S-011 a S-019, HELIOS implementa un flujo metodológico completo:
+
+Problema
+↓
+Knowledge Pack
+↓
+Thinking Pattern
+↓
+Reflexión
+↓
+Hipótesis
+↓
+Modelo Conceptual
+↓
+Variables
+↓
+Indicadores
+↓
+Fuentes
+↓
+Matriz de Operacionalización
+↓
+Matriz de Contrastación
+↓
+Revisión metodológica
+
+Sin embargo, todas estas entidades siguen organizadas principalmente como una secuencia lineal.
+
+La siguiente evolución consiste en representar explícitamente las relaciones entre ellas mediante un Knowledge Graph interno.
+
+El objetivo no es agregar una base de datos de grafos.
+
+El objetivo no es agregar visualizaciones complejas.
+
+El objetivo es introducir un modelo interno de nodos y relaciones que permita razonar sobre dependencias, reutilización e impacto de cambios.
+
+No modificar el Thinking Router.
+
+No modificar los Knowledge Packs.
+
+No introducir IA generativa, LLM ni servicios externos.
+
+No cambiar el comportamiento visible del usuario salvo donde sea estrictamente necesario para exponer dependencias.
+
+Objetivo general
+
+Crear un motor interno de relaciones:
+
+Problema
+│
+├── Hipótesis
+│     │
+│     ├── Variables
+│     │      │
+│     │      ├── Indicadores
+│     │      │      │
+│     │      │      └── Fuentes
+│     │      │
+│     │      └── Operacionalización
+│     │
+│     └── Contrastación
+
+Las relaciones deberán ser reutilizables y consultables.
+
+ADR-0009
+
+Agregar:
+
+ADR-0009 — Las relaciones son entidades de primer nivel
+
+HELIOS no debe depender únicamente de jerarquías de objetos.
+
+Las relaciones entre entidades constituyen conocimiento y deben representarse explícitamente.
+
+1. Revisión inicial
+
+Antes de implementar revisar:
+
+PolicyHypothesis
+ConceptualModel
+OperationalizationMatrix
+ContrastationMatrix
+estado de sesión
+navegación
+servicios existentes
+
+Responder:
+
+¿Qué relaciones ya existen implícitamente?
+¿Cuáles dependen solo de IDs?
+¿Qué relaciones deberían convertirse en explícitas?
+¿Qué estructuras quedarían duplicadas?
+¿Qué puede mantenerse compatible?
+
+No implementar hasta completar la revisión.
+
+2. Modelo del grafo
+
+Crear:
+
+KnowledgeNode
+KnowledgeEdge
+KnowledgeGraph
+KnowledgeNode
+
+Campos mínimos:
+
+id
+type
+refId
+metadata
+
+Tipos:
+
+problem
+hypothesis
+conceptual-variable
+indicator
+evidence-source
+operationalization-row
+contrastation-row
+KnowledgeEdge
+
+Campos mínimos:
+
+id
+source
+target
+relationType
+
+Tipos mínimos:
+
+supports
+operationalizes
+measures
+uses
+contrasts
+derives-from
+belongs-to
+
+Las relaciones deben ser extensibles.
+
+3. Servicio
+
+Crear:
+
+KnowledgeGraphService.ts
+
+Funciones puras:
+
+buildGraph()
+addNode()
+removeNode()
+addEdge()
+removeEdge()
+findDependencies()
+findDependents()
+detectOrphans()
+validateGraph()
+topologicalTraversal()
+
+No modificar objetos originales.
+
+El grafo debe construirse por referencia.
+
+4. Construcción automática
+
+El grafo debe generarse automáticamente desde el estado de sesión.
+
+No mantener dos modelos independientes.
+
+Debe ser posible reconstruirlo completamente.
+
+5. Dependencias
+
+Implementar consultas:
+
+Dependencias
+
+¿Qué necesita esta entidad?
+
+Ejemplo:
+
+Indicador
+
+↓
+
+Variable
+
+↓
+
+Hipótesis
+Dependientes
+
+¿Qué depende de esta entidad?
+
+Ejemplo:
+
+Fuente
+
+↓
+
+Indicadores
+
+↓
+
+Contrastación
+6. Eliminaciones
+
+Antes de eliminar cualquier entidad mostrar impacto.
+
+Ejemplo:
+
+Eliminar Variable
+
+↓
+
+2 indicadores
+
+↓
+
+5 filas de operacionalización
+
+↓
+
+3 criterios de contrastación
+
+Permitir:
+
+cancelar;
+continuar.
+
+No eliminar silenciosamente.
+
+7. Huérfanos
+
+Implementar:
+
+detectOrphans()
+
+Debe identificar:
+
+indicadores sin variable;
+fuentes sin indicador;
+contrastaciones sin hipótesis;
+operacionalizaciones sin variable;
+relaciones rotas.
+
+No corregir automáticamente.
+
+Mostrar advertencias.
+
+8. Consistencia
+
+Implementar:
+
+validateGraph()
+
+Errores:
+
+ciclos ilegales;
+referencias inexistentes;
+relaciones duplicadas;
+nodos huérfanos.
+
+Advertencias:
+
+múltiples relaciones redundantes;
+entidades aisladas.
+9. Navegación
+
+Agregar una pantalla:
+
+PantallaKnowledgeGraph
+
+No dibujar un grafo.
+
+Mostrar:
+
+Problema
+
+↓
+
+Hipótesis
+
+↓
+
+Variables
+
+↓
+
+Indicadores
+
+↓
+
+Fuentes
+
+como árbol navegable.
+
+Cada nodo debe mostrar:
+
+tipo;
+dependencias;
+dependientes;
+cantidad de relaciones.
+10. Impacto
+
+Agregar un panel:
+
+Impacto del cambio
+
+Ejemplo:
+
+Eliminar Indicador
+
+↓
+
+2 filas de operacionalización
+
+↓
+
+1 criterio de contrastación
+
+Debe construirse usando el grafo.
+
+11. Estado
+
+No persistir el grafo.
+
+Construirlo bajo demanda.
+
+Mantener únicamente el estado existente.
+
+12. Accesibilidad
+
+Toda la navegación del árbol debe funcionar con teclado.
+
+No usar canvas.
+
+No usar librerías de grafos.
+
+13. Casos de prueba
+
+Crear:
+
+validacion_s020.ts
+
+Como mínimo:
+
+construir grafo;
+crear nodos;
+crear relaciones;
+detectar huérfanos;
+detectar duplicados;
+dependencias;
+dependientes;
+eliminación con impacto;
+validación;
+reconstrucción desde sesión;
+múltiples hipótesis;
+múltiples variables;
+múltiples indicadores;
+navegación;
+reinicio;
+integración;
+consistencia;
+topologicalTraversal();
+referencias cruzadas;
+regresión.
+14. Regresión
+
+Ejecutar:
+
+S-012
+S-013
+S-014
+S-015
+S-016
+S-017
+S-018
+S-019
+Smoke
+Integration
+Build
+
+Todos deben permanecer en verde.
+
+15. Architecture Review
+
+Responder:
+
+¿Cómo se representa el Knowledge Graph?
+¿Qué relaciones se modelaron?
+¿Cómo se construye desde la sesión?
+¿Cómo se detectan dependencias?
+¿Cómo se detectan huérfanos?
+¿Cómo se calcula el impacto de una eliminación?
+¿Cómo se preserva la compatibilidad con S-019?
+¿Qué ciclos están prohibidos?
+¿Qué deuda técnica permanece?
+¿Cómo prepara este sprint futuras capacidades?
+16. Entrega
+
+Entregar:
+
+revisión inicial;
+ADR-0009;
+nuevos tipos;
+KnowledgeGraphService;
+PantallaKnowledgeGraph;
+validación S-020;
+regresión completa;
+documentación;
+actualización de CHANGELOG;
+commit;
+push;
+no hacer republish;
+detenerse para revisión.

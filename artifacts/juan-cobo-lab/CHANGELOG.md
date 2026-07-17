@@ -1,5 +1,64 @@
 # HELIOS — Changelog
 
+## S-014 (2026-07-17) — Gestión explicable de múltiples Thinking Patterns candidatos
+
+### Resumen
+Cuando el Router identifica más de un patrón pertinente, HELIOS ahora muestra
+una pantalla de selección explícita en lugar de saltarse el Thinking Engine.
+El usuario puede elegir un patrón único o combinar dos en secuencia ordenada.
+El Router no fue modificado. ADR-0001/0002/0003/0004 mantenidos.
+
+### Nuevos archivos
+
+- `src/thinking/SelectionService.ts` — funciones puras para filtrado, explicaciones,
+  comparación, deduplicación y límites de preguntas
+- `src/components/PantallaSeleccionThinkingPattern.tsx` — selección individual y
+  combinación de dos patrones; accesible por teclado
+- `src/thinking/__tests__/validacion_s014.ts` — 50/50 ✅
+- `docs/validation/thinking-router-s014.md` — informe completo
+
+### Cambios en TypeScript
+
+- `src/thinking/types.ts`: +`ThinkingUserSelection` (single | combined)
+- `src/pages/Helios.tsx`:
+  - `+PerequeMode` tipo (single | combined) + `computePerequeMode()` helper
+  - `+PreguntaItem` sub-componente extraído (evita duplicación en modo combined)
+  - `PantallaPereque`: signature cambia a `perequeMode: PerequeMode`; soporta modo combined
+    con dos bloques secuenciales de preguntas (≤5 principal + ≤3 complementario)
+  - Nueva pantalla `"seleccion-thinking-pattern"` en el state machine
+  - Nuevos estados: `thinkingUserSelection`, `candidateExplanations`, `pantallaVolverDesdeSeleccion`
+  - Nuevos handlers: `handleUserSelectPattern`, `handleVolverDesdeSeleccion`
+  - Categorías EP añadidas a `categoriaStyle` (incentivos, distribucion, poder,
+    coaliciones, implementacion, captura, statu-quo, negociacion)
+
+### Constantes de infraestructura (SelectionService)
+
+- `MAX_PREGUNTAS_PRINCIPAL = 5`
+- `MAX_PREGUNTAS_COMPLEMENTARIO = 3`
+- `MAX_CANDIDATOS_UI = 3`
+
+### Flujo nuevo
+
+```
+Problema → Knowledge Router → Thinking Router
+  ├── seleccionado → pereque (sin cambio)
+  ├── candidatos  → seleccion-thinking-pattern
+  │     ├── único        → pereque (modo single)
+  │     └── combinación  → pereque (modo combined)
+  └── ninguno     → hipotesis
+```
+
+### Validación
+
+- SelectionService: 50/50 ✅
+- Smoke tests: 37/37 ✅
+- Regresión S-013: 24/24 ✅
+- Regresión S-012: 96.8% (sin cambios)
+- Typecheck: ✅
+- Build: ✅
+
+---
+
 ## S-013 (2026-07-17) — Incorporación del patrón Economía Política
 
 ### Resumen

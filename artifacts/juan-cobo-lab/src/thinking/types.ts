@@ -248,6 +248,27 @@ export type ThinkingResult =
       candidatos: ThinkingCandidate[];
     };
 
+// ─── User selection (S-014) ───────────────────────────────────────────────────
+
+/**
+ * The user's ThinkingPattern selection after the Router identified multiple
+ * candidates. Kept in session state only — not persisted to any external store.
+ *
+ * - mode "single"  : user chose one pattern as the sole analytical lens.
+ * - mode "combined": user chose a primary pattern and a complementary one.
+ *                    Questions are presented sequentially (primary first).
+ */
+export type ThinkingUserSelection =
+  | {
+      mode: "single";
+      primaryPatternId: string;
+    }
+  | {
+      mode: "combined";
+      primaryPatternId: string;
+      secondaryPatternId: string;
+    };
+
 // ─── Algorithm interface ───────────────────────────────────────────────────
 
 /**

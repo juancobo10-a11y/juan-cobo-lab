@@ -1,0 +1,526 @@
+Sprint S-014 — Gestión explicable de múltiples Thinking Patterns candidatos
+Contexto
+
+Después del Sprint S-013, HELIOS cuenta con tres Thinking Patterns:
+
+Pensamiento Socrático;
+Pensamiento Sistémico;
+Economía Política.
+
+El Router ya puede identificar más de una forma de razonamiento pertinente para un mismo problema. Actualmente, cuando existen patrones con scores cercanos, el sistema puede devolver un estado CANDIDATOS.
+
+Con dos patrones, este estado podía tratarse internamente. Con tres o más patrones, ya no es aceptable que HELIOS seleccione silenciosamente el primer elemento del arreglo, porque eso introduciría una decisión arbitraria y rompería la trazabilidad.
+
+El objetivo de este sprint es convertir CANDIDATOS en una capacidad metodológica visible, explicable y controlada por el usuario.
+
+No agregar un cuarto patrón.
+
+No modificar la lógica conceptual de los patrones.
+
+No introducir LLM, embeddings ni servicios externos.
+
+No eliminar todavía el legacy path.
+
+Objetivo general
+
+Diseñar e implementar una experiencia para que, cuando el Router identifique dos o más patrones razonablemente pertinentes, HELIOS:
+
+explique la ambigüedad;
+presente los patrones candidatos;
+muestre por qué cada uno es pertinente;
+permita escoger un patrón principal;
+permita combinar dos enfoques;
+preserve la trazabilidad de la decisión;
+continúe al flujo de “Démosle pereque” con el patrón o combinación seleccionada.
+Principios arquitectónicos
+
+Mantener estrictamente:
+
+ADR-0001 — HELIOS no es un chatbot.
+ADR-0002 — El conocimiento no vive en el código.
+ADR-0003 — Los Knowledge Packs son composables.
+ADR-0004 — El razonamiento precede a la metodología.
+
+Adicionalmente:
+
+El Router propone candidatos.
+La UI no recalcula ni reordena scores.
+La UI no inventa explicaciones.
+La selección del usuario no modifica retroactivamente el resultado del Router.
+El fallback universal no debe presentarse como candidato especializado.
+La combinación debe ser explícita y ordenada, no una mezcla indiscriminada.
+1. Revisar el estado CANDIDATOS
+
+Antes de implementar, revisar:
+
+tipo actual de ThinkingResult;
+estructura de los candidatos;
+orden de los candidatos;
+scores disponibles;
+explicaciones disponibles;
+comportamiento actual de Helios.tsx;
+comportamiento actual de PantallaPereque;
+qué ocurre hoy cuando decision === 'candidatos'.
+
+Documentar brevemente la situación actual antes de modificar código.
+
+2. Nuevo modelo de decisión del usuario
+
+Crear un tipo explícito para registrar la decisión posterior al Router.
+
+Propuesta:
+
+type ThinkingUserSelection =
+  | {
+      mode: 'single';
+      primaryPatternId: string;
+    }
+  | {
+      mode: 'combined';
+      primaryPatternId: string;
+      secondaryPatternId: string;
+    };
+
+Puede ajustarse si existe una alternativa mejor, pero debe preservar:
+
+modo individual;
+modo combinado;
+patrón principal;
+patrón complementario.
+
+No guardar esta elección en persistencia permanente.
+
+Mantenerla únicamente en el estado de la sesión actual.
+
+3. Nuevo estado de pantalla
+
+Crear una pantalla o estado intermedio específico:
+
+SELECCION_THINKING_PATTERN
+
+Flujo esperado:
+
+Problema
+↓
+Knowledge Router
+↓
+Thinking Router
+↓
+Si hay un ganador claro:
+    Démosle pereque
+↓
+Si hay múltiples candidatos:
+    Selección de enfoque
+↓
+Démosle pereque
+
+No mostrar la pantalla de selección cuando existe un único ganador claro.
+
+4. Pantalla de selección de enfoque
+
+Crear un componente nuevo, por ejemplo:
+
+PantallaSeleccionThinkingPattern
+
+La pantalla debe incluir:
+
+Encabezado
+
+Título:
+
+HELIOS identificó más de una forma pertinente de abordar el problema
+
+Texto breve:
+
+Estas perspectivas no son equivalentes. Cada una pone el foco en un aspecto distinto del problema. Puedes priorizar una o combinar dos de manera ordenada.
+
+No mencionar:
+
+scores;
+umbrales;
+empate técnico;
+pesos;
+algoritmo;
+keywords;
+campos internos.
+5. Tarjetas de candidatos
+
+Mostrar cada candidato en una tarjeta.
+
+Cada tarjeta debe incluir:
+
+nombre del patrón;
+enfoqueBreve;
+explicación específica de pertinencia;
+dimensiones conceptuales detectadas;
+fuente principal:
+problema;
+contexto del pack;
+mixta;
+botón para seleccionar como enfoque principal.
+
+Ejemplo:
+
+Pensamiento Sistémico
+
+Ayuda a examinar relaciones, retroalimentaciones y efectos indirectos.
+
+¿Por qué aparece?
+El problema combina fallas de coordinación y consecuencias acumulativas.
+
+Dimensiones detectadas:
+Interdependencia
+Retroalimentación
+
+No mostrar más de tres candidatos.
+
+Si el Router devuelve más de tres:
+
+conservar únicamente los tres primeros ya ordenados por el Router;
+no reordenarlos en la UI;
+documentar la regla.
+6. Comparación entre patrones
+
+Cuando existan exactamente dos candidatos, incluir una sección breve:
+
+¿En qué se diferencian?
+
+La explicación debe construirse a partir de los metadatos de cada patrón, no mediante texto hardcodeado por combinación específica.
+
+No crear reglas como:
+
+if (
+  patternA === 'socratico' &&
+  patternB === 'economia-politica'
+)
+
+La comparación debe ser genérica.
+
+Propuesta:
+
+Socrático centra la atención en:
+supuestos, evidencia y coherencia.
+
+Economía Política centra la atención en:
+incentivos, intereses y relaciones de poder.
+
+Tomar esta información de:
+
+enfoqueBreve;
+nombres de conceptos activados;
+descripción del patrón.
+7. Selección individual
+
+Cuando el usuario seleccione un único patrón:
+
+guardar ThinkingUserSelection.mode = 'single';
+registrar el patrón escogido como principal;
+avanzar a PantallaPereque;
+mostrar únicamente las preguntas de ese patrón;
+conservar el ThinkingResult original;
+conservar también la selección del usuario.
+
+La aplicación debe poder distinguir:
+
+patrón recomendado por Router
+vs.
+patrón priorizado por usuario
+
+No sobrescribir el resultado original.
+
+8. Combinación de dos patrones
+
+Permitir la opción:
+
+Combinar dos enfoques
+
+La combinación solo debe estar disponible cuando existan al menos dos candidatos especializados.
+
+Al seleccionar combinación:
+
+el usuario escoge un patrón principal;
+el usuario escoge un patrón complementario;
+no se permite seleccionar el mismo patrón dos veces;
+el fallback universal no puede ser patrón complementario cuando no fue candidato real;
+no se permiten más de dos patrones combinados en esta versión.
+
+Guardar:
+
+{
+  mode: 'combined',
+  primaryPatternId,
+  secondaryPatternId
+}
+9. Secuencia de preguntas combinadas
+
+No mezclar todas las preguntas en una sola lista.
+
+La experiencia debe ser secuencial:
+
+Enfoque principal
+↓
+Preguntas principales
+↓
+Enfoque complementario
+↓
+Preguntas complementarias
+
+En PantallaPereque, cuando mode === 'combined', mostrar dos bloques claramente separados.
+
+Ejemplo:
+
+1. Enfoque principal: Economía Política
+
+[Preguntas del patrón]
+
+2. Enfoque complementario: Pensamiento Sistémico
+
+[Preguntas del patrón]
+
+No duplicar preguntas idénticas.
+
+Implementar una deduplicación genérica basada en:
+
+id de pregunta, si es globalmente estable;
+texto normalizado, si los ids solo son locales.
+
+Documentar el criterio utilizado.
+
+10. Número de preguntas
+
+Evitar una pantalla excesivamente larga.
+
+Para combinación:
+
+máximo sugerido de 5 preguntas del patrón principal;
+máximo sugerido de 3 preguntas del patrón complementario.
+
+La selección debe conservar el orden definido en preguntas.json.
+
+No reordenar preguntas con una heurística nueva.
+
+No usar scores por pregunta.
+
+Si los patrones contienen menos preguntas, mostrar las disponibles.
+
+Definir estas cantidades como constantes de infraestructura, no como conocimiento de dominio.
+
+11. Explicación de la combinación
+
+Antes de las preguntas combinadas, mostrar una explicación breve:
+
+HELIOS abordará primero el problema desde [patrón principal] y después incorporará [patrón complementario] para ampliar el análisis.
+
+Complementar con los enfoques breves de ambos patrones.
+
+Ejemplo:
+
+Primero se examinarán los incentivos, intereses y relaciones de poder. Después se analizarán las interdependencias y efectos indirectos del sistema.
+
+La explicación debe generarse de forma genérica desde los metadatos.
+
+No hardcodear textos por pareja de patrones.
+
+12. Navegación y estado
+
+Implementar correctamente:
+
+Volver desde selección
+
+Debe regresar a la pantalla anterior sin:
+
+reiniciar el problema;
+perder el Knowledge Pack;
+ejecutar nuevamente el Router innecesariamente;
+borrar candidatos.
+Volver desde Démosle pereque
+
+Si el usuario llegó mediante selección de candidatos:
+
+regresar a la pantalla de selección;
+conservar su elección previa.
+
+Si llegó mediante ganador claro:
+
+regresar al paso anterior existente.
+Cambiar selección
+
+El usuario debe poder:
+
+cambiar de patrón individual;
+pasar de individual a combinado;
+cambiar orden principal/complementario;
+volver a entrar a Démosle pereque.
+13. Trazabilidad
+
+Mantener en estado:
+
+{
+  thinkingResult,
+  thinkingUserSelection
+}
+
+El sistema debe poder identificar:
+
+qué propuso el Router;
+qué seleccionó el usuario;
+si hubo combinación;
+cuál fue el patrón principal;
+cuál fue el complementario.
+
+No persistir respuestas de reflexión.
+
+No enviar estos datos a servicios externos.
+
+14. Tratamiento del fallback
+
+Reglas:
+
+Si el resultado es fallback con un solo patrón universal:
+avanzar directamente a Démosle pereque;
+no mostrar pantalla de selección.
+Si hay un patrón especializado y el universal aparece solo por su condición de fallback:
+no mostrar el universal como candidato.
+Si el Router en el futuro devuelve dos patrones universales reales:
+documentar que este caso no está soportado todavía;
+no implementar lógica anticipada innecesaria.
+La UI nunca debe etiquetar un fallback como “segunda mejor opción”.
+15. Casos de prueba obligatorios
+Caso 1 — Ganador claro Socrático
+
+Debe ir directamente a Démosle pereque.
+
+Caso 2 — Ganador claro Sistémico
+
+Debe ir directamente a Démosle pereque.
+
+Caso 3 — Ganador claro Economía Política
+
+Debe ir directamente a Démosle pereque.
+
+Caso 4 — Dos candidatos
+
+Debe mostrar la pantalla de selección con dos tarjetas.
+
+Caso 5 — Tres candidatos
+
+Debe mostrar hasta tres candidatos, en el orden del Router.
+
+Caso 6 — Fallback universal
+
+No debe mostrar selección.
+
+Caso 7 — Selección individual
+
+Debe mostrar únicamente preguntas del patrón seleccionado.
+
+Caso 8 — Combinación
+
+Debe mostrar:
+
+patrón principal;
+máximo de 5 preguntas;
+patrón complementario;
+máximo de 3 preguntas.
+Caso 9 — Deduplicación
+
+Preguntas con texto equivalente no deben aparecer dos veces.
+
+Caso 10 — Volver
+
+Debe conservar candidatos, selección y Knowledge Pack.
+
+Caso 11 — Cambio de orden
+
+Debe permitir intercambiar principal y complementario.
+
+Caso 12 — Protección del resultado original
+
+La selección del usuario no debe sobrescribir ThinkingResult.
+
+16. Pruebas de regresión
+
+Ejecutar:
+
+smoke tests existentes;
+validación S-012;
+validación S-013;
+typecheck;
+build.
+
+No modificar las métricas del Router para hacer pasar pruebas de UI.
+
+No cambiar metadata de patrones salvo que aparezca un defecto directamente relacionado con este sprint.
+
+17. Accesibilidad y experiencia
+
+Las tarjetas deben:
+
+ser utilizables con teclado;
+tener foco visible;
+usar botones reales;
+identificar selección mediante texto además de color;
+permitir navegación con tabulación;
+incluir aria-pressed o atributo equivalente cuando corresponda.
+
+La combinación debe ser comprensible sin depender únicamente de iconos.
+
+No usar drag-and-drop para ordenar los patrones.
+
+Usar botones explícitos:
+
+“Usar como principal”;
+“Agregar como complementario”;
+“Intercambiar orden”.
+18. Archivos esperados
+
+La implementación puede incluir, según la arquitectura existente:
+
+src/components/PantallaSeleccionThinkingPattern.tsx
+src/components/PantallaPereque.tsx
+src/Helios.tsx
+src/thinking/types.ts
+src/thinking/SelectionService.ts
+
+SelectionService.ts es opcional, pero se recomienda si permite centralizar:
+
+validación de selección;
+deduplicación;
+límites de preguntas;
+construcción de explicación combinada.
+
+No colocar esta lógica directamente en múltiples componentes.
+
+19. Architecture Review
+
+Al finalizar responder:
+
+¿Cómo se representa la elección del usuario?
+¿Cómo se conserva el resultado original del Router?
+¿Cuándo aparece la pantalla de selección?
+¿Cómo se excluye el fallback?
+¿Cómo se ordenan los candidatos?
+¿Cómo se construye la comparación entre patrones?
+¿Cómo se genera la explicación combinada?
+¿Cómo se deduplican preguntas?
+¿Cómo se limita la longitud del flujo combinado?
+¿Cómo funciona “Volver”?
+¿Qué ocurre con tres candidatos?
+¿Qué decisiones quedaron fuera del alcance?
+¿Existe alguna tensión con los ADR?
+¿Qué deuda técnica queda antes de agregar un cuarto patrón?
+20. Entrega
+revisión inicial del estado actual;
+implementación completa;
+componente de selección;
+selección individual;
+combinación de dos patrones;
+navegación;
+trazabilidad;
+accesibilidad;
+pruebas;
+actualización de changelog;
+commit;
+push;
+no hacer republish;
+detenerse para revisión.

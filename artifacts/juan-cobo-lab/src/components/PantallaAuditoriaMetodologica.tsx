@@ -50,6 +50,9 @@ interface Props {
   conceptualModels: ConceptualModel[];
   operationalizationMatrices: OperationalizationMatrix[];
   contrastationMatrices: ContrastationMatrix[];
+  /** S-022: evidence evaluation data for EVD rules */
+  evidenceEvaluationMatrices?: import("@/evidence-evaluation/types").EvidenceEvaluationMatrix[];
+  hypothesisEvidenceConclusions?: import("@/evidence-evaluation/types").HypothesisEvidenceConclusion[];
   onVolver: () => void;
   onReiniciar: () => void;
   onIrAHipotesis: () => void;
@@ -261,6 +264,8 @@ export function PantallaAuditoriaMetodologica({
   conceptualModels,
   operationalizationMatrices,
   contrastationMatrices,
+  evidenceEvaluationMatrices,
+  hypothesisEvidenceConclusions,
   onVolver,
   onReiniciar,
   onIrAHipotesis,
@@ -279,7 +284,9 @@ export function PantallaAuditoriaMetodologica({
         conceptualModels,
         operationalizationMatrices,
         contrastationMatrices,
-      }),
+        evidenceEvaluationMatrices,
+        hypothesisEvidenceConclusions,
+      } as any),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );

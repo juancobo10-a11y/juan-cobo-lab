@@ -154,6 +154,7 @@ export interface MethodologicalAudit {
 /**
  * Full session state passed to runMethodologicalAudit().
  * Mirrors HeliosGraphInput with an optional pre-built graph.
+ * S-022: extended with optional evidence evaluation data for EVD rules.
  */
 export interface MethodologicalAuditInput {
   problema: string;
@@ -163,4 +164,8 @@ export interface MethodologicalAuditInput {
   contrastationMatrices: ContrastationMatrix[];
   /** Pre-built graph. If absent the service builds it from session data. */
   graph?: KnowledgeGraph;
+  /** S-022: Evidence evaluation matrices — optional for backward compatibility */
+  evidenceEvaluationMatrices?: import("@/evidence-evaluation/types").EvidenceEvaluationMatrix[];
+  /** S-022: Hypothesis evidence conclusions — optional for backward compatibility */
+  hypothesisEvidenceConclusions?: import("@/evidence-evaluation/types").HypothesisEvidenceConclusion[];
 }

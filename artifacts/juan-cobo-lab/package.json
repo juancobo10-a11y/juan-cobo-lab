@@ -18,6 +18,7 @@
     "validate:s019": "tsx src/contrastation/__tests__/validacion_s019.ts",
     "validate:s020": "tsx src/knowledge-graph/__tests__/validacion_s020.ts",
     "validate:s021": "tsx src/methodological-consistency/__tests__/validacion_s021.ts",
+    "validate:s022": "tsx src/evidence-evaluation/__tests__/validacion_s022.ts",
     "validate:smoke": "tsx src/thinking/__tests__/smoke.ts",
     "validate:integration": "tsx src/thinking/__tests__/integration_flow.ts",
     "validate": "tsx scripts/validate-all.ts"

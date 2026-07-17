@@ -1111,8 +1111,8 @@ function emptyInput(extra: Partial<MethodologicalAuditInput> = {}): Methodologic
   const model = makeModel(hyp.id);
   const input = emptyInput({ hypotheses: [hyp], conceptualModels: [model] });
   const audit = runMethodologicalAudit(input, TS);
-  // All 31 rules should be evaluated
-  assert(audit.evaluatedRuleIds.length === 31, "TC-53 all 31 rules evaluated");
+  // All 38 rules should be evaluated (31 S-021 + 7 EVD from S-022)
+  assert(audit.evaluatedRuleIds.length === 38, "TC-53 all 38 rules evaluated");
   assert(typeof audit.generatedAt === "string", "TC-53 generatedAt is string");
   assert(Array.isArray(audit.findings), "TC-53 findings is array");
   ok("TC-53 integration — all rules evaluated");

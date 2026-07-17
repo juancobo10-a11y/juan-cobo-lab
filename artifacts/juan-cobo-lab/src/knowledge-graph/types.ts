@@ -29,7 +29,11 @@ export type NodeType =
   | "indicator"
   | "evidence-source"
   | "operationalization-row"
-  | "contrastation-row";
+  | "contrastation-row"
+  // S-022 — Evidence evaluation layer
+  | "observed-evidence"
+  | "evidence-assessment"
+  | "hypothesis-conclusion";
 
 export const NODE_TYPE_LABELS: Record<NodeType, string> = {
   "problem": "Problema",
@@ -39,18 +43,28 @@ export const NODE_TYPE_LABELS: Record<NodeType, string> = {
   "evidence-source": "Fuente de evidencia",
   "operationalization-row": "Fila de operacionalización",
   "contrastation-row": "Criterio de contrastación",
+  // S-022
+  "observed-evidence": "Evidencia observada",
+  "evidence-assessment": "Evaluación de evidencia",
+  "hypothesis-conclusion": "Conclusión metodológica",
 };
 
 // ─── Edge (relation) types ────────────────────────────────────────────────────
 
 export type RelationType =
-  | "supports"       // hypothesis supports/addresses problem
-  | "operationalizes"// op-row operationalizes variable
-  | "measures"       // indicator measures variable; op-row measures indicator
-  | "uses"           // ct-row uses indicator/source; op-row uses source; source uses indicator
-  | "contrasts"      // ct-row contrasts hypothesis
-  | "derives-from"   // indicator derives-from variable (conceptual derivation)
-  | "belongs-to";    // variable belongs-to hypothesis (via conceptual model)
+  | "supports"          // hypothesis supports/addresses problem
+  | "operationalizes"   // op-row operationalizes variable
+  | "measures"          // indicator measures variable; op-row measures indicator
+  | "uses"              // ct-row uses indicator/source; op-row uses source; source uses indicator
+  | "contrasts"         // ct-row contrasts hypothesis
+  | "derives-from"      // indicator derives-from variable (conceptual derivation)
+  | "belongs-to"        // variable belongs-to hypothesis (via conceptual model)
+  // S-022 — Evidence evaluation layer
+  | "observes"          // observed-evidence observes contrastation-row
+  | "evaluates"         // evidence-assessment evaluates observed-evidence
+  | "supports-conclusion" // hypothesis-conclusion → supporting observed-evidence
+  | "weakens-conclusion"  // hypothesis-conclusion → weakening observed-evidence
+  | "concludes-about";  // hypothesis-conclusion concludes-about hypothesis
 
 export const RELATION_LABELS: Record<RelationType, string> = {
   "supports": "apoya/aborda",
@@ -60,6 +74,12 @@ export const RELATION_LABELS: Record<RelationType, string> = {
   "contrasts": "contrasta",
   "derives-from": "deriva de",
   "belongs-to": "pertenece a",
+  // S-022
+  "observes": "observa",
+  "evaluates": "evalúa",
+  "supports-conclusion": "sustenta conclusión",
+  "weakens-conclusion": "debilita en conclusión",
+  "concludes-about": "concluye sobre",
 };
 
 // ─── Node ─────────────────────────────────────────────────────────────────────
@@ -115,6 +135,10 @@ export interface HeliosGraphInput {
   conceptualModels: ConceptualModel[];
   operationalizationMatrices: OperationalizationMatrix[];
   contrastationMatrices: ContrastationMatrix[];
+  /** S-022: Evidence evaluation matrices (optional — not yet in all callers) */
+  evidenceEvaluationMatrices?: import("@/evidence-evaluation/types").EvidenceEvaluationMatrix[];
+  /** S-022: Hypothesis evidence conclusions (optional) */
+  hypothesisEvidenceConclusions?: import("@/evidence-evaluation/types").HypothesisEvidenceConclusion[];
 }
 
 // ─── Orphan report ────────────────────────────────────────────────────────────

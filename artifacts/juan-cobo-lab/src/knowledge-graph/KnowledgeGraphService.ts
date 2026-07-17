@@ -264,6 +264,85 @@ export function buildGraph(input: HeliosGraphInput): KnowledgeGraph {
     }
   }
 
+  // ── S-022: Evidence evaluation layer ────────────────────────────────────────
+  for (const eem of (input.evidenceEvaluationMatrices ?? [])) {
+    for (const ev of eem.observedEvidence) {
+      const evNodeId = nodeId("oe", ev.id);
+      nodes.push({
+        id: evNodeId,
+        type: "observed-evidence",
+        refId: ev.id,
+        metadata: { label: ev.title || `Evidencia ${ev.id.slice(-4)}` },
+      });
+      // observed-evidence → contrastation-row (observes)
+      const ctRowNodeId = nodeId("ctrow", ev.contrastationRowId);
+      edges.push({
+        id: edgeId(evNodeId, "observes", ctRowNodeId),
+        source: evNodeId,
+        target: ctRowNodeId,
+        relationType: "observes",
+      });
+    }
+    for (const a of eem.assessments) {
+      const aNodeId = nodeId("ea", a.id);
+      nodes.push({
+        id: aNodeId,
+        type: "evidence-assessment",
+        refId: a.id,
+        metadata: { label: `Evaluación: ${a.direction}` },
+      });
+      // evidence-assessment → observed-evidence (evaluates)
+      const evNodeId = nodeId("oe", a.observedEvidenceId);
+      edges.push({
+        id: edgeId(aNodeId, "evaluates", evNodeId),
+        source: aNodeId,
+        target: evNodeId,
+        relationType: "evaluates",
+      });
+    }
+  }
+
+  // ── S-022: Hypothesis evidence conclusions ────────────────────────────────
+  for (const hec of (input.hypothesisEvidenceConclusions ?? [])) {
+    const hecNodeId = nodeId("hec", hec.id);
+    nodes.push({
+      id: hecNodeId,
+      type: "hypothesis-conclusion",
+      refId: hec.id,
+      metadata: {
+        label: hec.conclusionText.slice(0, 60) || "Conclusión metodológica",
+      },
+    });
+    // hypothesis-conclusion → hypothesis (concludes-about)
+    const hypNodeId = nodeId("hyp", hec.hypothesisId);
+    edges.push({
+      id: edgeId(hecNodeId, "concludes-about", hypNodeId),
+      source: hecNodeId,
+      target: hypNodeId,
+      relationType: "concludes-about",
+    });
+    // hypothesis-conclusion → supporting evidence (supports-conclusion)
+    for (const evId of hec.mainSupportingEvidenceIds) {
+      const evNodeId = nodeId("oe", evId);
+      edges.push({
+        id: edgeId(hecNodeId, "supports-conclusion", evNodeId),
+        source: hecNodeId,
+        target: evNodeId,
+        relationType: "supports-conclusion",
+      });
+    }
+    // hypothesis-conclusion → weakening evidence (weakens-conclusion)
+    for (const evId of hec.mainWeakeningEvidenceIds) {
+      const evNodeId = nodeId("oe", evId);
+      edges.push({
+        id: edgeId(hecNodeId, "weakens-conclusion", evNodeId),
+        source: hecNodeId,
+        target: evNodeId,
+        relationType: "weakens-conclusion",
+      });
+    }
+  }
+
   return { nodes, edges };
 }
 

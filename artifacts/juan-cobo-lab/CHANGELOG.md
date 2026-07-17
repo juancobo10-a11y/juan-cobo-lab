@@ -1,5 +1,44 @@
 # HELIOS — Changelog
 
+## S-022 (2026-07-17) — Motor de Evaluación de Evidencia
+
+### Resumen
+Capa de evaluación entre ContrastationMatrix y la conclusión final. Permite al investigador registrar qué evidencia observó para cada criterio de contrastación, calificar su dirección e interpretación, y formular una conclusión metodológica explícita sobre la hipótesis.
+
+### Nuevos módulos
+- **`src/evidence-evaluation/types.ts`** — Tipos: `ObservedEvidence`, `EvidenceAssessment`, `EvidenceEvaluationMatrix`, `HypothesisEvidenceConclusion`, enums de dirección / confianza / status, labels y colores para UI.
+- **`src/evidence-evaluation/EvidenceEvaluationService.ts`** — 18 funciones puras: CRUD de evidencia y evaluaciones, validación, confirmación, resumen estadístico, upsert idempotente.
+- **`src/evidence-evaluation/HypothesisEvidenceConclusionService.ts`** — 9 funciones puras: crear, actualizar, validar, confirmar conclusión; validar referencias de evidencia; upsert idempotente.
+- **`src/components/PantallaEvidenceEvaluation.tsx`** — UI: tarjetas por criterio de contrastación, lista de evidencias, formulario inline de registro, panel de evaluación, validación en tiempo real, confirmación.
+- **`src/components/PantallaHypothesisEvidenceConclusion.tsx`** — UI: resumen descriptivo de evaluaciones (sin auto-recomendación), formulario de conclusión (status, texto, confianza, selectores de evidencia de soporte, limitaciones, revisado).
+
+### Archivos extendidos
+- **`src/knowledge-graph/types.ts`** — Nuevos NodeType: `observed-evidence`, `evidence-assessment`, `hypothesis-conclusion`; nuevas RelationType: `observes`, `evaluates`, `supports-conclusion`, `weakens-conclusion`, `concludes-about`; labels para todos.
+- **`src/knowledge-graph/KnowledgeGraphService.ts`** — `buildGraph` extiende el grafo con nodos y aristas de evidencia cuando `evidenceEvaluationMatrices` / `hypothesisEvidenceConclusions` están presentes en `HeliosGraphInput`.
+- **`src/methodological-consistency/types.ts`** — `MethodologicalAuditInput` extendido con campos opcionales `evidenceEvaluationMatrices` y `hypothesisEvidenceConclusions` (compatible hacia atrás).
+- **`src/methodological-consistency/rules.ts`** — 7 nuevas reglas EVD (`EVD-001`–`EVD-007`): criterios sin evidencia, indicador erróneo, fuente diferente, evidencia no evaluada, evaluación injustificada, incompatibilidad cruzada, conclusión sin cobertura. `ALL_RULES`: 31 → 38.
+- **`src/components/PantallaContrastationMatrix.tsx`** — Botón "Registrar evidencia observada" (visible cuando `matrix.confirmed`); prop `onIrAEvidenceEvaluation`.
+- **`src/components/PantallaRevisionFinal.tsx`** — Prop `onIrAEvidenceEvaluation` para navegación desde la cadena metodológica.
+- **`src/components/PantallaAuditoriaMetodologica.tsx`** — Acepta `evidenceEvaluationMatrices` y `hypothesisEvidenceConclusions`; los pasa al Motor de Consistencia para evaluar reglas EVD.
+- **`src/pages/Helios.tsx`** — Nuevas pantallas `evidence-evaluation` y `hypothesis-conclusion`; estado de sesión para matrices y conclusiones; 5 nuevos handlers; imports de módulos S-022.
+- **`scripts/validate-all.ts`** — Suite S-022 agregada; header actualizado a S-022; 14 → 15 suites.
+- **`package.json`** — Script `validate:s022`.
+
+### Decisiones arquitectónicas
+- **ADR-0011** — Tres capas separadas (expected / observed / assessment); HELIOS nunca deriva conclusiones; `supports ≠ prueba`; `weakens ≠ refutación`; `confidence ≠ probabilidad`; causalidad es responsabilidad del investigador.
+- Resumen descriptivo (conteos por dirección y confianza) disponible en PantallaEvidenceEvaluation para orientar el juicio — sin auto-asignación de status.
+
+### Validación
+- **S-022:** 139/139 TCs (75 TCs, 139 assertions) — EVD rules, servicios, integración con grafo y auditoría.
+- **15/15 suites** (Typecheck + S-012…S-022 + Smoke + Integration + Build) — sin regresiones.
+
+### Documentación
+- `docs/adr/ADR-0011-observed-evidence-separation.md` — Tres capas y límites del sistema.
+- `docs/architecture/S-022-evidence-evaluation-review.md` — 14 preguntas de revisión arquitectónica.
+- `docs/methodology/evidence-evaluation-model.md` — Principios epistemológicos: supports ≠ prueba, weakens ≠ refutación, confidence ≠ probabilidad, HELIOS no determina causalidad, conclusión es del usuario.
+
+---
+
 ## S-021 (2026-07-17) — Motor de Consistencia Metodológica
 
 ### Resumen

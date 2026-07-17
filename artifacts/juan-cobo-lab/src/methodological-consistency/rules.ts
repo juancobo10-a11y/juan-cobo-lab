@@ -1525,6 +1525,370 @@ const TRA004: RegisteredRule = {
   },
 };
 
+// ─── G. Evidence evaluation rules (S-022) ─────────────────────────────────────
+// These rules require input.evidenceEvaluationMatrices (optional).
+// When absent, the rules return no findings (backward compatible).
+
+const EVD001: RegisteredRule = {
+  rule: {
+    id: "EVD-001",
+    name: "Criterio sin evidencia observada",
+    description:
+      "Toda fila de contrastación confirmada debe tener al menos una evidencia observada.",
+    category: "evidence-coverage",
+    severity: "warning",
+    appliesTo: ["contrastation-row"],
+  },
+  evaluate(input, _graph) {
+    const matrices = input.evidenceEvaluationMatrices ?? [];
+    if (matrices.length === 0) return [];
+    const findings: MethodologicalFinding[] = [];
+    for (const ctMatrix of input.contrastationMatrices) {
+      const hyp = input.hypotheses.find((h) => h.id === ctMatrix.hypothesisId);
+      const eem = matrices.find((m) => m.hypothesisId === ctMatrix.hypothesisId);
+      for (const row of ctMatrix.rows) {
+        const hasEvidence = eem?.observedEvidence.some(
+          (ev) => ev.contrastationRowId === row.id
+        );
+        if (!hasEvidence) {
+          findings.push({
+            id: findingId("EVD-001", row.id),
+            ruleId: "EVD-001",
+            severity: "warning",
+            title: "Criterio sin evidencia observada",
+            explanation: `El criterio de contrastación ${row.id} de la hipótesis "${hyp?.titulo ?? ctMatrix.hypothesisId}" no tiene evidencias observadas registradas.`,
+            evidence: [`Criterio: ${row.id}`, "Evidencias observadas: ninguna"],
+            entityRefs: [
+              { type: "contrastation-row", id: row.id },
+              ...(hyp ? [{ type: "hypothesis" as const, id: hyp.id, label: hyp.titulo }] : []),
+            ],
+            suggestedAction: "Registrar al menos una evidencia observada para este criterio.",
+          });
+        }
+      }
+    }
+    return findings;
+  },
+};
+
+const EVD002: RegisteredRule = {
+  rule: {
+    id: "EVD-002",
+    name: "Evidencia con indicador diferente al criterio",
+    description:
+      "El indicador registrado en la evidencia debe coincidir con el indicador del criterio de contrastación.",
+    category: "evidence-coverage",
+    severity: "error",
+    appliesTo: ["contrastation-row", "indicator"],
+  },
+  evaluate(input, _graph) {
+    const matrices = input.evidenceEvaluationMatrices ?? [];
+    if (matrices.length === 0) return [];
+    const findings: MethodologicalFinding[] = [];
+    // Build map of row → indicadorId
+    const rowIndicatorMap = new Map<string, string>();
+    for (const ctMatrix of input.contrastationMatrices) {
+      for (const row of ctMatrix.rows) {
+        if (row.indicadorId) rowIndicatorMap.set(row.id, row.indicadorId);
+      }
+    }
+    for (const eem of matrices) {
+      const hyp = input.hypotheses.find((h) => h.id === eem.hypothesisId);
+      for (const ev of eem.observedEvidence) {
+        const expectedIndicatorId = rowIndicatorMap.get(ev.contrastationRowId);
+        if (expectedIndicatorId && ev.indicatorId && ev.indicatorId !== expectedIndicatorId) {
+          findings.push({
+            id: findingId("EVD-002", ev.id),
+            ruleId: "EVD-002",
+            severity: "error",
+            title: "Evidencia con indicador diferente al criterio",
+            explanation: `La evidencia "${ev.title || ev.id}" referencia el indicador ${ev.indicatorId}, pero el criterio de contrastación ${ev.contrastationRowId} espera el indicador ${expectedIndicatorId}.`,
+            evidence: [
+              `Evidencia: ${ev.title || ev.id}`,
+              `Indicador en evidencia: ${ev.indicatorId}`,
+              `Indicador esperado por criterio: ${expectedIndicatorId}`,
+            ],
+            entityRefs: [
+              { type: "contrastation-row", id: ev.contrastationRowId },
+              ...(hyp ? [{ type: "hypothesis" as const, id: hyp.id, label: hyp.titulo }] : []),
+            ],
+            suggestedAction: "Verificar que la evidencia corresponde al indicador correcto del criterio.",
+          });
+        }
+      }
+    }
+    return findings;
+  },
+};
+
+const EVD003: RegisteredRule = {
+  rule: {
+    id: "EVD-003",
+    name: "Evidencia con fuente diferente al criterio",
+    description:
+      "La fuente de la evidencia difiere de la fuente esperada en el criterio. No se prohíbe — una fuente complementaria puede ser válida — pero debe verificarse.",
+    category: "evidence-coverage",
+    severity: "warning",
+    appliesTo: ["contrastation-row", "evidence-source"],
+  },
+  evaluate(input, _graph) {
+    const matrices = input.evidenceEvaluationMatrices ?? [];
+    if (matrices.length === 0) return [];
+    const findings: MethodologicalFinding[] = [];
+    const rowSourceMap = new Map<string, string>();
+    for (const ctMatrix of input.contrastationMatrices) {
+      for (const row of ctMatrix.rows) {
+        if (row.fuenteId) rowSourceMap.set(row.id, row.fuenteId);
+      }
+    }
+    for (const eem of matrices) {
+      const hyp = input.hypotheses.find((h) => h.id === eem.hypothesisId);
+      for (const ev of eem.observedEvidence) {
+        const expectedSourceId = rowSourceMap.get(ev.contrastationRowId);
+        if (expectedSourceId && ev.sourceId && ev.sourceId !== expectedSourceId) {
+          findings.push({
+            id: findingId("EVD-003", ev.id),
+            ruleId: "EVD-003",
+            severity: "warning",
+            title: "Evidencia con fuente diferente al criterio",
+            explanation: `La evidencia "${ev.title || ev.id}" usa la fuente ${ev.sourceId}, pero el criterio espera la fuente ${expectedSourceId}. Una fuente alternativa puede ser válida, pero debe documentarse.`,
+            evidence: [
+              `Fuente en evidencia: ${ev.sourceId}`,
+              `Fuente esperada por criterio: ${expectedSourceId}`,
+            ],
+            entityRefs: [
+              { type: "contrastation-row", id: ev.contrastationRowId },
+              ...(hyp ? [{ type: "hypothesis" as const, id: hyp.id, label: hyp.titulo }] : []),
+            ],
+            suggestedAction: "Verificar si la fuente alternativa es metodológicamente justificable y documentarlo en la evaluación.",
+          });
+        }
+      }
+    }
+    return findings;
+  },
+};
+
+const EVD004: RegisteredRule = {
+  rule: {
+    id: "EVD-004",
+    name: "Evidencia sin evaluación",
+    description: "Toda evidencia observada debe tener al menos una evaluación asociada.",
+    category: "evidence-coverage",
+    severity: "warning",
+    appliesTo: ["contrastation-row"],
+  },
+  evaluate(input, _graph) {
+    const matrices = input.evidenceEvaluationMatrices ?? [];
+    if (matrices.length === 0) return [];
+    const findings: MethodologicalFinding[] = [];
+    for (const eem of matrices) {
+      const hyp = input.hypotheses.find((h) => h.id === eem.hypothesisId);
+      const assessedIds = new Set(eem.assessments.map((a) => a.observedEvidenceId));
+      for (const ev of eem.observedEvidence) {
+        if (!assessedIds.has(ev.id)) {
+          findings.push({
+            id: findingId("EVD-004", ev.id),
+            ruleId: "EVD-004",
+            severity: "warning",
+            title: "Evidencia sin evaluación",
+            explanation: `La evidencia "${ev.title || ev.id}" de la hipótesis "${hyp?.titulo ?? eem.hypothesisId}" no tiene evaluación asociada.`,
+            evidence: [`Evidencia: ${ev.title || ev.id}`, "Evaluación: ninguna"],
+            entityRefs: [
+              ...(hyp ? [{ type: "hypothesis" as const, id: hyp.id, label: hyp.titulo }] : []),
+            ],
+            suggestedAction: "Agregar una evaluación (dirección, confianza, justificación) para esta evidencia.",
+          });
+        }
+      }
+    }
+    return findings;
+  },
+};
+
+const EVD005: RegisteredRule = {
+  rule: {
+    id: "EVD-005",
+    name: "Evaluación sin justificación",
+    description: "Toda evaluación de evidencia debe tener una justificación explícita.",
+    category: "evidence-coverage",
+    severity: "error",
+    appliesTo: ["contrastation-row"],
+  },
+  evaluate(input, _graph) {
+    const matrices = input.evidenceEvaluationMatrices ?? [];
+    if (matrices.length === 0) return [];
+    const findings: MethodologicalFinding[] = [];
+    for (const eem of matrices) {
+      const hyp = input.hypotheses.find((h) => h.id === eem.hypothesisId);
+      for (const a of eem.assessments) {
+        if (!a.justification.trim()) {
+          const ev = eem.observedEvidence.find((e) => e.id === a.observedEvidenceId);
+          findings.push({
+            id: findingId("EVD-005", a.id),
+            ruleId: "EVD-005",
+            severity: "error",
+            title: "Evaluación sin justificación",
+            explanation: `La evaluación de la evidencia "${ev?.title || a.observedEvidenceId}" de la hipótesis "${hyp?.titulo ?? eem.hypothesisId}" no tiene justificación.`,
+            evidence: [`Evaluación ID: ${a.id}`, "Justificación: ausente"],
+            entityRefs: [
+              ...(hyp ? [{ type: "hypothesis" as const, id: hyp.id, label: hyp.titulo }] : []),
+            ],
+            suggestedAction: "Documentar la justificación del juicio metodológico en la evaluación.",
+          });
+        }
+      }
+    }
+    return findings;
+  },
+};
+
+const EVD006: RegisteredRule = {
+  rule: {
+    id: "EVD-006",
+    name: "Evidencia incompatible con la hipótesis",
+    description:
+      "Incompatibilidad estructural: la evidencia referencia una hipótesis, criterio o indicador de otra cadena metodológica.",
+    category: "evidence-coverage",
+    severity: "error",
+    appliesTo: ["hypothesis", "contrastation-row"],
+  },
+  evaluate(input, _graph) {
+    const matrices = input.evidenceEvaluationMatrices ?? [];
+    if (matrices.length === 0) return [];
+    const findings: MethodologicalFinding[] = [];
+    // Build set of ctRow IDs per hypothesis
+    const hypCtRowIds = new Map<string, Set<string>>();
+    for (const ctMatrix of input.contrastationMatrices) {
+      hypCtRowIds.set(ctMatrix.hypothesisId, new Set(ctMatrix.rows.map((r) => r.id)));
+    }
+    for (const eem of matrices) {
+      const hyp = input.hypotheses.find((h) => h.id === eem.hypothesisId);
+      const validCtRowIds = hypCtRowIds.get(eem.hypothesisId) ?? new Set();
+      for (const ev of eem.observedEvidence) {
+        // Check if the ct-row belongs to a different hypothesis
+        if (ev.contrastationRowId && !validCtRowIds.has(ev.contrastationRowId)) {
+          findings.push({
+            id: findingId("EVD-006", ev.id),
+            ruleId: "EVD-006",
+            severity: "error",
+            title: "Evidencia incompatible con la hipótesis",
+            explanation: `La evidencia "${ev.title || ev.id}" referencia el criterio ${ev.contrastationRowId} que no pertenece a la hipótesis "${hyp?.titulo ?? eem.hypothesisId}".`,
+            evidence: [
+              `Evidencia: ${ev.title || ev.id}`,
+              `Criterio referenciado: ${ev.contrastationRowId}`,
+              `Hipótesis de la matriz: ${eem.hypothesisId}`,
+            ],
+            entityRefs: [
+              ...(hyp ? [{ type: "hypothesis" as const, id: hyp.id, label: hyp.titulo }] : []),
+            ],
+            suggestedAction: "Verificar que la evidencia pertenece a la cadena metodológica de la hipótesis correcta.",
+          });
+        }
+      }
+    }
+    return findings;
+  },
+};
+
+const EVD007: RegisteredRule = {
+  rule: {
+    id: "EVD-007",
+    name: "Conclusión sin cobertura suficiente",
+    description:
+      "La conclusión metodológica de una hipótesis requiere cobertura mínima: criterios con evidencia, evidencia evaluada, sin evaluaciones pendientes ni errores bloqueantes.",
+    category: "completeness",
+    severity: "error",
+    appliesTo: ["hypothesis"],
+  },
+  evaluate(input, _graph) {
+    const matrices = input.evidenceEvaluationMatrices ?? [];
+    if (matrices.length === 0) return [];
+    const conclusions = input.hypothesisEvidenceConclusions ?? [];
+    if (conclusions.length === 0) return [];
+    const findings: MethodologicalFinding[] = [];
+    for (const conclusion of conclusions) {
+      const eem = matrices.find((m) => m.hypothesisId === conclusion.hypothesisId);
+      const hyp = input.hypotheses.find((h) => h.id === conclusion.hypothesisId);
+      if (!eem) {
+        findings.push({
+          id: findingId("EVD-007", conclusion.id),
+          ruleId: "EVD-007",
+          severity: "error",
+          title: "Conclusión sin matriz de evaluación",
+          explanation: `La conclusión de la hipótesis "${hyp?.titulo ?? conclusion.hypothesisId}" no tiene una matriz de evaluación de evidencia asociada.`,
+          evidence: ["Matriz de evaluación: no encontrada"],
+          entityRefs: [
+            ...(hyp ? [{ type: "hypothesis" as const, id: hyp.id, label: hyp.titulo }] : []),
+          ],
+          suggestedAction: "Crear una matriz de evaluación de evidencia antes de formular la conclusión.",
+        });
+        continue;
+      }
+      const ctMatrix = input.contrastationMatrices.find(
+        (m) => m.hypothesisId === conclusion.hypothesisId
+      );
+      if (!ctMatrix) continue;
+      // Criterios sin evidencia
+      const criteriaWithoutEvidence = ctMatrix.rows.filter(
+        (row) => !eem.observedEvidence.some((ev) => ev.contrastationRowId === row.id)
+      );
+      if (criteriaWithoutEvidence.length > 0) {
+        findings.push({
+          id: findingId("EVD-007", `${conclusion.id}-cov`),
+          ruleId: "EVD-007",
+          severity: "error",
+          title: "Conclusión con criterios sin evidencia",
+          explanation: `La conclusión de "${hyp?.titulo ?? conclusion.hypothesisId}" tiene ${criteriaWithoutEvidence.length} criterio(s) de contrastación sin evidencias observadas.`,
+          evidence: [`Criterios sin evidencia: ${criteriaWithoutEvidence.length}`],
+          entityRefs: [
+            ...(hyp ? [{ type: "hypothesis" as const, id: hyp.id, label: hyp.titulo }] : []),
+          ],
+          suggestedAction: "Registrar evidencias para todos los criterios antes de formular la conclusión.",
+        });
+      }
+      // Evidencia sin evaluación
+      const assessedIds = new Set(eem.assessments.map((a) => a.observedEvidenceId));
+      const unassessedEvidence = eem.observedEvidence.filter(
+        (ev) => !assessedIds.has(ev.id)
+      );
+      if (unassessedEvidence.length > 0) {
+        findings.push({
+          id: findingId("EVD-007", `${conclusion.id}-eval`),
+          ruleId: "EVD-007",
+          severity: "error",
+          title: "Conclusión con evidencia sin evaluar",
+          explanation: `La conclusión de "${hyp?.titulo ?? conclusion.hypothesisId}" tiene ${unassessedEvidence.length} evidencia(s) sin evaluación.`,
+          evidence: [`Evidencias sin evaluar: ${unassessedEvidence.length}`],
+          entityRefs: [
+            ...(hyp ? [{ type: "hypothesis" as const, id: hyp.id, label: hyp.titulo }] : []),
+          ],
+          suggestedAction: "Evaluar toda la evidencia observada antes de formular la conclusión.",
+        });
+      }
+      // Evaluaciones pendientes
+      const pendingAssessments = eem.assessments.filter(
+        (a) => a.status === "pending" || a.status === "needs-review"
+      );
+      if (pendingAssessments.length > 0) {
+        findings.push({
+          id: findingId("EVD-007", `${conclusion.id}-pend`),
+          ruleId: "EVD-007",
+          severity: "error",
+          title: "Conclusión con evaluaciones pendientes",
+          explanation: `La conclusión de "${hyp?.titulo ?? conclusion.hypothesisId}" tiene ${pendingAssessments.length} evaluación(es) en estado pendiente o que requieren revisión.`,
+          evidence: [`Evaluaciones pendientes: ${pendingAssessments.length}`],
+          entityRefs: [
+            ...(hyp ? [{ type: "hypothesis" as const, id: hyp.id, label: hyp.titulo }] : []),
+          ],
+          suggestedAction: "Completar o revisar las evaluaciones pendientes.",
+        });
+      }
+    }
+    return findings;
+  },
+};
+
 // ─── Exported registry ────────────────────────────────────────────────────────
 
 /** All registered rules in evaluation order. */
@@ -1536,6 +1900,8 @@ export const ALL_RULES: RegisteredRule[] = [
   OPR001, OPR002, OPR003, OPR004, OPR005,
   CON001, CON002, CON003, CON004, CON005, CON006,
   TRA001, TRA002, TRA003, TRA004,
+  // S-022 — Evidence evaluation rules
+  EVD001, EVD002, EVD003, EVD004, EVD005, EVD006, EVD007,
 ];
 
 /** Get a rule descriptor by ID. */

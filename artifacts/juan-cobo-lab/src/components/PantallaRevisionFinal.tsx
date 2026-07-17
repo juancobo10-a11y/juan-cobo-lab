@@ -63,6 +63,8 @@ interface Props {
   onVerKnowledgeGraph?: () => void;
   /** S-021: navigate to Auditoría de Consistencia Metodológica screen */
   onEjecutarAuditoria?: () => void;
+  /** S-022: navigate to evidence evaluation screen */
+  onIrAEvidenceEvaluation?: () => void;
   onReiniciar: () => void;
 }
 

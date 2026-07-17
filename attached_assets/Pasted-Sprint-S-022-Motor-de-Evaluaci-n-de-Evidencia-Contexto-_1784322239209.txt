@@ -1,0 +1,1620 @@
+Sprint S-022 — Motor de Evaluación de Evidencia
+
+Contexto
+
+Después de los Sprint S-011 a S-021, HELIOS ya permite construir y auditar una cadena metodológica completa:
+
+Problema
+↓
+Knowledge Pack
+↓
+Thinking Pattern
+↓
+Reflexión
+↓
+Hipótesis
+↓
+Modelo Conceptual
+↓
+Variables
+↓
+Indicadores
+↓
+Fuentes
+↓
+Matriz de Operacionalización
+↓
+Matriz de Contrastación
+↓
+Knowledge Graph
+↓
+Auditoría metodológica
+
+Hasta ahora HELIOS responde rigurosamente:
+
+> ¿Cómo debería contrastarse una hipótesis?
+
+
+
+Sin embargo, aún no permite registrar de forma estructurada:
+
+qué evidencia fue realmente encontrada;
+
+qué resultado produjo cada indicador;
+
+en qué medida la evidencia coincide con lo esperado;
+
+qué tan confiable es la valoración;
+
+qué limitaciones afectan la interpretación;
+
+qué conclusión metodológica puede formular el investigador.
+
+
+Este sprint debe incorporar una nueva capa: evaluación de evidencia observada.
+
+No agregar nuevos Thinking Patterns.
+
+No modificar el Thinking Router.
+
+No modificar los Knowledge Packs.
+
+No introducir IA generativa, LLM, APIs externas ni inferencias automáticas sobre la verdad de una hipótesis.
+
+No asignar automáticamente resultados, confianza ni conclusiones.
+
+No sustituir el juicio del investigador.
+
+
+---
+
+Objetivo general
+
+Agregar la siguiente etapa:
+
+Hipótesis
+↓
+Modelo conceptual
+↓
+Operacionalización
+↓
+Contrastación
+↓
+Evidencia observada
+↓
+Evaluación de evidencia
+↓
+Conclusión metodológica
+
+HELIOS debe permitir registrar y evaluar evidencia para cada criterio de contrastación, conservando trazabilidad completa hasta:
+
+hipótesis;
+
+variable;
+
+indicador;
+
+fuente;
+
+fila de operacionalización;
+
+criterio de contrastación.
+
+
+
+---
+
+ADR-0011
+
+Agregar:
+
+ADR-0011 — La evidencia observada y su evaluación deben permanecer separadas
+
+HELIOS debe distinguir explícitamente entre:
+
+Evidencia observada
+
+y:
+
+Interpretación de la evidencia
+
+La evidencia observada registra datos, resultados o hallazgos.
+
+La evaluación registra el juicio metodológico del usuario respecto de esa evidencia.
+
+HELIOS no debe derivar automáticamente una conclusión a partir de los datos.
+
+Toda valoración debe ser:
+
+explícita;
+
+trazable;
+
+revisable;
+
+atribuible al usuario;
+
+separada de la fuente original.
+
+
+
+---
+
+1. Revisión inicial obligatoria
+
+Antes de implementar, revisar:
+
+PolicyHypothesis
+
+ConceptualModel
+
+ConceptualVariable
+
+ConceptualIndicator
+
+EvidenceSource
+
+OperationalizationMatrix
+
+ContrastationMatrix
+
+ContrastationRow
+
+KnowledgeGraph
+
+MethodologicalAudit
+
+estado de sesión
+
+navegación actual
+
+PantallaContrastationMatrix
+
+PantallaRevisionFinal
+
+PantallaAuditoriaMetodologica
+
+
+Responder primero:
+
+1. ¿Qué información ya existe para registrar evidencia?
+
+
+2. ¿Qué información pertenece a la fuente y cuál a la observación?
+
+
+3. ¿Qué información pertenece a la evaluación?
+
+
+4. ¿Qué estructuras deben reutilizarse mediante ID?
+
+
+5. ¿Qué no debe duplicarse?
+
+
+6. ¿Cómo se distinguirá evidencia esperada de evidencia observada?
+
+
+7. ¿Cómo se preservará la trazabilidad?
+
+
+8. ¿Qué limitaciones metodológicas deben documentarse?
+
+
+
+No implementar hasta completar esta revisión.
+
+
+---
+
+2. Separación conceptual
+
+Mantener tres capas distintas:
+
+ContrastationRow
+↓
+define qué evidencia debería buscarse
+
+ObservedEvidence
+↓
+registra qué se encontró
+
+EvidenceAssessment
+↓
+evalúa qué significa lo encontrado
+
+No mezclar estos tres conceptos en una sola entidad.
+
+
+---
+
+3. Nuevos tipos
+
+Crear bajo:
+
+src/evidence-evaluation/
+
+los siguientes tipos:
+
+ObservedEvidence
+EvidenceAssessment
+EvidenceEvaluationMatrix
+EvidenceEvaluationStatus
+EvidenceConfidenceLevel
+EvidenceDirection
+EvidenceEvaluationValidation
+EvidenceEvaluationSummary
+
+
+---
+
+4. Evidencia observada
+
+Crear:
+
+interface ObservedEvidence {
+  id: string;
+  contrastationRowId: string;
+  indicatorId: string;
+  sourceId: string;
+
+  title: string;
+  description: string;
+
+  observedValue?: string;
+  observedUnit?: string;
+
+  observationDate?: string;
+  periodStart?: string;
+  periodEnd?: string;
+
+  location?: string;
+  population?: string;
+
+  sourceReference?: string;
+  sourcePage?: string;
+  sourceSection?: string;
+
+  notes?: string;
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+Reglas
+
+contrastationRowId, indicatorId y sourceId deben ser referencias.
+
+No copiar nombres de indicadores ni fuentes.
+
+observedValue debe ser texto, no número obligatorio, porque la evidencia puede ser cuantitativa o cualitativa.
+
+No exigir todas las fechas.
+
+No asumir que toda evidencia tiene unidad.
+
+No modificar la EvidenceSource original.
+
+
+
+---
+
+5. Evaluación de evidencia
+
+Crear:
+
+interface EvidenceAssessment {
+  id: string;
+  observedEvidenceId: string;
+  contrastationRowId: string;
+  hypothesisId: string;
+
+  status: EvidenceEvaluationStatus;
+  direction: EvidenceDirection;
+  confidence: EvidenceConfidenceLevel;
+
+  justification: string;
+  limitations: string;
+  alternativeInterpretations?: string;
+  additionalEvidenceNeeded?: string;
+
+  assessedAt: string;
+  reviewed: boolean;
+}
+
+
+---
+
+6. Estado de evaluación
+
+Crear catálogo:
+
+type EvidenceEvaluationStatus =
+  | "pending"
+  | "evaluated"
+  | "needs-review";
+
+No asignar automáticamente.
+
+
+---
+
+7. Dirección de la evidencia
+
+Crear catálogo:
+
+type EvidenceDirection =
+  | "supports"
+  | "weakens"
+  | "mixed"
+  | "inconclusive"
+  | "not-applicable";
+
+Semántica:
+
+supports
+
+La evidencia es consistente con lo esperado bajo la hipótesis.
+
+weakens
+
+La evidencia es consistente con el escenario contrario o reduce la plausibilidad de la hipótesis.
+
+mixed
+
+La evidencia contiene elementos que apoyan y debilitan simultáneamente.
+
+inconclusive
+
+La evidencia no permite interpretar razonablemente el criterio.
+
+not-applicable
+
+La evidencia no resulta pertinente para ese criterio.
+
+HELIOS no debe elegir automáticamente ninguna opción.
+
+
+---
+
+8. Nivel de confianza
+
+Crear catálogo:
+
+type EvidenceConfidenceLevel =
+  | "low"
+  | "medium"
+  | "high";
+
+No usar porcentajes.
+
+No calcular automáticamente.
+
+No convertirlo en una probabilidad estadística.
+
+Debe representar únicamente el nivel de confianza declarado por el usuario en la valoración.
+
+
+---
+
+9. Matriz de evaluación
+
+Crear:
+
+interface EvidenceEvaluationMatrix {
+  id: string;
+  hypothesisId: string;
+  contrastationMatrixId: string;
+
+  observedEvidence: ObservedEvidence[];
+  assessments: EvidenceAssessment[];
+
+  status: "draft" | "confirmed";
+  confirmedAt?: string;
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+Una hipótesis podrá tener una matriz de evaluación asociada a su matriz de contrastación.
+
+
+---
+
+10. Cardinalidades
+
+La arquitectura debe permitir:
+
+1 criterio de contrastación
+↓
+0..n evidencias observadas
+
+y:
+
+1 evidencia observada
+↓
+1 evaluación activa
+
+No asumir una sola evidencia por criterio.
+
+No asumir una sola fuente empírica por hipótesis.
+
+
+---
+
+11. Servicio puro
+
+Crear:
+
+EvidenceEvaluationService.ts
+
+Funciones mínimas:
+
+createEvidenceEvaluationMatrix()
+createObservedEvidence()
+updateObservedEvidence()
+removeObservedEvidence()
+reorderObservedEvidence()
+
+createEvidenceAssessment()
+updateEvidenceAssessment()
+removeEvidenceAssessment()
+
+findEvidenceByContrastationRow()
+findAssessmentByEvidence()
+findUnassessedEvidence()
+
+validateEvidenceEvaluation()
+confirmEvidenceEvaluationMatrix()
+
+summarizeEvidenceEvaluation()
+groupEvidenceByDirection()
+groupEvidenceByConfidence()
+isEvidenceEvaluationComplete()
+
+Todas deben ser puras.
+
+No mutar argumentos.
+
+No acceder directamente a UI ni almacenamiento.
+
+
+---
+
+12. Reutilización y trazabilidad
+
+La cadena debe preservarse así:
+
+EvidenceAssessment
+↓ observedEvidenceId
+ObservedEvidence
+↓ contrastationRowId
+ContrastationRow
+↓ indicatorId + sourceId
+Indicador + Fuente
+↓
+Operacionalización
+↓
+Variable
+↓
+Hipótesis
+
+El servicio debe poder resolver esta trazabilidad con los modelos existentes.
+
+No crear copias redundantes de:
+
+nombre de hipótesis;
+
+nombre de variable;
+
+nombre de indicador;
+
+nombre de fuente;
+
+evidencia esperada;
+
+evidencia contraria.
+
+
+
+---
+
+13. Validación local
+
+Crear:
+
+validateEvidenceEvaluation()
+
+Errores bloqueantes
+
+matriz sin evidencias observadas;
+
+evidencia sin criterio de contrastación;
+
+evidencia sin indicador;
+
+evidencia sin fuente;
+
+evidencia sin título;
+
+evidencia sin descripción;
+
+evidencia evaluada sin assessment;
+
+assessment sin dirección;
+
+assessment sin confianza;
+
+assessment sin justificación;
+
+assessment asociado a una evidencia inexistente;
+
+assessment asociado a otra hipótesis;
+
+evidencia con referencia rota.
+
+
+Advertencias
+
+evidencia sin fecha o periodo;
+
+evidencia sin referencia específica;
+
+evidencia sin limitaciones;
+
+assessment sin interpretaciones alternativas;
+
+assessment sin evidencia adicional requerida;
+
+criterio de contrastación sin evidencia observada;
+
+múltiples evidencias con la misma referencia exacta;
+
+dirección supports o weakens con confianza baja.
+
+
+Sugerencias
+
+evidencia cuantitativa sin unidad;
+
+evidencia cualitativa sin contexto poblacional o territorial;
+
+evidencia marcada como inconclusive sin explicar qué información falta;
+
+assessment no revisado.
+
+
+No bloquear edición.
+
+Bloquear únicamente la confirmación.
+
+
+---
+
+14. Reglas de consistencia transversal
+
+Crear reglas nuevas para el MethodologicalConsistencyService o un módulo complementario claramente separado.
+
+No duplicar validaciones locales.
+
+Agregar como mínimo:
+
+EVD-001 — Criterio sin evidencia observada
+
+Toda fila de contrastación confirmada debe tener al menos una evidencia observada.
+
+Severidad: warning mientras la evaluación esté en borrador.
+
+Severidad: error si la matriz de evaluación se intenta confirmar.
+
+
+---
+
+EVD-002 — Evidencia con indicador diferente al criterio
+
+Severidad: error.
+
+
+---
+
+EVD-003 — Evidencia con fuente diferente al criterio sin justificación
+
+Severidad: warning.
+
+No prohibirlo automáticamente, porque una fuente complementaria puede ser válida.
+
+
+---
+
+EVD-004 — Evidencia sin evaluación
+
+Severidad: warning.
+
+
+---
+
+EVD-005 — Evaluación sin justificación
+
+Severidad: error.
+
+
+---
+
+EVD-006 — Evidencia incompatible con la hipótesis
+
+No evaluar compatibilidad semántica.
+
+Solo detectar incompatibilidad estructural:
+
+hipótesis distinta;
+
+indicador de otra hipótesis;
+
+criterio de otra matriz.
+
+
+Severidad: error.
+
+
+---
+
+EVD-007 — Conclusión sin cobertura suficiente
+
+No usar umbrales arbitrarios.
+
+Detectar únicamente:
+
+criterios sin evidencia;
+
+evidencia sin evaluación;
+
+evaluaciones pendientes;
+
+errores bloqueantes.
+
+
+Severidad: error.
+
+
+---
+
+15. Resumen de evaluación
+
+Crear:
+
+interface EvidenceEvaluationSummary {
+  totalCriteria: number;
+  criteriaWithEvidence: number;
+  criteriaWithoutEvidence: number;
+
+  totalObservedEvidence: number;
+  assessedEvidence: number;
+  unassessedEvidence: number;
+
+  supports: number;
+  weakens: number;
+  mixed: number;
+  inconclusive: number;
+  notApplicable: number;
+
+  lowConfidence: number;
+  mediumConfidence: number;
+  highConfidence: number;
+
+  blockingErrors: number;
+  warnings: number;
+
+  complete: boolean;
+}
+
+No calcular una puntuación de validez.
+
+No producir una probabilidad de que la hipótesis sea verdadera.
+
+
+---
+
+16. Conclusión metodológica de la hipótesis
+
+Crear una entidad separada:
+
+interface HypothesisEvidenceConclusion {
+  id: string;
+  hypothesisId: string;
+  evidenceEvaluationMatrixId: string;
+
+  conclusionStatus:
+    | "not-evaluated"
+    | "provisionally-supported"
+    | "provisionally-weakened"
+    | "mixed-evidence"
+    | "inconclusive";
+
+  conclusionText: string;
+  confidence: EvidenceConfidenceLevel;
+
+  mainSupportingEvidenceIds: string[];
+  mainWeakeningEvidenceIds: string[];
+
+  limitations: string;
+  additionalEvidenceNeeded?: string;
+
+  reviewed: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+Reglas esenciales
+
+La conclusión debe ser escrita o seleccionada por el usuario.
+
+HELIOS no debe producirla automáticamente.
+
+El sistema puede mostrar un resumen descriptivo de direcciones registradas.
+
+El sistema no debe sugerir una conclusión causal definitiva.
+
+Toda conclusión debe referenciar evidencia concreta.
+
+
+
+---
+
+17. Servicio de conclusión
+
+Crear:
+
+HypothesisEvidenceConclusionService.ts
+
+Funciones puras:
+
+createConclusion()
+updateConclusion()
+validateConclusion()
+confirmConclusion()
+findReferencedEvidence()
+validateEvidenceReferences()
+
+Errores bloqueantes
+
+conclusión sin texto;
+
+conclusión sin confianza;
+
+conclusión sin matriz;
+
+conclusión apoyada sin evidencia de apoyo seleccionada;
+
+conclusión debilitada sin evidencia de debilitamiento seleccionada;
+
+referencia a evidencia inexistente;
+
+evidencia perteneciente a otra hipótesis.
+
+
+Advertencias
+
+conclusión con evidencia mixta, pero estado unilateral;
+
+conclusión con confianza alta y mayoría de evidencia de baja confianza;
+
+conclusión sin limitaciones;
+
+conclusión no revisada.
+
+
+No usar reglas estadísticas ni mayorías automáticas para decidir el estado.
+
+
+---
+
+18. Pantalla de registro de evidencia
+
+Crear:
+
+PantallaEvidenceEvaluation.tsx
+
+Debe mostrar primero la hipótesis y la matriz de contrastación.
+
+Por cada criterio:
+
+Indicador
+Fuente esperada
+Evidencia esperada
+Evidencia contraria
+↓
+Evidencias observadas
+
+Permitir:
+
+agregar evidencia;
+
+editar;
+
+eliminar;
+
+reordenar;
+
+expandir detalle;
+
+evaluar evidencia;
+
+marcar para revisión;
+
+navegar al criterio original.
+
+
+
+---
+
+19. Formulario de evidencia
+
+Campos visibles:
+
+título;
+
+descripción;
+
+valor observado;
+
+unidad;
+
+fecha o periodo;
+
+población;
+
+ubicación;
+
+referencia;
+
+página;
+
+sección;
+
+notas.
+
+
+No exigir todos los campos.
+
+Debe explicar visualmente qué campos son obligatorios.
+
+
+---
+
+20. Formulario de evaluación
+
+Campos:
+
+dirección;
+
+confianza;
+
+justificación;
+
+limitaciones;
+
+interpretaciones alternativas;
+
+evidencia adicional necesaria;
+
+revisado.
+
+
+Mostrar junto al formulario:
+
+evidencia esperada;
+
+evidencia contraria;
+
+criterio de interpretación;
+
+prioridad;
+
+limitaciones del criterio.
+
+
+No sugerir la opción a elegir.
+
+
+---
+
+21. Pantalla de conclusión
+
+Crear:
+
+PantallaHypothesisEvidenceConclusion.tsx
+
+Debe mostrar:
+
+Resumen descriptivo
+
+número de evidencias;
+
+número evaluado;
+
+direcciones registradas;
+
+niveles de confianza;
+
+criterios sin evidencia;
+
+errores pendientes.
+
+
+Selección manual
+
+estado de conclusión;
+
+texto de conclusión;
+
+confianza;
+
+evidencia principal de apoyo;
+
+evidencia principal de debilitamiento;
+
+limitaciones;
+
+evidencia adicional requerida;
+
+revisado.
+
+
+El resumen no debe constituir una recomendación automática.
+
+
+---
+
+22. Navegación
+
+Agregar:
+
+Matriz de contrastación
+↓
+Registrar evidencia observada
+↓
+Evaluar evidencia
+↓
+Formular conclusión metodológica
+↓
+Revisión final
+
+El botón Registrar evidencia observada solo debe estar disponible cuando la matriz de contrastación esté confirmada.
+
+La conclusión solo debe habilitarse cuando exista al menos una evidencia evaluada.
+
+No exigir confirmación total para permitir revisión de borradores.
+
+
+---
+
+23. Integración con revisión final
+
+Extender PantallaRevisionFinal con:
+
+estado de evaluación de evidencia;
+
+número de evidencias registradas;
+
+número de evidencias evaluadas;
+
+conclusión metodológica;
+
+confianza declarada;
+
+limitaciones;
+
+accesos a edición.
+
+
+Mantener la vista como lectura consolidada.
+
+
+---
+
+24. Integración con Knowledge Graph
+
+Extender el grafo con nuevos tipos de nodo:
+
+| "observed-evidence"
+| "evidence-assessment"
+| "hypothesis-conclusion"
+
+Agregar relaciones:
+
+| "observes"
+| "evaluates"
+| "supports-conclusion"
+| "weakens-conclusion"
+| "concludes-about"
+
+Mantener la convención existente:
+
+source → target
+=
+source depende de target
+
+Ejemplos:
+
+ObservedEvidence → ContrastationRow
+EvidenceAssessment → ObservedEvidence
+HypothesisConclusion → Hypothesis
+HypothesisConclusion → ObservedEvidence
+
+No romper APIs previas.
+
+
+---
+
+25. Impacto y eliminaciones
+
+Antes de eliminar:
+
+criterio de contrastación;
+
+indicador;
+
+fuente;
+
+evidencia observada;
+
+
+mostrar impacto en:
+
+evaluaciones;
+
+conclusión;
+
+Knowledge Graph;
+
+revisión final.
+
+
+Ejemplo:
+
+Eliminar evidencia observada
+↓
+1 evaluación asociada
+↓
+1 conclusión que la usa como evidencia principal
+
+No eliminar silenciosamente.
+
+
+---
+
+26. Estado de sesión
+
+Extender la sesión con:
+
+evidenceEvaluationMatrices
+hypothesisEvidenceConclusions
+
+Agregar operaciones consistentes con el patrón actual:
+
+upsertEvidenceEvaluationMatrix()
+findEvidenceEvaluationMatrixByHypothesis()
+removeEvidenceEvaluationMatrix()
+
+upsertHypothesisEvidenceConclusion()
+findHypothesisEvidenceConclusion()
+removeHypothesisEvidenceConclusion()
+
+No persistir:
+
+resúmenes calculados;
+
+resultados de validación;
+
+auditorías derivadas.
+
+
+
+---
+
+27. Accesibilidad
+
+Mantener:
+
+navegación completa por teclado;
+
+foco visible;
+
+labels;
+
+fieldsets;
+
+encabezados semánticos;
+
+aria-live para validación;
+
+botones con nombres descriptivos;
+
+estados expresados en texto;
+
+no depender únicamente del color.
+
+
+
+---
+
+28. Casos de prueba
+
+Crear:
+
+validacion_s022.ts
+
+Incluir como mínimo:
+
+Evidencia observada
+
+1. crear matriz;
+
+
+2. crear evidencia;
+
+
+3. editar evidencia;
+
+
+4. eliminar evidencia;
+
+
+5. reordenar evidencia;
+
+
+6. múltiples evidencias por criterio;
+
+
+7. evidencia cualitativa;
+
+
+8. evidencia cuantitativa;
+
+
+9. evidencia sin unidad;
+
+
+10. evidencia sin fecha;
+
+
+11. referencia específica;
+
+
+12. referencia duplicada.
+
+
+
+Evaluación
+
+13. crear assessment;
+
+
+14. editar assessment;
+
+
+15. eliminar assessment;
+
+
+16. support;
+
+
+17. weaken;
+
+
+18. mixed;
+
+
+19. inconclusive;
+
+
+20. not-applicable;
+
+
+21. confianza baja;
+
+
+22. confianza media;
+
+
+23. confianza alta;
+
+
+24. evaluación sin justificación;
+
+
+25. evaluación sin limitaciones;
+
+
+26. evidencia sin evaluación;
+
+
+27. múltiples evaluaciones inválidas para una evidencia.
+
+
+
+Trazabilidad
+
+28. indicador correcto;
+
+
+29. indicador incorrecto;
+
+
+30. fuente correcta;
+
+
+31. fuente alternativa;
+
+
+32. criterio inexistente;
+
+
+33. hipótesis incorrecta;
+
+
+34. matriz incorrecta;
+
+
+35. referencias rotas;
+
+
+36. reconstrucción desde sesión.
+
+
+
+Conclusión
+
+37. crear conclusión;
+
+
+38. editar conclusión;
+
+
+39. conclusión provisionalmente apoyada;
+
+
+40. conclusión provisionalmente debilitada;
+
+
+41. evidencia mixta;
+
+
+42. inconclusa;
+
+
+43. conclusión sin texto;
+
+
+44. conclusión sin confianza;
+
+
+45. evidencia de apoyo inexistente;
+
+
+46. evidencia de otra hipótesis;
+
+
+47. conclusión sin limitaciones;
+
+
+48. revisión de conclusión.
+
+
+
+Resumen
+
+49. conteos por dirección;
+
+
+50. conteos por confianza;
+
+
+51. criterios cubiertos;
+
+
+52. criterios no cubiertos;
+
+
+53. evaluación completa;
+
+
+54. evaluación incompleta;
+
+
+55. idempotencia;
+
+
+56. no mutación.
+
+
+
+Grafo e impacto
+
+57. nodos de evidencia;
+
+
+58. nodos de assessment;
+
+
+59. nodo de conclusión;
+
+
+60. relaciones nuevas;
+
+
+61. impacto al eliminar evidencia;
+
+
+62. impacto al eliminar criterio;
+
+
+63. huérfanos;
+
+
+64. unused;
+
+
+65. topological traversal.
+
+
+
+UI e integración
+
+66. navegación desde contrastación;
+
+
+67. volver sin perder estado;
+
+
+68. revisión final;
+
+
+69. auditoría metodológica;
+
+
+70. reinicio;
+
+
+71. múltiples hipótesis;
+
+
+72. múltiples matrices;
+
+
+73. accesibilidad;
+
+
+74. integración;
+
+
+75. regresión.
+
+
+
+Se espera una suite amplia, superior a 100 aserciones.
+
+
+---
+
+29. Regresión completa
+
+Ejecutar:
+
+Typecheck
+
+S-012
+
+S-013
+
+S-014
+
+S-015
+
+S-016
+
+S-017
+
+S-018
+
+S-019
+
+S-020
+
+S-021
+
+S-022
+
+Smoke
+
+Integration
+
+Build
+
+
+Todos deben permanecer en verde.
+
+
+---
+
+30. Architecture Review
+
+Responder:
+
+1. ¿Cómo se diferencia evidencia esperada, observada y evaluada?
+
+
+2. ¿Por qué ObservedEvidence y EvidenceAssessment son entidades separadas?
+
+
+3. ¿Cómo se preserva la trazabilidad?
+
+
+4. ¿Cómo se evita duplicar indicadores y fuentes?
+
+
+5. ¿Cómo se representan varias evidencias para un criterio?
+
+
+6. ¿Cómo se garantiza que una evaluación pertenece a la hipótesis correcta?
+
+
+7. ¿Qué diferencia existe entre dirección y confianza?
+
+
+8. ¿Cómo se construye la conclusión metodológica?
+
+
+9. ¿Qué decisiones toma el usuario y cuáles no toma HELIOS?
+
+
+10. ¿Cómo se integra la nueva capa con el Knowledge Graph?
+
+
+11. ¿Cómo se calcula el impacto de una eliminación?
+
+
+12. ¿Qué limitaciones metodológicas permanecen?
+
+
+13. ¿Qué deuda técnica queda?
+
+
+14. ¿Está HELIOS preparado para producir informes de resultados trazables?
+
+
+
+
+---
+
+31. Documentación
+
+Agregar:
+
+docs/adr/ADR-0011-observed-evidence-separation.md
+docs/architecture/S-022-evidence-evaluation-review.md
+docs/methodology/evidence-evaluation-model.md
+
+Actualizar:
+
+README;
+
+arquitectura;
+
+modelo de sesión;
+
+catálogo de nodos y relaciones;
+
+auditoría metodológica;
+
+CHANGELOG;
+
+scripts de validación.
+
+
+Documentar expresamente:
+
+que supports no significa prueba definitiva;
+
+que weakens no significa refutación definitiva;
+
+que confianza no equivale a probabilidad;
+
+que HELIOS no determina causalidad;
+
+que la conclusión es formulada por el usuario.
+
+
+
+---
+
+32. Entrega
+
+Entregar:
+
+revisión inicial;
+
+ADR-0011;
+
+tipos;
+
+EvidenceEvaluationService;
+
+HypothesisEvidenceConclusionService;
+
+PantallaEvidenceEvaluation;
+
+PantallaHypothesisEvidenceConclusion;
+
+integración con contrastación;
+
+integración con revisión final;
+
+extensión del Knowledge Graph;
+
+validaciones locales y transversales;
+
+validación S-022;
+
+regresión completa;
+
+documentación;
+
+CHANGELOG;
+
+commit;
+
+push;
+
+no hacer republish;
+
+detenerse para revisión.
+
+
+
+---
+
+Criterio de éxito
+
+Al finalizar S-022, HELIOS deberá permitir completar este ciclo:
+
+Problema
+↓
+Hipótesis
+↓
+Modelo conceptual
+↓
+Operacionalización
+↓
+Contrastación
+↓
+Evidencia observada
+↓
+Evaluación de evidencia
+↓
+Conclusión metodológica
+↓
+Revisión trazable
+
+El sistema deberá responder:
+
+¿Qué evidencia se encontró para cada criterio?
+
+¿De qué fuente proviene?
+
+¿Qué indicador y qué hipótesis están involucrados?
+
+¿La evidencia apoya, debilita, mezcla o no permite concluir?
+
+¿Con qué confianza lo afirma el usuario?
+
+¿Qué limitaciones existen?
+
+¿Qué evidencia adicional se necesita?
+
+¿Qué evidencias sustentan la conclusión final?
+
+¿Qué se rompe si una evidencia es eliminada?
+
+
+HELIOS no debe decidir si una hipótesis es verdadera o falsa. Debe permitir que el usuario registre, evalúe y comunique evidencia de forma rigurosa, explícita y completamente trazable.

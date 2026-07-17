@@ -67,6 +67,8 @@ interface Props {
   onUpdateMatrix: (matrix: ContrastationMatrix) => void;
   onConfirmar: (matrix: ContrastationMatrix) => void;
   onVerCadena: () => void;
+  /** S-022: navigate to evidence evaluation (only shown when matrix is confirmed) */
+  onIrAEvidenceEvaluation?: () => void;
   onVolver: () => void;
   onReiniciar: () => void;
 }
@@ -336,6 +338,7 @@ export function PantallaContrastationMatrix({
   onConfirmar,
   onVerCadena,
   onVolver,
+  onIrAEvidenceEvaluation,
   onReiniciar,
 }: Props) {
   const [matrix, setMatrix] = useState<ContrastationMatrix>(
@@ -863,6 +866,19 @@ export function PantallaContrastationMatrix({
               className="group flex items-center gap-2.5 px-6 py-3.5 rounded-xl border border-primary/30 bg-primary/5 text-primary text-sm font-medium tracking-wide hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all duration-200"
             >
               Ver cadena metodológica
+              <ArrowRight
+                className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200"
+                aria-hidden="true"
+              />
+            </button>
+          )}
+          {matrix.confirmed && onIrAEvidenceEvaluation && (
+            <button
+              type="button"
+              onClick={onIrAEvidenceEvaluation}
+              className="group flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold tracking-wide hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all duration-200"
+            >
+              Registrar evidencia observada
               <ArrowRight
                 className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200"
                 aria-hidden="true"

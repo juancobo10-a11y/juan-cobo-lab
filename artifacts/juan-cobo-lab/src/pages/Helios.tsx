@@ -19,6 +19,18 @@ import { PantallaContrastationMatrix } from "@/components/PantallaContrastationM
 import { PantallaRevisionFinal } from "@/components/PantallaRevisionFinal";
 import { PantallaKnowledgeGraph } from "@/components/PantallaKnowledgeGraph";
 import { PantallaAuditoriaMetodologica } from "@/components/PantallaAuditoriaMetodologica";
+// S-022: Evidence evaluation
+import PantallaEvidenceEvaluation from "@/components/PantallaEvidenceEvaluation";
+import PantallaHypothesisEvidenceConclusion from "@/components/PantallaHypothesisEvidenceConclusion";
+import type { EvidenceEvaluationMatrix, HypothesisEvidenceConclusion as HypEvidConclusion } from "@/evidence-evaluation/types";
+import {
+  upsertEvidenceEvaluationMatrix,
+  findEvidenceEvaluationMatrixByHypothesis,
+} from "@/evidence-evaluation/EvidenceEvaluationService";
+import {
+  upsertHypothesisEvidenceConclusion,
+  findHypothesisEvidenceConclusion,
+} from "@/evidence-evaluation/HypothesisEvidenceConclusionService";
 import type { ContrastationMatrix } from "@/contrastation/types";
 import {
   findContrastationMatrixByHypothesisId,
@@ -1514,6 +1526,8 @@ type Pantalla =
   | "revision-final"             // S-019: cadena metodológica completa
   | "knowledge-graph"            // S-020: knowledge graph navegable
   | "auditoria"                  // S-021: auditoría de consistencia metodológica
+  | "evidence-evaluation"        // S-022: registro y evaluación de evidencia observada
+  | "hypothesis-conclusion"      // S-022: conclusión metodológica de la hipótesis
   | "hipotesis"
   | "pestel"
   | "descubrimiento";
@@ -1588,6 +1602,13 @@ export default function Helios() {
   // S-019: Contrastation matrices (session-only)
   const [contrastationMatrices, setContrastationMatrices] = useState<
     ContrastationMatrix[]
+  >([]);
+  // S-022: Evidence evaluation matrices and hypothesis conclusions (session-only)
+  const [evidenceEvaluationMatrices, setEvidenceEvaluationMatrices] = useState<
+    EvidenceEvaluationMatrix[]
+  >([]);
+  const [hypothesisEvidenceConclusions, setHypothesisEvidenceConclusions] = useState<
+    HypEvidConclusion[]
   >([]);
 
   const handleSubmitProblema = async (p: string) => {
@@ -1806,6 +1827,39 @@ export default function Helios() {
     setPantalla("auditoria");
   }, []);
 
+  // ── S-022: Evidence evaluation handlers ──────────────────────────────────
+
+  const handleIrAEvidenceEvaluation = useCallback(() => {
+    setPantalla("evidence-evaluation");
+  }, []);
+
+  const handleUpdateEvidenceEvaluationMatrix = useCallback(
+    (matrix: EvidenceEvaluationMatrix) => {
+      setEvidenceEvaluationMatrices((prev) => upsertEvidenceEvaluationMatrix(prev, matrix));
+    },
+    []
+  );
+
+  const handleConfirmarEvidenceEvaluationMatrix = useCallback(
+    (matrix: EvidenceEvaluationMatrix) => {
+      setEvidenceEvaluationMatrices((prev) => upsertEvidenceEvaluationMatrix(prev, matrix));
+    },
+    []
+  );
+
+  const handleIrAHypothesisConclusion = useCallback(() => {
+    setPantalla("hypothesis-conclusion");
+  }, []);
+
+  const handleUpdateHypothesisEvidenceConclusion = useCallback(
+    (conclusion: HypEvidConclusion) => {
+      setHypothesisEvidenceConclusions((prev) =>
+        upsertHypothesisEvidenceConclusion(prev, conclusion)
+      );
+    },
+    []
+  );
+
   const handleReiniciar = () => {
     setProblema("");
     setPackActivo(null);
@@ -1824,6 +1878,9 @@ export default function Helios() {
     setConceptualModels([]);
     setOperationalizationMatrices([]);
     setContrastationMatrices([]);
+    // S-022
+    setEvidenceEvaluationMatrices([]);
+    setHypothesisEvidenceConclusions([]);
     setPantalla("entrada");
   };
 
@@ -2093,6 +2150,7 @@ export default function Helios() {
                 onUpdateMatrix={handleUpdateContrastationMatrix}
                 onConfirmar={handleConfirmarContrastationMatrix}
                 onVerCadena={handleVerCadenaMetodologica}
+                onIrAEvidenceEvaluation={handleIrAEvidenceEvaluation}
                 onVolver={handleVolverDesdeContrastation}
                 onReiniciar={handleReiniciar}
               />
@@ -2121,6 +2179,8 @@ export default function Helios() {
               conceptualModels={conceptualModels}
               operationalizationMatrices={operationalizationMatrices}
               contrastationMatrices={contrastationMatrices}
+              evidenceEvaluationMatrices={evidenceEvaluationMatrices}
+              hypothesisEvidenceConclusions={hypothesisEvidenceConclusions}
               onVolver={() => setPantalla("revision-final")}
               onReiniciar={handleReiniciar}
               onIrAHipotesis={() => setPantalla("revision-hipotesis")}
@@ -2130,6 +2190,67 @@ export default function Helios() {
               onVerKnowledgeGraph={handleVerKnowledgeGraph}
             />
           )}
+          {/* S-022: Evaluación de Evidencia */}
+          {pantalla === "evidence-evaluation" && hypotheses.length > 0 && (() => {
+            const activeHyp =
+              (primaryHypothesisId
+                ? hypotheses.find((h) => h.id === primaryHypothesisId)
+                : undefined) ?? hypotheses[0];
+            const activeModel = activeHyp
+              ? findModelByHypothesisId(conceptualModels, activeHyp.id)
+              : null;
+            const activeCtMatrix = activeHyp
+              ? findContrastationMatrixByHypothesisId(contrastationMatrices, activeHyp.id)
+              : null;
+            if (!activeHyp || !activeModel || !activeCtMatrix) return null;
+            return (
+              <PantallaEvidenceEvaluation
+                key="evidence-evaluation"
+                hypothesis={activeHyp}
+                conceptualModel={activeModel}
+                contrastationMatrix={activeCtMatrix}
+                evidenceMatrix={findEvidenceEvaluationMatrixByHypothesis(
+                  evidenceEvaluationMatrices,
+                  activeHyp.id
+                )}
+                onUpdateMatrix={handleUpdateEvidenceEvaluationMatrix}
+                onConfirmar={handleConfirmarEvidenceEvaluationMatrix}
+                onIrAConclusion={handleIrAHypothesisConclusion}
+                onVolver={() => setPantalla("contrastation-matrix")}
+                onReiniciar={handleReiniciar}
+              />
+            );
+          })()}
+          {/* S-022: Conclusión de Hipótesis */}
+          {pantalla === "hypothesis-conclusion" && hypotheses.length > 0 && (() => {
+            const activeHyp =
+              (primaryHypothesisId
+                ? hypotheses.find((h) => h.id === primaryHypothesisId)
+                : undefined) ?? hypotheses[0];
+            const activeCtMatrix = activeHyp
+              ? findContrastationMatrixByHypothesisId(contrastationMatrices, activeHyp.id)
+              : null;
+            const activeEEM = activeHyp
+              ? findEvidenceEvaluationMatrixByHypothesis(evidenceEvaluationMatrices, activeHyp.id)
+              : null;
+            if (!activeHyp || !activeCtMatrix || !activeEEM) return null;
+            return (
+              <PantallaHypothesisEvidenceConclusion
+                key="hypothesis-conclusion"
+                hypothesis={activeHyp}
+                contrastationMatrix={activeCtMatrix}
+                evidenceMatrix={activeEEM}
+                conclusion={findHypothesisEvidenceConclusion(
+                  hypothesisEvidenceConclusions,
+                  activeHyp.id
+                )}
+                onUpdateConclusion={handleUpdateHypothesisEvidenceConclusion}
+                onVolver={() => setPantalla("evidence-evaluation")}
+                onIrARevisionFinal={() => setPantalla("revision-final")}
+                onReiniciar={handleReiniciar}
+              />
+            );
+          })()}
           {/* S-019: Revisión Final — cadena metodológica completa */}
           {pantalla === "revision-final" && hypotheses.length > 0 && (() => {
             const activeHyp =
@@ -2167,6 +2288,7 @@ export default function Helios() {
                 onIrAModelo={() => setPantalla("conceptual-model")}
                 onIrAOperacionalizacion={() => setPantalla("operationalization-matrix")}
                 onIrAContrastation={() => setPantalla("contrastation-matrix")}
+                onIrAEvidenceEvaluation={handleIrAEvidenceEvaluation}
                 onVerKnowledgeGraph={handleVerKnowledgeGraph}
                 onEjecutarAuditoria={handleEjecutarAuditoria}
                 onReiniciar={handleReiniciar}

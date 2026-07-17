@@ -31,7 +31,7 @@ export type ThinkingPatternMetadata = {
 /** A single question within a thinking pattern */
 export type ThinkingQuestion = {
   numero: number;
-  /** Epistemic category: clarificacion | supuestos | evidencia | perspectivas | implicaciones */
+  /** Epistemic category: clarificacion | supuestos | evidencia | perspectivas | implicaciones | elementos | relaciones | retroalimentacion | efectos | dinamica */
   categoria: string;
   /** Question template — may include {{problema}} placeholder */
   pregunta: string;
@@ -61,8 +61,9 @@ export type ThinkingRouterInput = {
   /** Human-readable domain label (PackMetadata.tema) — added to scoring surface */
   packNombre?: string;
   /**
-   * First 300 characters of the pack's contexto.texto — enriches keyword
-   * matching with domain-specific vocabulary without blowing up the surface.
+   * Summarised text from the pack's contexto — enriches keyword matching with
+   * domain-specific vocabulary. Extracted via extractContextSummary() from
+   * thinking/utils.ts, which cuts at sentence boundaries instead of mid-word.
    */
   packContextoResumido?: string;
 };
@@ -81,6 +82,25 @@ export type ThinkingCandidate = {
   score: number;
   confianza: "alta" | "media" | "baja";
   terminosCoincidentes: ThinkingMatchedTerm[];
+  /**
+   * True when the pattern was selected via the universalFloor boost, not by
+   * its own keyword score. Use to surface "applied by default" vs "recommended
+   * by direct match" in future transparency UI — do NOT infer by comparing
+   * score === universalFloor numerically.
+   */
+  esFallback: boolean;
+  /**
+   * How the pattern was matched. Structured alternative to esFallback for
+   * richer UI and future logging.
+   *
+   * - "coincidencia-directa": the problem text itself contained enough
+   *   keyword signal (scoreProblema ≥ ninguna threshold).
+   * - "contexto-del-pack": the problem text alone was weak, but pack
+   *   enrichment (name or context) pushed the score above threshold.
+   * - "fallback-universal": esUniversal=true and no specific pattern
+   *   competed — universalFloor was applied.
+   */
+  motivoSeleccion: "coincidencia-directa" | "contexto-del-pack" | "fallback-universal";
 };
 
 /**
@@ -123,5 +143,16 @@ export interface ThinkingAlgorithm {
   score(
     input: ThinkingRouterInput,
     metadata: ThinkingPatternMetadata
-  ): Promise<{ score: number; terminosCoincidentes: ThinkingMatchedTerm[] }>;
+  ): Promise<{
+    /** Weighted composite score across all surfaces — the value used for routing */
+    score: number;
+    /**
+     * Score computed from the problem text alone (before pack enrichment).
+     * ThinkingRouter uses this to assign motivoSeleccion:
+     *   ≥ ninguna → "coincidencia-directa"
+     *   <  ninguna → "contexto-del-pack"  (pack pushed it above threshold)
+     */
+    scoreProblema: number;
+    terminosCoincidentes: ThinkingMatchedTerm[];
+  }>;
 }

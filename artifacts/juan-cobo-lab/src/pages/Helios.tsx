@@ -13,6 +13,7 @@ import type {
 } from "@/router/types";
 import { heliosThinkingEngine } from "@/thinking/ThinkingRouter";
 import type { ThinkingPattern, ThinkingResult } from "@/thinking/types";
+import { extractContextSummary } from "@/thinking/utils";
 
 // ─── Animation variants ─────────────────────────────────────────────────────
 const screenEnter: Variants = {
@@ -470,13 +471,21 @@ function PantallaSinPack({
 
 // ─── Pantalla: Démosle pereque (Thinking Engine) ───────────────────────────
 
-// Colores por categoría socrática — extensibles para nuevos patrones
+// Colores por categoría — cubre Socrático y Sistémico.
+// Cualquier categoría no listada recibe el fallback en PantallaPereque.
 const categoriaStyle: Record<string, string> = {
-  clarificacion: "bg-slate-50 text-slate-600 ring-slate-200/60",
+  // ── Socrático ─────────────────────────────────────────────────────────────
+  clarificacion: "bg-slate-50  text-slate-600  ring-slate-200/60",
   supuestos:     "bg-amber-50  text-amber-700  ring-amber-200/60",
   evidencia:     "bg-blue-50   text-blue-700   ring-blue-200/60",
   perspectivas:  "bg-violet-50 text-violet-700 ring-violet-200/60",
   implicaciones: "bg-emerald-50 text-emerald-700 ring-emerald-200/60",
+  // ── Sistémico ─────────────────────────────────────────────────────────────
+  elementos:         "bg-cyan-50    text-cyan-700    ring-cyan-200/60",
+  relaciones:        "bg-indigo-50  text-indigo-700  ring-indigo-200/60",
+  retroalimentacion: "bg-orange-50  text-orange-700  ring-orange-200/60",
+  efectos:           "bg-rose-50    text-rose-700    ring-rose-200/60",
+  dinamica:          "bg-teal-50    text-teal-700    ring-teal-200/60",
 };
 
 /**
@@ -1089,7 +1098,7 @@ export default function Helios() {
           texto: p,
           packId: pack.metadata.id,
           packNombre: pack.metadata.tema,
-          packContextoResumido: pack.contexto.texto.slice(0, 300),
+          packContextoResumido: extractContextSummary(pack.contexto.texto),
         });
         setThinkingResult(tr);
         setPantallaVolverDesdePereque("entrada");
@@ -1115,7 +1124,7 @@ export default function Helios() {
       texto: problema,
       packId: pack.metadata.id,
       packNombre: pack.metadata.tema,
-      packContextoResumido: pack.contexto.texto.slice(0, 300),
+      packContextoResumido: extractContextSummary(pack.contexto.texto),
     });
     setThinkingResult(tr);
     setPantallaVolverDesdePereque("confirmacion-candidatos");

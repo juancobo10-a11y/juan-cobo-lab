@@ -1,0 +1,245 @@
+Sprint S-009 — Thinking Engine v0.3: Pensamiento Sistémico y scoring contextual
+Objetivo
+
+Incorporar el segundo Thinking Pattern real de HELIOS y mejorar el algoritmo de selección para que pueda distinguir entre:
+
+Pensamiento Socrático;
+Pensamiento Sistémico.
+
+El sprint debe validar que el Thinking Router selecciona patrones por pertinencia y que el patrón socrático funciona únicamente como respaldo universal cuando ningún patrón específico alcanza suficiente relevancia.
+
+No modificar todavía el diseño visual general ni incorporar selección manual de patrones.
+
+1. Nuevo Thinking Pattern
+
+Crear:
+
+content/thinking/sistemico/
+  metadata.json
+  preguntas.json
+Metadata mínima
+
+Debe incluir:
+
+id;
+nombre;
+descripcion;
+cuandoUsarlo;
+cuandoNoUsarlo;
+keywords;
+esUniversal: false;
+procedencia o referencias conceptuales;
+versión.
+Descripción conceptual
+
+El Pensamiento Sistémico ayuda a comprender problemas públicos caracterizados por:
+
+múltiples actores interdependientes;
+relaciones causales no lineales;
+efectos indirectos;
+retroalimentaciones;
+demoras temporales;
+desplazamiento del problema;
+resultados emergentes;
+intervenciones cuyos efectos pueden aparecer en otros sectores o territorios.
+
+No reducirlo a una simple lista de actores.
+
+Preguntas iniciales
+
+Crear cinco preguntas orientadas a:
+
+identificar los elementos y actores principales del sistema;
+reconocer relaciones e interdependencias;
+detectar ciclos de retroalimentación;
+explorar efectos indirectos y consecuencias no intencionadas;
+analizar cómo cambia el problema a través del tiempo.
+
+Cada pregunta debe conservar la estructura:
+
+{
+  pregunta: string;
+  proposito: string;
+  orientacion: string;
+}
+
+Permitir la plantilla {{problema}}.
+
+2. Registro
+
+Agregar el patrón Sistémico al registry.
+
+La incorporación debe requerir únicamente:
+
+sus recursos JSON;
+una nueva entrada en el registry.
+
+No introducir condicionales como:
+
+if (pattern.id === 'sistemico')
+
+en el Router, algoritmo u orquestador.
+
+3. Scoring contextual v0.3
+
+No concatenar indiscriminadamente:
+
+texto + packNombre + packContextoResumido
+
+para producir un único denominador.
+
+Calcular componentes separados:
+
+scoreProblema
+scoreNombrePack
+scoreContextoPack
+
+Aplicar ponderaciones configurables desde constants.ts.
+
+Propuesta inicial:
+
+problemWeight = 1.0
+packNameWeight = 0.35
+packContextWeight = 0.50
+
+El texto escrito por el usuario debe seguir siendo la señal principal.
+
+El contexto del Knowledge Pack debe enriquecer la selección, no dominarla ni reducir el score por aumentar el número de palabras.
+
+Documentar claramente la fórmula utilizada.
+
+4. Fallback explícito
+
+Agregar de manera tipada:
+
+esFallback: boolean
+
+al candidato o resultado seleccionado.
+
+No inferir el fallback comparando numéricamente el score con universalFloor.
+
+Agregar también un motivo de selección estructurado, por ejemplo:
+
+motivoSeleccion:
+  | 'coincidencia-directa'
+  | 'contexto-del-pack'
+  | 'fallback-universal';
+
+Mantener compatibilidad con la unión discriminada existente.
+
+5. Regla de selección
+
+El comportamiento esperado será:
+
+Puntuar todos los patrones.
+Priorizar patrones específicos con coincidencia suficiente.
+Utilizar un patrón universal solamente cuando ningún patrón específico supere el umbral establecido.
+No aplicar el universalFloor de modo que compita artificialmente con un patrón específico pertinente.
+Preparar la arquitectura para que en el futuro puedan existir varios patrones universales sin depender de empates arbitrarios.
+
+No resolver todavía combinaciones de varios Thinking Patterns. En esta versión se selecciona uno solo.
+
+6. Contexto resumido
+
+Reemplazar el .slice(0, 300) disperso por:
+
+una constante centralizada;
+una función reutilizable que recorte preferentemente al final de una oración.
+
+Ejemplo conceptual:
+
+extractContextSummary(text: string, maxChars: number): string
+
+Debe evitar cortar palabras siempre que sea posible.
+
+7. Integración visual
+
+La pantalla Démosle pereque debe funcionar sin cambios estructurales.
+
+Debe mostrar dinámicamente:
+
+Pensamiento Socrático, o
+Pensamiento Sistémico,
+
+según el resultado del Router.
+
+No hardcodear el nombre ni la descripción de ninguno de los patrones.
+
+No mostrar todavía:
+
+score numérico;
+esFallback;
+fórmula de scoring;
+selector manual;
+combinación de patrones.
+8. Casos de prueba obligatorios
+Socrático
+
+Una consulta centrada en:
+
+definición del problema;
+supuestos;
+calidad de la evidencia;
+ambigüedad conceptual;
+
+debe seleccionar Pensamiento Socrático por coincidencia directa, no por fallback.
+
+Sistémico
+
+Una consulta sobre una política con:
+
+múltiples actores;
+interdependencias;
+efectos indirectos;
+retroalimentaciones;
+consecuencias no intencionadas;
+
+debe seleccionar Pensamiento Sistémico.
+
+Ejemplo:
+
+La entrega de computadores a escuelas rurales no ha producido los resultados educativos esperados y participan MinTIC, Ministerio de Educación, docentes, operadores, gobiernos territoriales y comunidades.
+
+Debe favorecer Pensamiento Sistémico.
+
+Fallback
+
+Una consulta genérica sin señales suficientes debe seleccionar Socrático con:
+
+esFallback === true
+motivoSeleccion === 'fallback-universal'
+Contexto de pack
+
+La misma consulta con dos packId distintos debe generar entradas de caché independientes.
+
+No penalización por longitud
+
+Agregar contexto adicional pertinente no debe disminuir el score del patrón que coincide directamente con el problema.
+
+Regresiones
+Knowledge Router: 9/9.
+Thinking Engine anterior: mantener pruebas válidas y actualizar las incompatibles justificadamente.
+TypeScript limpio.
+Build de producción limpio.
+9. Architecture Review
+
+Al finalizar, responder:
+
+¿Cuál es la fórmula exacta de scoring?
+¿Cómo se evita que el patrón universal desplace a uno específico?
+¿Qué consultas distinguen claramente Socrático de Sistémico?
+¿Qué casos siguen siendo ambiguos?
+¿Está preparada la arquitectura para un tercer patrón?
+¿Qué deuda técnica queda?
+¿Existe alguna tensión con los ADR?
+10. Entrega
+implementación completa;
+pruebas;
+changelog;
+commit;
+push a GitHub;
+no hacer republish;
+detenerse para revisión.
+Criterio de éxito
+
+HELIOS debe demostrar por primera vez que no presenta siempre la misma pausa reflexiva, sino que puede elegir cómo ayudar a pensar según la estructura del problema.

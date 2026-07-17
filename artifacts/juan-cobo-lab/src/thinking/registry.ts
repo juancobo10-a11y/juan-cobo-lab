@@ -25,7 +25,8 @@
 
 import type { ThinkingPatternMetadata, ThinkingPattern } from "./types";
 
-import socraticoMeta from "../../../../content/thinking/socratico/metadata.json";
+import socraticoMeta  from "../../../../content/thinking/socratico/metadata.json";
+import sistemicoMeta  from "../../../../content/thinking/sistemico/metadata.json";
 
 export type ThinkingRegistryEntry = {
   metadata: ThinkingPatternMetadata;
@@ -34,12 +35,25 @@ export type ThinkingRegistryEntry = {
 };
 
 export const THINKING_REGISTRY: ThinkingRegistryEntry[] = [
+  // ── Pensamiento Socrático (universal) ─────────────────────────────────────
   {
     metadata: socraticoMeta as ThinkingPatternMetadata,
     load: async () => ({
       preguntas: (
         await import(
           "../../../../content/thinking/socratico/preguntas.json"
+        )
+      ).default as ThinkingPattern["preguntas"],
+    }),
+  },
+
+  // ── Pensamiento Sistémico ──────────────────────────────────────────────────
+  {
+    metadata: sistemicoMeta as ThinkingPatternMetadata,
+    load: async () => ({
+      preguntas: (
+        await import(
+          "../../../../content/thinking/sistemico/preguntas.json"
         )
       ).default as ThinkingPattern["preguntas"],
     }),

@@ -1,0 +1,36 @@
+{
+  "id": "sistemico",
+  "titulo": "Pensamiento Sistémico",
+  "descripcion": "Marco de análisis para políticas públicas con múltiples actores interdependientes, relaciones causales no lineales, ciclos de retroalimentación, efectos indirectos, demoras temporales, desplazamiento del problema y resultados emergentes entre sectores y comunidades.",
+  "etiqueta": "Sistémico",
+  "keywords": [
+    "efectos indirectos",
+    "consecuencias no intencionadas",
+    "actores interdependientes",
+    "ciclo de retroalimentación",
+    "causalidad no lineal",
+    "desplazamiento del problema",
+    "retroalimentación",
+    "interdependencia",
+    "emergente",
+    "bucle",
+    "demora",
+    "externalidad",
+    "sistema"
+  ],
+  "esUniversal": false,
+  "cuandoUsarlo": "Cuando el problema involucra múltiples actores con relaciones de dependencia mutua, cuando intervenciones previas han producido efectos inesperados en otros sectores o territorios, o cuando el problema persiste a pesar de soluciones aparentemente lógicas.",
+  "cuandoNoUsarlo": "Cuando el problema tiene una causa única y bien identificada, cuando los actores relevantes son pocos y sus relaciones son lineales, o cuando la pregunta central es de índole normativa o definitoria.",
+  "version": "0.1.0",
+  "estado": "activo",
+  "autor": "Juan Cobo Lab",
+  "institucion": "Juan Cobo Lab",
+  "ultimaActualizacion": "2026-07-17",
+  "fuentes": [
+    "Senge, P. (1990). La Quinta Disciplina. Granica.",
+    "Meadows, D. (2008). Thinking in Systems. Chelsea Green Publishing.",
+    "Sterman, J. (2000). Business Dynamics. McGraw-Hill."
+  ],
+  "licencia": "Todos los derechos reservados",
+  "estadoRevision": "experimental"
+}

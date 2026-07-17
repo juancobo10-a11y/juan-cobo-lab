@@ -1,0 +1,37 @@
+[
+  {
+    "numero": 1,
+    "categoria": "elementos",
+    "pregunta": "¿Cuáles son los actores, instituciones y recursos principales que forman parte del sistema relacionado con {{problema}}?",
+    "proposito": "Identificar los componentes del sistema antes de analizar sus interacciones.",
+    "orientacion": "Enumera personas, organizaciones, normas, recursos y condiciones que participan directa o indirectamente. No limites la lista a los actores más visibles: incluye operadores, comunidades, instancias territoriales y cualquier agente que reciba o transmita efectos dentro del sistema."
+  },
+  {
+    "numero": 2,
+    "categoria": "relaciones",
+    "pregunta": "¿Cómo se relacionan e influyen mutuamente los distintos actores y elementos del sistema en torno a {{problema}}?",
+    "proposito": "Reconocer interdependencias que hacen que las intervenciones aisladas resulten insuficientes.",
+    "orientacion": "Describe qué produce cada actor para los demás, qué recibe y qué restricciones enfrenta. Busca relaciones que no sean obvias a primera vista: dependencias indirectas, asimetrías de información y flujos de recursos que atraviesan sectores."
+  },
+  {
+    "numero": 3,
+    "categoria": "retroalimentacion",
+    "pregunta": "¿Qué ciclos de retroalimentación amplifican o amortiguan {{problema}} a lo largo del tiempo?",
+    "proposito": "Detectar los mecanismos que perpetúan o agravan el problema y los que podrían revertirlo.",
+    "orientacion": "Identifica bucles que se refuerzan a sí mismos (crecimiento o colapso) y bucles que buscan equilibrio. Pregunta: ¿qué ocurre si se interviene en un nodo específico del ciclo? ¿El efecto se amplifica, se neutraliza o se desplaza?"
+  },
+  {
+    "numero": 4,
+    "categoria": "efectos",
+    "pregunta": "¿Qué efectos indirectos y consecuencias no intencionadas ha producido o podría producir la forma en que se ha abordado {{problema}}?",
+    "proposito": "Explorar los impactos que emergen en sectores, territorios o poblaciones distintos al objetivo inicial de la intervención.",
+    "orientacion": "Considera consecuencias a corto y largo plazo. Pregunta quién se beneficia, quién se perjudica y qué problemas secundarios emergen de las soluciones actuales. Presta especial atención al desplazamiento: ¿se resolvió el síntoma visible mientras se agravaba la causa estructural?"
+  },
+  {
+    "numero": 5,
+    "categoria": "dinamica",
+    "pregunta": "¿Cómo ha cambiado {{problema}} a lo largo del tiempo y qué señales anticipan cómo podría evolucionar?",
+    "proposito": "Analizar la trayectoria del problema para distinguir tendencias estructurales de fluctuaciones momentáneas.",
+    "orientacion": "Examina las demoras entre causas y efectos: ¿cuánto tarda en aparecer el impacto de una intervención? Identifica umbrales críticos y pregunta si el problema ha empeorado gradualmente o mediante saltos abruptos. Los puntos de inflexión suelen revelar cambios en la estructura del sistema."
+  }
+]

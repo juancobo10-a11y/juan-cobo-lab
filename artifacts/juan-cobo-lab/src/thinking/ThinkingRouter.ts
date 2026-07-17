@@ -97,14 +97,16 @@ export class ThinkingRouter {
       return { decision: "ninguno", candidatos: [] };
     }
 
-    // 2. Score every active pattern (metadata only — no content loaded yet)
+    // 2. Score every active pattern (metadata only — no content loaded yet).
+    //    The algorithm now returns scoreProblema alongside the composite score
+    //    so ThinkingRouter can assign motivoSeleccion without re-running scoring.
     const scored = (
       await Promise.all(
         activePatterns.map(async (entry) => {
-          const { score: rawScore, terminosCoincidentes } =
+          const { score: rawScore, scoreProblema, terminosCoincidentes } =
             await this.algorithm.score(input, entry.metadata);
           const score = guardScore(rawScore, entry.metadata.id);
-          return { entry, score, terminosCoincidentes };
+          return { entry, score, scoreProblema, terminosCoincidentes };
         })
       )
     ).sort((a, b) => b.score - a.score);
@@ -117,33 +119,37 @@ export class ThinkingRouter {
     // universal pattern to `universalFloor` so the engine has a response
     // instead of returning "ninguno".
     //
-    // Universal patterns that already scored above `ninguna` on their own
-    // keywords compete normally — no artificial boost applied.
+    // The floor condition uses `< baja` (0.20) rather than `< ninguna` (0.05)
+    // because enriching the input with pack context can produce scores in the
+    // [ninguna, baja) range via description-token matches — the floor ensures
+    // the semantic contract of esUniversal:true holds regardless.
     //
-    // If at least one non-universal pattern is above threshold, universal
-    // patterns get no floor boost: the specific pattern is more relevant.
+    // With the v0.3 separate-surface scoring, universal patterns now receive
+    // their score only from the problem text, so the dilution-by-context issue
+    // is also fixed at the algorithm level. The `< baja` condition is kept as
+    // a belt-and-suspenders guarantee.
+    //
+    // A universal pattern that already scored ≥ baja (0.20) via its own
+    // keywords competes on equal footing with specific patterns.
+    // A specific pattern must reach at least "baja" confidence (≥ 0.20) to
+    // suppress the universal floor. Weak description-token matches (score in
+    // the [ninguna, baja) range) are not meaningful enough to displace a
+    // universal pattern that was designed to handle any policy problem.
     const hasSpecificAboveThreshold = scored.some(
-      (s) => !s.entry.metadata.esUniversal && s.score >= THINKING_THRESHOLDS.ninguna
+      (s) => !s.entry.metadata.esUniversal && s.score >= THINKING_THRESHOLDS.baja
     );
 
-    // Universal-floor threshold: promote any universal pattern to `universalFloor`
-    // when its raw score is below the "baja" threshold AND no specific pattern won.
-    //
-    // Using `< baja` (0.20) instead of `< ninguna` (0.05) because enriching the
-    // ThinkingRouterInput with pack context (packNombre + packContextoResumido)
-    // increases `meaningfulCount`, which dilutes the normalised score. A universal
-    // pattern that scored 0.00–0.19 should always be promoted to "media" confidence
-    // when it is the only applicable pattern — that is the semantic contract of
-    // `esUniversal: true`.
-    //
-    // A universal pattern that already scored ≥ baja (0.20) via its own keywords
-    // is left as-is so it can compete normally against specific patterns.
+    // Track which pattern IDs received the floor boost — used later to set
+    // esFallback:true on the resulting ThinkingCandidate.
+    const flooredIds = new Set<string>();
+
     const withFloor = scored.map((s) => {
       if (
         s.entry.metadata.esUniversal &&
         s.score < THINKING_THRESHOLDS.baja &&
         !hasSpecificAboveThreshold
       ) {
+        flooredIds.add(s.entry.metadata.id);
         return { ...s, score: THINKING_THRESHOLDS.universalFloor };
       }
       return s;
@@ -160,7 +166,7 @@ export class ThinkingRouter {
 
     // 4. Load content for every candidate above threshold (lazy)
     const candidates: ThinkingCandidate[] = await Promise.all(
-      aboveThreshold.map(async ({ entry, score, terminosCoincidentes }) => {
+      aboveThreshold.map(async ({ entry, score, scoreProblema, terminosCoincidentes }) => {
         const content = await entry.load();
         const pattern: ThinkingPattern = {
           metadata: entry.metadata,
@@ -172,7 +178,23 @@ export class ThinkingRouter {
             : score >= THINKING_THRESHOLDS.baja
             ? "media"
             : "baja";
-        return { pattern, score, confianza, terminosCoincidentes };
+
+        // esFallback: explicit typed field — do NOT infer by comparing
+        // score === universalFloor numerically.
+        const esFallback = flooredIds.has(entry.metadata.id);
+
+        // motivoSeleccion: structured alternative to esFallback for future UI.
+        //   "fallback-universal"   → floor was applied; esUniversal=true won by default.
+        //   "coincidencia-directa" → scoreProblema alone was above ninguna threshold.
+        //   "contexto-del-pack"    → problem text alone was weak; pack enrichment
+        //                            pushed the composite score above threshold.
+        const motivoSeleccion: ThinkingCandidate["motivoSeleccion"] = esFallback
+          ? "fallback-universal"
+          : scoreProblema >= THINKING_THRESHOLDS.ninguna
+          ? "coincidencia-directa"
+          : "contexto-del-pack";
+
+        return { pattern, score, confianza, terminosCoincidentes, esFallback, motivoSeleccion };
       })
     );
 

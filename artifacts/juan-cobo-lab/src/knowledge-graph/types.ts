@@ -124,14 +124,26 @@ export interface OrphanReport {
   isolatedNodes: KnowledgeNode[];
   /** Edges whose source or target node does not exist in the graph */
   brokenEdges: KnowledgeEdge[];
-  /** Indicators with no derives-from/measures edge to a variable */
+  /** Indicators with no derives-from/measures edge to a variable (orphan — required relation absent) */
   indicatorsWithoutVariable: KnowledgeNode[];
-  /** Sources with no uses edges to any indicator */
+  /** Sources with no uses edges to any indicator (orphan — required relation absent) */
   sourcesWithoutIndicator: KnowledgeNode[];
   /** Operationalization rows with no operationalizes edge to a variable */
   opRowsWithoutVariable: KnowledgeNode[];
   /** Contrastation rows with no contrasts edge to a hypothesis */
   contrastationWithoutHypothesis: KnowledgeNode[];
+  /**
+   * S-021 §15.2 — unused ≠ orphan.
+   * Indicators that have their required derives-from/measures edge (valid)
+   * but are not referenced by any operationalization-row or contrastation-row.
+   */
+  unusedIndicators: KnowledgeNode[];
+  /**
+   * S-021 §15.2 — unused ≠ orphan.
+   * Sources that have their required uses→indicator edge (valid)
+   * but are not referenced by any operationalization-row or contrastation-row.
+   */
+  unusedSources: KnowledgeNode[];
 }
 
 // ─── Graph validation ─────────────────────────────────────────────────────────

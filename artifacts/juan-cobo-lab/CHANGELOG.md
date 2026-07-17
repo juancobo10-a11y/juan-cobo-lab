@@ -1,5 +1,97 @@
 # HELIOS — Changelog
 
+## S-021 (2026-07-17) — Motor de Consistencia Metodológica
+
+### Resumen
+Introduce un motor de auditoría cruzada que evalúa la coherencia metodológica de toda
+la cadena diseño: hipótesis → variables → indicadores → fuentes → operacionalización →
+contrastación. A diferencia de los servicios de etapa anteriores (S-017/S-018/S-019)
+que validan localmente por entidad, el MCS detecta violaciones que solo son visibles
+con una vista completa de la sesión. No hay LLM, no hay auto-corrección, no hay nuevos
+Thinking Patterns. Severidades: error (bloqueante), warning (atención), suggestion (mejora).
+
+### ADR-0010 — Reglas de consistencia metodológica
+`docs/adr/ADR-0010-methodological-consistency-rules.md` — Sistema de auditoría
+declarativo, puro, sin auto-corrección. Las reglas son explícitas y trazables.
+
+### Tipos — src/methodological-consistency/types.ts
+- `MethodologicalRuleCategory` — 9 categorías: HYPOTHESIS, VARIABLE, INDICATOR,
+  SOURCE, OPERATIONALIZATION, CONTRASTATION, TRACEABILITY, CROSS_HYPOTHESIS, GLOBAL
+- `MethodologicalSeverity` — 3 niveles: error, warning, suggestion
+- `MethodologicalEntityType` — 10 tipos de entidades referenciables
+- `MethodologicalRule` — id, category, severity, title, description, evaluator
+- `MethodologicalFinding` — id, ruleId, severity, category, title, explanation,
+  evidence, entityRefs, suggestedAction
+- `MethodologicalAudit` — findings, evaluatedRuleIds, generatedAt, summary
+- `MethodologicalAuditSummary` — errors, warnings, suggestions, totalFindings,
+  blocking, complete, categoriesAffected
+- Labels de display exportados: SEVERITY_LABELS, RULE_CATEGORY_LABELS, ENTITY_TYPE_LABELS
+
+### Catálogo de reglas — src/methodological-consistency/rules.ts
+31 reglas puras declarativas:
+- **HYP-001–004** — coherencia de hipótesis (causa/resultado, modelo, operacionalización)
+- **VAR-001–004** — cobertura de variables (indicadores, contrastación, op-rows, aislamiento)
+- **IND-001–005** — trazabilidad de indicadores (variable, op, ct, cross-hyp, redundancia)
+- **SRC-001–003** — uso de fuentes (sin fuente en ct, no usada, fuera de indicador)
+- **OPR-001–005** — integridad de op-rows (sin indicador, sin fuente, no contrastada, dup, escala)
+- **CON-001–006** — integridad de ct-rows (evidencias, criterio, indicador operacionalizado,
+  fuente operacionalizada, sin matriz, criterio duplicado)
+- **TRA-001–004** — trazabilidad del grafo (cadena incompleta, referencias rotas,
+  entidades aisladas, ciclos ilegales)
+
+### Servicio — src/methodological-consistency/MethodologicalConsistencyService.ts
+- `runMethodologicalAudit(input, now?)` — ejecuta las 31 reglas, construye grafo si ausente
+- `evaluateRule(ruleId, input)` — evalúa una sola regla, devuelve [] si desconocida
+- `summarizeFindings(findings, input)` — genera MethodologicalAuditSummary
+- `groupFindingsByCategory(findings)` — Map\<category, findings[]\>
+- `groupFindingsBySeverity(findings)` — Map\<severity, findings[]\>
+- `groupFindingsByEntity(findings)` — Map\<entityType, findings[]\>
+- `findBlockingErrors/findWarnings/findSuggestions` — filtros convenientes
+- `isMethodologicallyComplete(audit, input)` — true si no hay errores Y todos los stages confirmados
+
+### KnowledgeGraph §15 — src/knowledge-graph/
+- **types.ts:** `OrphanReport` extendido con `unusedIndicators` y `unusedSources`
+  (distinción orphan vs unused: orphan = relación obligatoria ausente;
+  unused = relación válida pero sin referencia operacional)
+- **KnowledgeGraphService.ts:** nuevas funciones exportadas:
+  - `topologicalTraversalDependentsFirst(graph)` — alias explícito del comportamiento existente
+  - `topologicalTraversalDependenciesFirst(graph)` — reverso; entidades fundamentales primero
+  - `detectOrphans(graph)` actualizado para poblar `unusedIndicators` y `unusedSources`
+
+### UI — src/components/PantallaAuditoriaMetodologica.tsx
+Pantalla de auditoría metodológica completa:
+- Ejecuta el audit en mount via `useMemo` (síncrono, sin flicker)
+- Header: hipótesis evaluadas, reglas ejecutadas, hora, badges de severidad
+- Barra de filtros con `aria-live`: por severidad + por categoría (combinables)
+- Lista de hallazgos con cards seleccionables (aria-pressed)
+- Panel de detalle: código de regla, explicación, evidencia estructural, entityRefs con
+  botones "Ir a etapa" por tipo, acción sugerida
+- Navegación: Volver a revisión, Ver Knowledge Graph (optional), Reiniciar análisis
+- Accesibilidad: `aria-live`, `aria-labelledby` en secciones, `focus-visible` en todos los botones
+
+### Integración en Helios.tsx
+- Nuevo valor `"auditoria"` en union `Pantalla`
+- `handleEjecutarAuditoria` → `setPantalla("auditoria")`
+- Render block para `"auditoria"` con todos los props de sesión y callbacks de navegación
+- `onEjecutarAuditoria` pasado a `PantallaRevisionFinal` y `PantallaKnowledgeGraph`
+
+### Puntos de acceso
+- `PantallaRevisionFinal` → botón "Ejecutar auditoría metodológica" (siempre visible si prop presente)
+- `PantallaKnowledgeGraph` → botón "Auditoría metodológica" en área de navegación
+
+### Documentación
+- `docs/adr/ADR-0010-methodological-consistency-rules.md`
+- `docs/architecture/S-021-methodological-consistency-review.md` — 12 preguntas de revisión
+
+### Validación
+- Suite S-021: **115/115** aserciones
+  - 53 TCs cubriendo las 31 reglas + topological aliases + distinción orphan/unused +
+    audit summary + grouping + idempotencia + no-mutación + múltiples hipótesis + diseño completo
+- Runner completo: **14/14** suites
+  - Typecheck + S-012 → S-021 + Smoke + Integration + Build — todos PASS
+
+---
+
 ## S-020 (2026-07-17) — Knowledge Graph & Dependency Engine
 
 ### Resumen

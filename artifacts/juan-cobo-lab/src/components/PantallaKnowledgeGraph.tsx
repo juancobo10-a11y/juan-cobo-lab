@@ -67,6 +67,8 @@ interface Props {
   contrastationMatrices: ContrastationMatrix[];
   onVolver: () => void;
   onReiniciar: () => void;
+  /** S-021 — navigate to the methodological consistency audit screen */
+  onEjecutarAuditoria?: () => void;
 }
 
 // ─── Node badge color ─────────────────────────────────────────────────────────
@@ -300,6 +302,7 @@ export function PantallaKnowledgeGraph({
   contrastationMatrices,
   onVolver,
   onReiniciar,
+  onEjecutarAuditoria,
 }: Props) {
   // Build graph on render (on-demand, not persisted)
   const graph: KnowledgeGraph = useMemo(
@@ -576,6 +579,15 @@ export function PantallaKnowledgeGraph({
             <ArrowLeft className="w-4 h-4" aria-hidden="true" />
             Volver a revisión metodológica
           </button>
+          {onEjecutarAuditoria && (
+            <button
+              type="button"
+              onClick={onEjecutarAuditoria}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl border border-accent/40 bg-accent/5 text-accent-foreground text-sm font-medium hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 transition-all duration-200"
+            >
+              Auditoría metodológica
+            </button>
+          )}
           <button
             type="button"
             onClick={onReiniciar}

@@ -18,6 +18,7 @@ import {
 import { PantallaContrastationMatrix } from "@/components/PantallaContrastationMatrix";
 import { PantallaRevisionFinal } from "@/components/PantallaRevisionFinal";
 import { PantallaKnowledgeGraph } from "@/components/PantallaKnowledgeGraph";
+import { PantallaAuditoriaMetodologica } from "@/components/PantallaAuditoriaMetodologica";
 import type { ContrastationMatrix } from "@/contrastation/types";
 import {
   findContrastationMatrixByHypothesisId,
@@ -1512,6 +1513,7 @@ type Pantalla =
   | "contrastation-matrix"       // S-019: matriz de contrastación
   | "revision-final"             // S-019: cadena metodológica completa
   | "knowledge-graph"            // S-020: knowledge graph navegable
+  | "auditoria"                  // S-021: auditoría de consistencia metodológica
   | "hipotesis"
   | "pestel"
   | "descubrimiento";
@@ -1798,6 +1800,10 @@ export default function Helios() {
 
   const handleVerKnowledgeGraph = useCallback(() => {
     setPantalla("knowledge-graph");
+  }, []);
+
+  const handleEjecutarAuditoria = useCallback(() => {
+    setPantalla("auditoria");
   }, []);
 
   const handleReiniciar = () => {
@@ -2103,6 +2109,25 @@ export default function Helios() {
               contrastationMatrices={contrastationMatrices}
               onVolver={() => setPantalla("revision-final")}
               onReiniciar={handleReiniciar}
+              onEjecutarAuditoria={handleEjecutarAuditoria}
+            />
+          )}
+          {/* S-021: Auditoría de Consistencia Metodológica */}
+          {pantalla === "auditoria" && hypotheses.length > 0 && (
+            <PantallaAuditoriaMetodologica
+              key="auditoria"
+              problema={problema}
+              hypotheses={hypotheses}
+              conceptualModels={conceptualModels}
+              operationalizationMatrices={operationalizationMatrices}
+              contrastationMatrices={contrastationMatrices}
+              onVolver={() => setPantalla("revision-final")}
+              onReiniciar={handleReiniciar}
+              onIrAHipotesis={() => setPantalla("revision-hipotesis")}
+              onIrAModelo={() => setPantalla("conceptual-model")}
+              onIrAOperacionalizacion={() => setPantalla("operationalization-matrix")}
+              onIrAContrastation={() => setPantalla("contrastation-matrix")}
+              onVerKnowledgeGraph={handleVerKnowledgeGraph}
             />
           )}
           {/* S-019: Revisión Final — cadena metodológica completa */}
@@ -2143,6 +2168,7 @@ export default function Helios() {
                 onIrAOperacionalizacion={() => setPantalla("operationalization-matrix")}
                 onIrAContrastation={() => setPantalla("contrastation-matrix")}
                 onVerKnowledgeGraph={handleVerKnowledgeGraph}
+                onEjecutarAuditoria={handleEjecutarAuditoria}
                 onReiniciar={handleReiniciar}
               />
             );

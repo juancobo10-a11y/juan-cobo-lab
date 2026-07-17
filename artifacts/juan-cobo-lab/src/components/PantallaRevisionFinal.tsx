@@ -61,6 +61,8 @@ interface Props {
   onIrAContrastation: () => void;
   /** S-020: navigate to Knowledge Graph screen */
   onVerKnowledgeGraph?: () => void;
+  /** S-021: navigate to Auditoría de Consistencia Metodológica screen */
+  onEjecutarAuditoria?: () => void;
   onReiniciar: () => void;
 }
 
@@ -123,6 +125,7 @@ export function PantallaRevisionFinal({
   onIrAOperacionalizacion,
   onIrAContrastation,
   onVerKnowledgeGraph,
+  onEjecutarAuditoria,
   onReiniciar,
 }: Props) {
 
@@ -416,6 +419,15 @@ export function PantallaRevisionFinal({
 
         {/* ── Navigation ────────────────────────────────────────────────── */}
         <motion.div variants={fadeUp} className="mt-10 flex flex-wrap items-center gap-4">
+          {onEjecutarAuditoria && (
+            <button
+              type="button"
+              onClick={onEjecutarAuditoria}
+              className="group flex items-center gap-2.5 px-6 py-3.5 rounded-xl border border-accent/40 bg-accent/5 text-accent-foreground text-sm font-medium tracking-wide hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 transition-all duration-200"
+            >
+              Ejecutar auditoría metodológica
+            </button>
+          )}
           {onVerKnowledgeGraph && (
             <button
               type="button"

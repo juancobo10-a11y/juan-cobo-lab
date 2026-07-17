@@ -502,6 +502,52 @@ export function detectOrphans(graph: KnowledgeGraph): OrphanReport {
     );
   });
 
+  // ── S-021 §15.2: unusedIndicators — valid but not referenced by any row ──
+  // An indicator is "unused" when it has its required derives-from/measures edge
+  // (i.e. is NOT in indicatorsWithoutVariable) but no op-row or ct-row targets it.
+  const indicatorsTargetedByRows = new Set<string>();
+  for (const e of graph.edges) {
+    const srcNode = nodeById.get(e.source);
+    if (
+      (srcNode?.type === "operationalization-row" || srcNode?.type === "contrastation-row") &&
+      (e.relationType === "measures" || e.relationType === "uses")
+    ) {
+      const tgtNode = nodeById.get(e.target);
+      if (tgtNode?.type === "indicator") {
+        indicatorsTargetedByRows.add(e.target);
+      }
+    }
+  }
+  const validIndicators = indicatorNodes.filter(
+    (n) => !indicatorsWithoutVariable.some((o) => o.id === n.id)
+  );
+  const unusedIndicators = validIndicators.filter(
+    (n) => !indicatorsTargetedByRows.has(n.id)
+  );
+
+  // ── S-021 §15.2: unusedSources — valid but not referenced by any row ──────
+  // A source is "unused" when it has its required uses→indicator edge
+  // (i.e. is NOT in sourcesWithoutIndicator) but no op-row or ct-row targets it.
+  const sourcesTargetedByRows = new Set<string>();
+  for (const e of graph.edges) {
+    const srcNode = nodeById.get(e.source);
+    if (
+      (srcNode?.type === "operationalization-row" || srcNode?.type === "contrastation-row") &&
+      e.relationType === "uses"
+    ) {
+      const tgtNode = nodeById.get(e.target);
+      if (tgtNode?.type === "evidence-source") {
+        sourcesTargetedByRows.add(e.target);
+      }
+    }
+  }
+  const validSources = sourceNodes.filter(
+    (n) => !sourcesWithoutIndicator.some((o) => o.id === n.id)
+  );
+  const unusedSources = validSources.filter(
+    (n) => !sourcesTargetedByRows.has(n.id)
+  );
+
   return {
     isolatedNodes,
     brokenEdges,
@@ -509,6 +555,8 @@ export function detectOrphans(graph: KnowledgeGraph): OrphanReport {
     sourcesWithoutIndicator,
     opRowsWithoutVariable,
     contrastationWithoutHypothesis,
+    unusedIndicators,
+    unusedSources,
   };
 }
 
@@ -681,6 +729,36 @@ export function topologicalTraversal(graph: KnowledgeGraph): KnowledgeNode[] {
   }
 
   return result;
+}
+
+// ─── topologicalTraversalDependentsFirst / DependenciesFirst ──────────────────
+
+/**
+ * S-021 §15.1 — Explicit alias: "dependents first"
+ *
+ * Returns nodes in topological order where the most-derived entities
+ * (those that depend on others, e.g. op-rows, ct-rows) come first.
+ * = current topologicalTraversal() behavior.
+ *
+ * Kahn's algorithm on the original graph; nodes with in-degree=0 start first.
+ * In HELIOS convention (source→target = depends-on), in-degree=0 nodes are those
+ * that nothing depends on, i.e., the most "derived" entities.
+ */
+export function topologicalTraversalDependentsFirst(graph: KnowledgeGraph): KnowledgeNode[] {
+  return topologicalTraversal(graph);
+}
+
+/**
+ * S-021 §15.1 — Explicit alias: "dependencies first"
+ *
+ * Returns nodes in topological order where the most fundamental entities
+ * (those that others depend on, e.g. problem, hypotheses, variables) come first.
+ * = reverse of topologicalTraversal().
+ *
+ * Useful for generating a linear document (problem→hypothesis→variables→…).
+ */
+export function topologicalTraversalDependenciesFirst(graph: KnowledgeGraph): KnowledgeNode[] {
+  return [...topologicalTraversal(graph)].reverse();
 }
 
 // ─── computeImpact ────────────────────────────────────────────────────────────

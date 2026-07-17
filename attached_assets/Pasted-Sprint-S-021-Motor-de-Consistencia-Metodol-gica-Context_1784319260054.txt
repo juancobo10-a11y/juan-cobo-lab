@@ -1,0 +1,926 @@
+Sprint S-021 — Motor de Consistencia Metodológica
+Contexto
+
+Después de los Sprint S-011 a S-020, HELIOS ya dispone de una arquitectura metodológica completa:
+
+Problema
+↓
+Knowledge Pack
+↓
+Thinking Pattern
+↓
+Reflexión
+↓
+Hipótesis
+↓
+Modelo Conceptual
+↓
+Variables
+↓
+Indicadores
+↓
+Fuentes
+↓
+Matriz de Operacionalización
+↓
+Matriz de Contrastación
+↓
+Revisión metodológica
+↓
+Knowledge Graph
+
+El Sprint S-020 incorporó un KnowledgeGraphService capaz de reconstruir relaciones, detectar dependencias, calcular impactos, identificar huérfanos y validar la integridad estructural del grafo.
+
+Sin embargo, la integridad estructural no garantiza consistencia metodológica.
+
+Una cadena puede estar técnicamente conectada y, aun así, presentar problemas como:
+
+hipótesis causales sin variable de resultado;
+variables sin indicadores;
+indicadores vinculados a una hipótesis diferente;
+fuentes no utilizadas;
+dimensiones operacionalizadas pero no contrastadas;
+criterios de contrastación desconectados del modelo conceptual;
+relaciones redundantes;
+cadenas incompletas.
+
+Este sprint debe crear un motor de auditoría metodológica explicable, construido sobre el estado de sesión y el Knowledge Graph.
+
+No agregar nuevos Thinking Patterns.
+
+No modificar el Thinking Router.
+
+No modificar los Knowledge Packs.
+
+No modificar el comportamiento de los servicios S-015 a S-020, salvo ajustes estrictamente necesarios para integración.
+
+No introducir IA generativa, LLM, APIs externas ni bases de datos.
+
+No generar contenido metodológico automáticamente.
+
+Objetivo general
+
+Crear un motor capaz de evaluar la coherencia entre:
+
+Hipótesis
+↓
+Variables
+↓
+Indicadores
+↓
+Fuentes
+↓
+Operacionalización
+↓
+Contrastación
+
+El motor debe detectar inconsistencias, explicarlas y señalar las entidades involucradas.
+
+HELIOS no debe decidir si un diseño es científicamente verdadero, válido o exitoso.
+
+Debe identificar reglas metodológicas incumplidas o potencialmente problemáticas.
+
+ADR-0010
+
+Agregar:
+
+ADR-0010 — La consistencia metodológica se evalúa mediante reglas explícitas y trazables
+
+Las evaluaciones metodológicas no deben depender de heurísticas opacas.
+
+Cada observación debe derivarse de una regla identificable, documentada y verificable.
+
+Toda observación debe incluir:
+
+regla aplicada;
+severidad;
+explicación;
+entidades involucradas;
+evidencia estructural;
+acción sugerida.
+
+El sistema no debe corregir automáticamente el diseño del usuario.
+
+1. Revisión inicial obligatoria
+
+Antes de implementar, revisar:
+
+PolicyHypothesis
+roles de ConceptualVariable
+ConceptualIndicator
+EvidenceSource
+ConceptualModel
+OperationalizationMatrix
+ContrastationMatrix
+KnowledgeGraph
+KnowledgeGraphService
+estado de sesión
+PantallaRevisionFinal
+PantallaKnowledgeGraph
+
+Responder primero:
+
+¿Qué reglas ya se validan en los servicios existentes?
+¿Qué validaciones son estructurales?
+¿Qué validaciones son metodológicas?
+¿Qué reglas no deben duplicarse?
+¿Qué información falta para evaluar ciertas reglas?
+¿Qué limitaciones deben documentarse?
+¿Cómo se integrará el nuevo motor sin modificar los modelos previos?
+
+No implementar hasta completar esta revisión.
+
+2. Separación de responsabilidades
+
+Mantener esta separación:
+
+Servicios de dominio existentes
+↓
+validan cada entidad localmente
+
+KnowledgeGraphService
+↓
+valida estructura, referencias y dependencias
+
+MethodologicalConsistencyService
+↓
+valida coherencia metodológica entre entidades
+
+No trasladar reglas existentes innecesariamente.
+
+No duplicar validaciones locales de S-017, S-018 o S-019.
+
+3. Nuevos tipos
+
+Crear:
+
+MethodologicalRule
+MethodologicalFinding
+MethodologicalAudit
+MethodologicalAuditSummary
+MethodologicalAuditInput
+MethodologicalRule
+
+Campos mínimos:
+
+interface MethodologicalRule {
+  id: string;
+  name: string;
+  description: string;
+  category: MethodologicalRuleCategory;
+  severity: MethodologicalSeverity;
+  appliesTo: MethodologicalEntityType[];
+}
+Categorías de reglas
+
+Crear un catálogo extensible:
+
+type MethodologicalRuleCategory =
+  | "hypothesis-structure"
+  | "variable-coverage"
+  | "indicator-alignment"
+  | "evidence-coverage"
+  | "operationalization-coherence"
+  | "contrastation-coherence"
+  | "traceability"
+  | "redundancy"
+  | "completeness";
+Severidad
+type MethodologicalSeverity =
+  | "error"
+  | "warning"
+  | "suggestion";
+
+Semántica:
+
+Error
+
+Existe una inconsistencia que impide considerar completa la cadena metodológica.
+
+Warning
+
+Existe una debilidad que no necesariamente invalida el diseño, pero requiere revisión.
+
+Suggestion
+
+Existe una oportunidad de mejora metodológica.
+
+No usar puntuaciones numéricas arbitrarias.
+
+MethodologicalFinding
+
+Campos mínimos:
+
+interface MethodologicalFinding {
+  id: string;
+  ruleId: string;
+  severity: MethodologicalSeverity;
+  title: string;
+  explanation: string;
+  evidence: string[];
+  entityRefs: MethodologicalEntityReference[];
+  suggestedAction?: string;
+}
+Referencia de entidad
+interface MethodologicalEntityReference {
+  type: MethodologicalEntityType;
+  id: string;
+  label?: string;
+}
+
+Tipos mínimos:
+
+type MethodologicalEntityType =
+  | "problem"
+  | "hypothesis"
+  | "conceptual-model"
+  | "conceptual-variable"
+  | "indicator"
+  | "evidence-source"
+  | "operationalization-matrix"
+  | "operationalization-row"
+  | "contrastation-matrix"
+  | "contrastation-row";
+MethodologicalAudit
+
+Campos mínimos:
+
+interface MethodologicalAudit {
+  generatedAt: string;
+  findings: MethodologicalFinding[];
+  summary: MethodologicalAuditSummary;
+  evaluatedRuleIds: string[];
+}
+
+El resultado debe ser derivado.
+
+No persistirlo en la sesión.
+
+4. Registro de reglas
+
+Crear:
+
+src/methodological-consistency/rules.ts
+
+El registro debe ser declarativo y extensible.
+
+Cada regla debe tener:
+
+identificador estable;
+nombre;
+descripción;
+categoría;
+severidad;
+función evaluadora.
+
+Ejemplo conceptual:
+
+{
+  id: "HYP-001",
+  name: "Hipótesis causal con resultado identificable",
+  category: "hypothesis-structure",
+  severity: "error",
+  evaluate: evaluateCausalHypothesisHasOutcome
+}
+
+No concentrar toda la lógica en un único switch.
+
+5. Servicio principal
+
+Crear:
+
+MethodologicalConsistencyService.ts
+
+Funciones puras mínimas:
+
+runMethodologicalAudit()
+evaluateRule()
+summarizeFindings()
+groupFindingsByCategory()
+groupFindingsByEntity()
+findBlockingErrors()
+findWarnings()
+findSuggestions()
+isMethodologicallyComplete()
+
+Debe aceptar el estado metodológico y, cuando sea útil, un KnowledgeGraph ya construido.
+
+Debe poder reconstruir el grafo si no se proporciona.
+
+No modificar el estado recibido.
+
+6. Reglas metodológicas mínimas
+
+Implementar como mínimo las siguientes reglas.
+
+A. Estructura de hipótesis
+HYP-001 — Hipótesis causal sin variable causal
+
+Aplicar cuando la hipótesis tenga estructura causal.
+
+Debe existir al menos una variable con rol causal o equivalente según el modelo existente.
+
+Severidad: error.
+
+HYP-002 — Hipótesis causal sin variable de resultado
+
+Debe existir al menos una variable con rol de resultado.
+
+Severidad: error.
+
+HYP-003 — Hipótesis sin modelo conceptual
+
+Una hipótesis confirmada debe tener un modelo conceptual asociado.
+
+Severidad: error.
+
+HYP-004 — Hipótesis con formulación no operacionalizable
+
+Usar únicamente criterios estructurales disponibles.
+
+No analizar semánticamente el lenguaje.
+
+Ejemplo de criterio válido:
+
+hipótesis sin variables;
+hipótesis sin indicadores;
+hipótesis sin operacionalización.
+
+Severidad: warning.
+
+B. Cobertura de variables
+VAR-001 — Variable sin indicador
+
+Toda variable operacionalizada debe tener al menos un indicador.
+
+Severidad: error.
+
+VAR-002 — Variable de resultado no contrastada
+
+Toda variable de resultado debe estar representada por al menos un indicador usado en contrastación.
+
+Severidad: warning.
+
+VAR-003 — Variable conceptual sin definición operacional
+
+No duplicar la validación local de S-017.
+
+Esta regla solo debe aparecer cuando afecte la consistencia transversal.
+
+Severidad: warning.
+
+VAR-004 — Variable aislada
+
+Variable conectada a una hipótesis, pero sin operacionalización ni contrastación.
+
+Severidad: warning.
+
+C. Coherencia de indicadores
+IND-001 — Indicador sin variable
+
+Indicador sin relación válida con una variable.
+
+Severidad: error.
+
+IND-002 — Indicador no operacionalizado
+
+Indicador existente, pero no utilizado en la matriz de operacionalización.
+
+Severidad: warning.
+
+IND-003 — Indicador no contrastado
+
+Indicador operacionalizado, pero no utilizado en ninguna fila de contrastación.
+
+Severidad: suggestion.
+
+IND-004 — Indicador cruzado entre hipótesis
+
+Una fila de contrastación no debe utilizar un indicador perteneciente exclusivamente a otra hipótesis.
+
+Severidad: error.
+
+Debe usar relaciones del Knowledge Graph, no comparar únicamente identificadores locales.
+
+IND-005 — Indicador redundante
+
+Detectar relaciones duplicadas o indicadores funcionalmente repetidos únicamente cuando exista evidencia estructural:
+
+mismo indicador;
+misma variable;
+misma dimensión;
+misma fuente;
+misma hipótesis.
+
+No inferir similitud semántica por texto.
+
+Severidad: warning.
+
+D. Cobertura de fuentes
+SRC-001 — Indicador contrastado sin fuente
+
+No duplicar únicamente la validación de fila.
+
+Evaluar la cadena completa:
+
+Contrastación
+↓
+Indicador
+↓
+Fuente
+
+Severidad: error.
+
+SRC-002 — Fuente no utilizada
+
+Distinguir explícitamente:
+
+orphan
+
+de:
+
+unused
+
+Una fuente válida pero no utilizada debe clasificarse como suggestion, no como error.
+
+SRC-003 — Fuente utilizada fuera de la hipótesis
+
+Una fila de contrastación no debe reutilizar una fuente desconectada del indicador o de la operacionalización correspondiente, salvo que la estructura actual permita justificarla.
+
+Severidad: warning.
+
+No asumir incompatibilidad temática.
+
+E. Coherencia de operacionalización
+OPR-001 — Dimensión sin indicador
+
+Severidad: error.
+
+OPR-002 — Dimensión sin fuente
+
+Severidad: error.
+
+OPR-003 — Dimensión operacionalizada pero no contrastada
+
+Severidad: warning.
+
+OPR-004 — Múltiples filas redundantes
+
+Detectar únicamente duplicación estructural exacta:
+
+misma variable
++
+misma dimensión
++
+mismo indicador
++
+misma fuente
+
+Severidad: warning.
+
+OPR-005 — Unidad o escala ausente
+
+No bloquear el diseño.
+
+Severidad: suggestion.
+
+F. Coherencia de contrastación
+CON-001 — Evidencia esperada sin evidencia contraria
+
+Severidad: error.
+
+CON-002 — Evidencia contraria sin criterio de interpretación
+
+Severidad: warning.
+
+CON-003 — Contrastación sin indicador operacionalizado
+
+Severidad: error.
+
+CON-004 — Contrastación sin fuente operacionalizada
+
+Severidad: warning.
+
+CON-005 — Hipótesis sin criterios de contrastación
+
+Hipótesis confirmada sin matriz confirmada.
+
+Severidad: error.
+
+CON-006 — Criterio duplicado
+
+Duplicación exacta:
+
+mismo indicador
++
+misma fuente
++
+misma evidencia esperada
++
+misma evidencia contraria
+
+Severidad: warning.
+
+G. Trazabilidad y completitud
+TRA-001 — Cadena metodológica incompleta
+
+Detectar rupturas en:
+
+Hipótesis
+↓
+Variable
+↓
+Indicador
+↓
+Fuente
+↓
+Operacionalización
+↓
+Contrastación
+
+Severidad según punto de ruptura:
+
+relación obligatoria ausente: error;
+etapa incompleta: warning.
+TRA-002 — Referencia rota
+
+Usar el resultado de validateGraph().
+
+Severidad: error.
+
+TRA-003 — Entidad aislada
+
+Distinguir entidades que requieren relación obligatoria de entidades reutilizables.
+
+Severidad:
+
+obligatoria: warning;
+reutilizable y válida: suggestion.
+TRA-004 — Dependencia circular ilegal
+
+Usar los ciclos detectados por el Knowledge Graph.
+
+Severidad: error.
+
+7. Reglas y limitaciones metodológicas
+
+El motor no debe evaluar:
+
+calidad estadística del indicador;
+validez de constructo;
+confiabilidad de una fuente;
+representatividad muestral;
+causalidad real;
+suficiencia empírica;
+pertinencia temática;
+calidad de la redacción;
+veracidad de la hipótesis.
+
+Estas limitaciones deben documentarse.
+
+El motor evalúa únicamente consistencia estructural y metodológica explícitamente modelada.
+
+8. Resultado de auditoría
+
+El resumen debe incluir:
+
+interface MethodologicalAuditSummary {
+  totalFindings: number;
+  errors: number;
+  warnings: number;
+  suggestions: number;
+  categoriesAffected: MethodologicalRuleCategory[];
+  blocking: boolean;
+  complete: boolean;
+}
+
+Reglas:
+
+blocking = existe al menos un error
+complete = no existen errores y todas las etapas obligatorias están confirmadas
+
+No crear una calificación de 0 a 100.
+
+No usar semáforos como sustituto de la explicación.
+
+9. Explicabilidad
+
+Cada finding debe responder:
+
+¿Qué regla se incumplió?
+¿Qué se encontró?
+¿Qué entidades están involucradas?
+¿Por qué importa?
+¿Qué puede revisar el usuario?
+
+Ejemplo:
+
+Regla: HYP-002
+Problema: La hipótesis causal no tiene variable de resultado.
+Evidencia: El modelo contiene dos variables causales y ninguna con rol "resultado".
+Impacto: No es posible definir qué cambio esperado debe observarse.
+Acción sugerida: Agregar o reclasificar una variable de resultado.
+
+No generar explicaciones mediante LLM.
+
+Usar plantillas determinísticas.
+
+10. Pantalla de auditoría
+
+Crear:
+
+PantallaAuditoriaMetodologica.tsx
+
+Debe mostrar:
+
+Encabezado
+hipótesis evaluada;
+fecha de evaluación;
+cantidad de reglas ejecutadas;
+resumen por severidad.
+Filtros
+todas;
+errores;
+advertencias;
+sugerencias;
+categoría;
+entidad involucrada.
+Findings
+
+Cada finding debe mostrar:
+
+severidad;
+código de regla;
+título;
+explicación;
+evidencia;
+entidades relacionadas;
+acción sugerida.
+Navegación
+
+Cada entidad relacionada debe permitir ir a la etapa correspondiente.
+
+No editar directamente desde la auditoría.
+
+11. Integración con revisión final
+
+Agregar en PantallaRevisionFinal:
+
+Ejecutar auditoría metodológica
+
+El botón debe estar disponible cuando exista al menos una hipótesis.
+
+No exigir que toda la cadena esté confirmada, porque la auditoría también debe detectar etapas incompletas.
+
+Agregar también acceso desde PantallaKnowledgeGraph.
+
+12. Flujo
+Revisión final
+↓
+Ejecutar auditoría metodológica
+↓
+PantallaAuditoriaMetodologica
+↓
+Seleccionar hallazgo
+↓
+Ir a la etapa correspondiente
+
+Al volver a la auditoría, conservar:
+
+filtros;
+finding seleccionado;
+posición de navegación, cuando sea razonablemente posible.
+13. Estado
+
+No persistir el resultado de la auditoría.
+
+Puede mantenerse temporalmente en estado de interfaz.
+
+Debe poder regenerarse desde la sesión.
+
+Agregar únicamente el estado UI mínimo necesario:
+
+resultado actual;
+filtros;
+entidad seleccionada.
+
+No modificar estructuras metodológicas previas.
+
+14. Compatibilidad con el Knowledge Graph
+
+El motor debe reutilizar:
+
+buildGraph()
+findDependencies()
+findDependents()
+detectOrphans()
+validateGraph()
+computeImpact()
+
+cuando sea pertinente.
+
+No reconstruir manualmente relaciones que ya están modeladas en el grafo.
+
+Si se detecta una limitación del grafo, documentarla antes de modificarlo.
+
+15. Correcciones menores de S-020
+
+Aprovechar el sprint para resolver dos deudas acotadas.
+
+15.1 Recorrido topológico explícito
+
+La convención actual es:
+
+source → target
+
+significa:
+
+source depende de target
+
+Renombrar o complementar la API para eliminar ambigüedad.
+
+Preferencia:
+
+topologicalTraversalDependenciesFirst()
+topologicalTraversalDependentsFirst()
+
+Mantener compatibilidad con topologicalTraversal() si ya es usado.
+
+No romper pruebas previas.
+
+15.2 Diferenciar orphan y unused
+
+Actualizar tipos o reportes del grafo para distinguir:
+
+orphan
+
+Entidad con relación obligatoria ausente.
+
+unused
+
+Entidad válida sin utilización actual.
+
+Mantener compatibilidad con la API existente cuando sea posible.
+
+Agregar pruebas de regresión específicas.
+
+16. Accesibilidad
+
+La pantalla debe mantener:
+
+navegación por teclado;
+foco visible;
+labels;
+encabezados semánticos;
+aria-live para cambios en filtros y resultados;
+botones con nombres accesibles;
+badges con texto, no solo color.
+
+No usar gráficos obligatorios.
+
+17. Casos de prueba
+
+Crear:
+
+validacion_s021.ts
+
+Incluir como mínimo:
+
+Reglas de hipótesis
+hipótesis causal sin causa;
+hipótesis causal sin resultado;
+hipótesis sin modelo conceptual;
+hipótesis completa.
+Variables
+variable sin indicador;
+variable de resultado no contrastada;
+variable aislada.
+Indicadores
+indicador sin variable;
+indicador no operacionalizado;
+indicador no contrastado;
+indicador cruzado entre hipótesis;
+indicador redundante.
+Fuentes
+indicador contrastado sin fuente;
+fuente no utilizada;
+fuente desconectada.
+Operacionalización
+dimensión sin indicador;
+dimensión sin fuente;
+dimensión no contrastada;
+fila duplicada;
+unidad o escala ausente.
+Contrastación
+evidencia esperada sin contraria;
+evidencia contraria sin interpretación;
+indicador no operacionalizado;
+fuente no operacionalizada;
+hipótesis sin matriz;
+criterio duplicado.
+Grafo y trazabilidad
+referencia rota;
+ciclo ilegal;
+entidad aislada;
+cadena incompleta;
+orphan vs unused;
+recorrido dependencies-first;
+recorrido dependents-first.
+Auditoría
+resumen correcto;
+agrupación por severidad;
+agrupación por categoría;
+agrupación por entidad;
+detección de errores bloqueantes;
+diseño completo sin errores;
+idempotencia;
+no mutación del estado;
+múltiples hipótesis;
+navegación;
+reinicio;
+integración;
+regresión.
+
+Se espera una suite amplia, no limitada a 46 aserciones.
+
+18. Regresión completa
+
+Ejecutar:
+
+Typecheck
+S-012
+S-013
+S-014
+S-015
+S-016
+S-017
+S-018
+S-019
+S-020
+S-021
+Smoke
+Integration
+Build
+
+Todos deben permanecer en verde.
+
+19. Architecture Review
+
+Responder:
+
+¿Qué diferencia existe entre validación local, validación del grafo y auditoría metodológica?
+¿Cómo se representa una regla?
+¿Cómo se garantiza la trazabilidad de cada hallazgo?
+¿Cómo se reutiliza el Knowledge Graph?
+¿Cómo se evita duplicar reglas existentes?
+¿Cómo se distinguen errores, advertencias y sugerencias?
+¿Qué reglas son bloqueantes?
+¿Cómo se diferencia una entidad huérfana de una no utilizada?
+¿Qué garantiza cada recorrido topológico?
+¿Qué aspectos metodológicos no puede evaluar HELIOS?
+¿Qué deuda técnica permanece?
+¿Está HELIOS preparado para incorporar teoría de cambio o diseño de evaluación?
+20. Documentación
+
+Agregar:
+
+docs/adr/ADR-0010-methodological-consistency-rules.md
+docs/architecture/S-021-methodological-consistency-review.md
+
+Actualizar:
+
+README;
+documentación de arquitectura;
+catálogo de reglas;
+CHANGELOG;
+scripts de validación.
+
+Documentar cada regla con:
+
+código;
+propósito;
+severidad;
+entidades;
+condiciones;
+limitaciones;
+ejemplo.
+21. Entrega
+
+Entregar:
+
+revisión inicial;
+ADR-0010;
+tipos;
+catálogo declarativo de reglas;
+MethodologicalConsistencyService;
+PantallaAuditoriaMetodologica;
+integración con revisión final y Knowledge Graph;
+correcciones acotadas de S-020;
+validación S-021;
+regresión completa;
+documentación;
+CHANGELOG;
+commit;
+push;
+no hacer republish;
+detenerse para revisión.

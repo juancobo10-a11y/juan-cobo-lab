@@ -4,30 +4,189 @@
   "descripcion": "Cinco preguntas fundamentales para examinar una política pública desde sus definiciones y supuestos hasta sus implicaciones y consecuencias de segundo orden.",
   "etiqueta": "Socrático",
   "enfoqueBreve": "examinar la solidez del diagnóstico, los supuestos y la evidencia que sostienen el problema",
-  "keywords": [
-    "supuestos",
-    "evidencia",
-    "perspectivas",
-    "implicaciones",
-    "causas",
-    "consecuencias",
-    "análisis crítico",
-    "cuestionamiento",
-    "fundamento",
-    "justificación",
-    "diagnóstico",
-    "problema",
-    "política pública",
-    "actores",
-    "voces ausentes"
+  "esUniversal": true,
+  "conceptos": [
+    {
+      "id": "definicion_problema",
+      "nombre": "Definición del problema",
+      "descripcion": "La formulación del problema es ambigua, contestada o requiere mayor precisión conceptual.",
+      "peso": 0.35,
+      "terminos": [
+        "delimitación",
+        "ambigüedad conceptual",
+        "formulación del problema",
+        "precisión conceptual",
+        "definición del problema"
+      ],
+      "sinonimos": [
+        "qué se entiende por",
+        "cómo se define",
+        "qué significa",
+        "concepto de",
+        "alcance del problema"
+      ],
+      "expresiones": [
+        "cómo se ha definido",
+        "a qué se refiere",
+        "qué se entiende por",
+        "cómo se delimita",
+        "qué incluye y qué excluye"
+      ]
+    },
+    {
+      "id": "supuestos",
+      "nombre": "Supuestos",
+      "descripcion": "El diagnóstico descansa en premisas no explicitadas que deberían ser examinadas.",
+      "peso": 0.45,
+      "terminos": [
+        "supuestos",
+        "premisas",
+        "presuposiciones",
+        "hipótesis implícitas",
+        "asunciones",
+        "diagnóstico"
+      ],
+      "sinonimos": [
+        "creencias",
+        "lo que se da por sentado",
+        "suposiciones",
+        "teoría del cambio",
+        "lógica de la intervención"
+      ],
+      "expresiones": [
+        "se asume que",
+        "se da por sentado",
+        "se presupone que",
+        "parte del supuesto",
+        "da por hecho",
+        "sin cuestionar",
+        "qué supuestos",
+        "supuestos del"
+      ]
+    },
+    {
+      "id": "evidencia",
+      "nombre": "Evidencia",
+      "descripcion": "El diagnóstico carece de evidencia suficiente o confiable para sostener sus conclusiones.",
+      "peso": 0.45,
+      "terminos": [
+        "evidencia",
+        "datos",
+        "fuentes",
+        "fundamento empírico",
+        "validez"
+      ],
+      "sinonimos": [
+        "calidad de la información",
+        "confiabilidad",
+        "sesgos de medición",
+        "respaldo empírico",
+        "información disponible",
+        "se debe a"
+      ],
+      "expresiones": [
+        "con qué evidencia",
+        "qué datos respaldan",
+        "cómo se sabe que",
+        "cómo se midió",
+        "qué tan confiable",
+        "qué evidencia",
+        "falta de evidencia",
+        "sin evidencia"
+      ]
+    },
+    {
+      "id": "perspectivas_ausentes",
+      "nombre": "Perspectivas ausentes",
+      "descripcion": "El diagnóstico excluye actores, territorios o perspectivas relevantes para entender el problema.",
+      "peso": 0.35,
+      "terminos": [
+        "voces ausentes",
+        "actores no consultados",
+        "perspectivas alternativas",
+        "grupos excluidos",
+        "perspectivas marginadas"
+      ],
+      "sinonimos": [
+        "puntos de vista",
+        "contradicciones",
+        "desacuerdo",
+        "actores ignorados",
+        "sin representación",
+        "perspectivas"
+      ],
+      "expresiones": [
+        "no fueron incluidos",
+        "no se consultó",
+        "quedaron fuera",
+        "no se consideraron",
+        "no se tuvo en cuenta",
+        "qué actores",
+        "qué voces"
+      ]
+    },
+    {
+      "id": "coherencia_argumentativa",
+      "nombre": "Coherencia argumentativa",
+      "descripcion": "El diagnóstico no justifica adecuadamente el vínculo entre sus evidencias y sus conclusiones.",
+      "peso": 0.40,
+      "terminos": [
+        "justificación",
+        "inferencia",
+        "contradicción lógica",
+        "coherencia",
+        "fundamento",
+        "conclusiones"
+      ],
+      "sinonimos": [
+        "causalidad asumida",
+        "razonamiento",
+        "lógica del argumento",
+        "argumentación"
+      ],
+      "expresiones": [
+        "cómo llegó a esa conclusión",
+        "qué justifica",
+        "por qué se concluye",
+        "sin explicar por qué",
+        "sin justificación",
+        "no explica cómo",
+        "no explica por qué",
+        "llegó a la conclusión"
+      ]
+    },
+    {
+      "id": "implicaciones",
+      "nombre": "Implicaciones",
+      "descripcion": "Aceptar el diagnóstico tiene consecuencias sobre cómo se diseña la intervención y quién es responsable.",
+      "peso": 0.30,
+      "terminos": [
+        "implicaciones",
+        "límites del argumento"
+      ],
+      "sinonimos": [
+        "qué se sigue de",
+        "qué implica",
+        "alcances",
+        "repercusiones",
+        "consecuencias"
+      ],
+      "expresiones": [
+        "qué implica aceptar",
+        "si eso fuera cierto",
+        "qué pasaría si",
+        "qué se derivaría",
+        "qué consecuencias tiene"
+      ]
+    }
   ],
-  "version": "0.1.0",
+  "keywords": [],
+  "version": "0.2.0",
   "estado": "activo",
   "autor": "Juan Cobo Lab",
   "institucion": "Juan Cobo Lab",
-  "ultimaActualizacion": "2026-07-16",
+  "ultimaActualizacion": "2026-07-17",
   "fuentes": [],
   "licencia": "Todos los derechos reservados",
-  "estadoRevision": "experimental",
-  "esUniversal": true
+  "estadoRevision": "experimental"
 }

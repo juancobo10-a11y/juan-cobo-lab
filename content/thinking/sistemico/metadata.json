@@ -4,25 +4,208 @@
   "descripcion": "Marco de análisis para políticas públicas con múltiples actores interdependientes, relaciones causales no lineales, ciclos de retroalimentación, efectos indirectos, demoras temporales, desplazamiento del problema y resultados emergentes entre sectores y comunidades.",
   "etiqueta": "Sistémico",
   "enfoqueBreve": "observar cómo funciona el sistema en su conjunto, sus interdependencias y sus efectos no evidentes",
-  "keywords": [
-    "efectos indirectos",
-    "consecuencias no intencionadas",
-    "actores interdependientes",
-    "ciclo de retroalimentación",
-    "causalidad no lineal",
-    "desplazamiento del problema",
-    "retroalimentación",
-    "interdependencia",
-    "emergente",
-    "bucle",
-    "demora",
-    "externalidad",
-    "sistema"
-  ],
   "esUniversal": false,
+  "conceptos": [
+    {
+      "id": "interdependencia",
+      "nombre": "Interdependencia",
+      "descripcion": "El problema involucra actores, sectores o instituciones cuyas acciones se condicionan mutuamente.",
+      "peso": 0.40,
+      "terminos": [
+        "interdependencia",
+        "interdependencias",
+        "dependencia mutua",
+        "actores interdependientes",
+        "coordinación entre actores",
+        "gobernanza multinivel",
+        "articulación institucional",
+        "relaciones entre sectores",
+        "múltiples actores"
+      ],
+      "sinonimos": [
+        "responsabilidades compartidas",
+        "coordinación interinstitucional",
+        "sistema",
+        "sistemas",
+        "actores",
+        "redes",
+        "sectores involucrados"
+      ],
+      "expresiones": [
+        "coordinación entre niveles",
+        "relaciones interinstitucionales",
+        "interactúan entre sí",
+        "funcionan en conjunto",
+        "dependen unos de otros",
+        "entre entidades"
+      ]
+    },
+    {
+      "id": "retroalimentacion",
+      "nombre": "Retroalimentación",
+      "descripcion": "El problema se autoperpetúa o se refuerza, resistiendo las soluciones convencionales.",
+      "peso": 0.45,
+      "terminos": [
+        "retroalimentación",
+        "retroalimentacion",
+        "bucle",
+        "círculo vicioso",
+        "círculo virtuoso",
+        "dinámica autorreforzada"
+      ],
+      "sinonimos": [
+        "espiral",
+        "resistencia al cambio",
+        "ciclo",
+        "perpetúa"
+      ],
+      "expresiones": [
+        "persiste a pesar de",
+        "continúa aunque",
+        "continúa a pesar de",
+        "se mantiene pese a",
+        "sigue sin mejorar",
+        "no cede ante",
+        "a pesar de los esfuerzos",
+        "pese a los incentivos",
+        "pese a las intervenciones",
+        "se refuerza",
+        "se reproduce",
+        "resistente al cambio",
+        "se autoperpetúa"
+      ]
+    },
+    {
+      "id": "efectos_indirectos",
+      "nombre": "Efectos indirectos",
+      "descripcion": "Las intervenciones producen consecuencias no previstas, en otros actores, territorios o tiempos.",
+      "peso": 0.45,
+      "terminos": [
+        "efectos indirectos",
+        "consecuencias no intencionadas",
+        "efectos no intencionados",
+        "externalidades",
+        "efectos secundarios",
+        "desplazamiento del problema"
+      ],
+      "sinonimos": [
+        "impactos inesperados",
+        "costos transferidos",
+        "efectos no previstos",
+        "consecuencias imprevistas",
+        "efectos laterales",
+        "consecuencias colaterales"
+      ],
+      "expresiones": [
+        "efectos no esperados",
+        "consecuencias no previstas",
+        "impactos en otros sectores",
+        "traslado del problema",
+        "trasladado hacia",
+        "ha trasladado el problema"
+      ]
+    },
+    {
+      "id": "causalidad_compleja",
+      "nombre": "Causalidad compleja",
+      "descripcion": "El problema tiene múltiples causas interrelacionadas y no una causa única y lineal.",
+      "peso": 0.35,
+      "terminos": [
+        "múltiples causas",
+        "causas interrelacionadas",
+        "causalidad no lineal",
+        "relaciones causales",
+        "cadenas causales",
+        "determinantes múltiples",
+        "causas estructurales"
+      ],
+      "sinonimos": [
+        "multicausal",
+        "multifactorial",
+        "factores estructurales",
+        "causas subyacentes",
+        "raíces del problema",
+        "factores"
+      ],
+      "expresiones": [
+        "factores que generan",
+        "factores que explican",
+        "causas que se combinan",
+        "interacción de causas",
+        "no tiene una causa única",
+        "explicado por varios factores",
+        "se explican por",
+        "se deben a múltiples",
+        "factores institucionales",
+        "factores territoriales",
+        "factores financieros"
+      ]
+    },
+    {
+      "id": "comportamiento_temporal",
+      "nombre": "Comportamiento temporal",
+      "descripcion": "El problema se manifiesta de forma diferente en el tiempo: con demoras, acumulaciones o inercia.",
+      "peso": 0.30,
+      "terminos": [
+        "demoras",
+        "trayectoria",
+        "inercia",
+        "dependencia de trayectoria"
+      ],
+      "sinonimos": [
+        "efectos a largo plazo",
+        "cambios acumulativos",
+        "evolución del problema",
+        "rezago",
+        "acumulación",
+        "persistencia"
+      ],
+      "expresiones": [
+        "corto y largo plazo",
+        "resultados diferidos",
+        "efectos retardados",
+        "en el largo plazo",
+        "en el corto plazo",
+        "a largo plazo",
+        "resultados diferentes en el"
+      ]
+    },
+    {
+      "id": "estructuras_restricciones",
+      "nombre": "Estructuras y restricciones",
+      "descripcion": "Barreras institucionales, fallas de coordinación o incentivos desalineados que limitan la efectividad de las soluciones.",
+      "peso": 0.40,
+      "terminos": [
+        "barreras",
+        "cuellos de botella",
+        "fragmentación",
+        "incentivos desalineados",
+        "fallas de coordinación",
+        "restricciones estructurales"
+      ],
+      "sinonimos": [
+        "obstáculos institucionales",
+        "fallas de implementación",
+        "capacidades limitadas",
+        "bloqueos",
+        "trabas"
+      ],
+      "expresiones": [
+        "barreras de acceso",
+        "fallas sistémicas",
+        "falta de coordinación",
+        "incentivos mal alineados",
+        "fragmentación institucional",
+        "debilidad institucional",
+        "falta de capacidad",
+        "déficit institucional"
+      ]
+    }
+  ],
+  "keywords": [],
   "cuandoUsarlo": "Cuando el problema involucra múltiples actores con relaciones de dependencia mutua, cuando intervenciones previas han producido efectos inesperados en otros sectores o territorios, o cuando el problema persiste a pesar de soluciones aparentemente lógicas.",
   "cuandoNoUsarlo": "Cuando el problema tiene una causa única y bien identificada, cuando los actores relevantes son pocos y sus relaciones son lineales, o cuando la pregunta central es de índole normativa o definitoria.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "estado": "activo",
   "autor": "Juan Cobo Lab",
   "institucion": "Juan Cobo Lab",

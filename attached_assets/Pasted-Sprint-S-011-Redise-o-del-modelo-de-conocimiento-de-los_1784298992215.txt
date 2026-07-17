@@ -1,0 +1,463 @@
+Sprint S-011 — Rediseño del modelo de conocimiento de los Thinking Patterns
+Contexto
+
+La validación manual del Thinking Router mostró que el problema principal no está en la existencia de los patrones Socrático y Sistémico, sino en cómo representamos su conocimiento.
+
+El modelo actual depende demasiado de keywords literales. Como resultado, expresiones semánticamente equivalentes no se reconocen correctamente.
+
+Ejemplos:
+
+“efectos no intencionados” no equivale para el sistema a “consecuencias no intencionadas”;
+“persiste a pesar de” no se reconoce como posible señal de retroalimentación o resistencia del sistema;
+“barreras de acceso” no se conecta con estructura, interdependencia o cuellos de botella;
+“factores que generan” no se reconoce como lenguaje causal.
+
+El objetivo de este sprint no es recalibrar umbrales ni cambiar el algoritmo de scoring de manera apresurada.
+
+El objetivo es rediseñar la representación del conocimiento de los Thinking Patterns para que el Router deje de depender de una lista plana de keywords.
+
+Objetivo general
+
+Transformar cada Thinking Pattern desde un modelo plano:
+
+keywords: string[]
+
+hacia un modelo conceptual estructurado basado en:
+
+Conceptos
+↓
+Familias semánticas
+↓
+Términos y expresiones observables
+
+El conocimiento debe permanecer en los archivos de contenido y no trasladarse al código.
+
+Principios arquitectónicos
+
+Respetar estrictamente:
+
+ADR-0001 — HELIOS no es un chatbot.
+ADR-0002 — El conocimiento no vive en el código.
+ADR-0003 — Los Knowledge Packs son composables.
+ADR-0004 — El razonamiento precede a la metodología.
+
+El algoritmo debe seguir siendo genérico.
+
+No crear condicionales específicos por patrón.
+
+No introducir lógica como:
+
+if (pattern.id === 'sistemico')
+
+No hardcodear sinónimos, expresiones o categorías conceptuales en TypeScript.
+
+Todo conocimiento específico debe vivir en los metadata de cada Thinking Pattern.
+
+1. Nuevo modelo de datos
+
+Diseñar una estructura tipada para cada patrón.
+
+Propuesta inicial:
+
+interface ThinkingConcept {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  peso?: number;
+
+  terminos: string[];
+  sinonimos: string[];
+  expresiones: string[];
+
+  indicadores?: string[];
+  contraIndicadores?: string[];
+}
+
+Y en el metadata:
+
+interface ThinkingPatternMetadata {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  enfoqueBreve: string;
+  esUniversal: boolean;
+  version: string;
+
+  conceptos: ThinkingConcept[];
+}
+
+La estructura puede ajustarse si existe una alternativa técnicamente superior, pero debe conservar la lógica conceptual.
+
+2. Pensamiento Sistémico
+
+Reestructurar su metadata alrededor de familias conceptuales.
+
+Como mínimo incluir:
+
+A. Interdependencia
+
+Debe capturar expresiones como:
+
+interdependencia;
+dependencia mutua;
+coordinación entre actores;
+articulación institucional;
+relaciones entre sectores;
+actores conectados;
+responsabilidades compartidas;
+gobernanza multinivel.
+B. Retroalimentación
+
+Debe capturar:
+
+retroalimentación;
+bucle;
+círculo vicioso;
+círculo virtuoso;
+espiral;
+se refuerza;
+se reproduce;
+persiste a pesar de;
+continúa aunque;
+resistencia al cambio;
+dinámica autorreforzada.
+C. Efectos indirectos
+
+Debe capturar:
+
+efectos indirectos;
+consecuencias no intencionadas;
+efectos no intencionados;
+impactos inesperados;
+externalidades;
+desplazamiento del problema;
+efectos secundarios;
+costos transferidos.
+D. Causalidad compleja
+
+Debe capturar:
+
+múltiples causas;
+factores que generan;
+causalidad no lineal;
+causas interrelacionadas;
+relaciones causales;
+cadenas causales;
+determinantes múltiples;
+causas estructurales.
+E. Comportamiento temporal
+
+Debe capturar:
+
+demoras;
+efectos a largo plazo;
+trayectoria;
+evolución del problema;
+cambios acumulativos;
+persistencia;
+inercia;
+dependencia de trayectoria.
+F. Estructuras y restricciones
+
+Debe capturar:
+
+barreras;
+cuellos de botella;
+fallas de coordinación;
+capacidades institucionales;
+restricciones estructurales;
+fragmentación;
+incentivos desalineados;
+fallas de implementación.
+
+No limitarse literalmente a esta lista. Revisar el contenido existente y proponer una cobertura semántica coherente.
+
+3. Pensamiento Socrático
+
+Reestructurar su metadata con familias conceptuales propias.
+
+Como mínimo:
+
+A. Definición del problema
+qué se entiende por;
+cómo se define;
+delimitación;
+ambigüedad conceptual;
+formulación del problema;
+precisión conceptual.
+B. Supuestos
+supuestos;
+premisas;
+creencias;
+presuposiciones;
+lo que se da por sentado;
+hipótesis implícitas.
+C. Evidencia
+evidencia;
+datos;
+fuentes;
+calidad de la información;
+fundamento empírico;
+validez;
+confiabilidad;
+sesgos de medición.
+D. Perspectivas ausentes
+voces ausentes;
+actores no consultados;
+perspectivas alternativas;
+puntos de vista;
+contradicciones;
+desacuerdo;
+grupos excluidos.
+E. Coherencia argumentativa
+justificación;
+fundamento;
+inferencia;
+causalidad asumida;
+conclusiones;
+contradicción lógica;
+coherencia;
+relación entre evidencia y conclusión.
+F. Implicaciones
+consecuencias de aceptar la premisa;
+qué se sigue de;
+implicaciones;
+límites del argumento;
+condiciones bajo las cuales sería falso.
+
+Eliminar o reducir señales excesivamente generales como:
+
+política pública;
+programa;
+gobierno;
+sector;
+problema;
+
+salvo que estén incorporadas dentro de una expresión semánticamente discriminante.
+
+4. Compatibilidad
+
+Mantener compatibilidad temporal con keywords solo si es indispensable para una migración segura.
+
+Preferencia:
+
+conceptos como fuente principal
+keywords legacy como fallback de compatibilidad
+
+Documentar claramente:
+
+qué campos quedan deprecados;
+cómo se migran;
+cuándo podrían eliminarse.
+
+No mantener indefinidamente dos modelos paralelos sin una estrategia explícita.
+
+5. Algoritmo genérico
+
+Adaptar el algoritmo únicamente lo necesario para consumir el nuevo modelo.
+
+Debe:
+
+recorrer conceptos;
+buscar coincidencias en:
+términos;
+sinónimos;
+expresiones;
+registrar qué concepto fue activado;
+conservar la superficie de procedencia:
+problema;
+nombre del pack;
+contexto del pack;
+producir trazabilidad conceptual.
+
+Nueva salida sugerida:
+
+interface ThinkingConceptMatch {
+  conceptId: string;
+  conceptName: string;
+  matchedText: string;
+  matchType:
+    | 'termino'
+    | 'sinonimo'
+    | 'expresion';
+
+  surface:
+    | 'problema'
+    | 'packNombre'
+    | 'packContexto';
+
+  weight: number;
+}
+
+No limitar la salida a keywords individuales.
+
+6. Scoring conceptual
+
+No rediseñar todavía toda la fórmula.
+
+Primero adaptar el scoring existente para que opere sobre conceptos.
+
+Requisitos:
+
+una coincidencia de expresión completa debe pesar más que un token aislado;
+múltiples términos del mismo concepto deben tener rendimientos decrecientes para evitar inflar artificialmente el score;
+activar dos o más conceptos distintos debe valer más que repetir muchas veces el mismo concepto;
+el texto del usuario debe seguir teniendo mayor peso que el contexto del pack;
+el fallback universal no debe competir como un patrón específico.
+
+Proponer una fórmula sencilla, trazable y testeable.
+
+No incorporar embeddings, LLM ni servicios externos.
+
+7. Explicaciones
+
+Actualizar ExplanationService para que explique la selección usando conceptos detectados, no keywords crudas.
+
+Ejemplo Sistémico:
+
+El problema combina interdependencias entre actores, restricciones institucionales y posibles efectos indirectos. Por eso HELIOS recomienda analizarlo como un sistema.
+
+Ejemplo Socrático:
+
+La consulta cuestiona los supuestos del diagnóstico y la calidad de la evidencia. Por eso HELIOS recomienda comenzar con una revisión socrática.
+
+Las dimensiones visibles deben ser nombres conceptuales legibles:
+
+Interdependencia;
+Retroalimentación;
+Evidencia;
+Supuestos;
+
+no tokens literales ni nombres internos.
+
+No mostrar en UI:
+
+matchType;
+pesos;
+score;
+identificadores técnicos.
+8. Pruebas obligatorias
+
+Probar como mínimo los siguientes casos:
+
+Sistémico
+Caso 1
+
+Los efectos no intencionados de la política han trasladado el problema hacia municipios vecinos.
+
+Debe activar:
+
+Efectos indirectos.
+Caso 2
+
+El problema persiste a pesar del aumento de recursos y se refuerza por la falta de coordinación entre entidades.
+
+Debe activar:
+
+Retroalimentación;
+Interdependencia o estructuras institucionales.
+Caso 3
+
+Las barreras de acceso se explican por factores institucionales, territoriales y financieros que interactúan entre sí.
+
+Debe activar:
+
+Causalidad compleja;
+Estructuras y restricciones;
+Interdependencia.
+Caso 4
+
+La política produce resultados diferentes en el corto y en el largo plazo.
+
+Debe activar:
+
+Comportamiento temporal.
+Socrático
+Caso 5
+
+¿Qué supuestos sostienen el diagnóstico y qué evidencia permite validarlos?
+
+Debe activar:
+
+Supuestos;
+Evidencia.
+Caso 6
+
+La política concluye que el bajo desempeño se debe a falta de recursos, pero no explica cómo llegó a esa conclusión.
+
+Debe activar:
+
+Coherencia argumentativa;
+Evidencia.
+Caso 7
+
+¿Qué actores o perspectivas no fueron incluidos en la formulación del problema?
+
+Debe activar:
+
+Perspectivas ausentes;
+Definición del problema.
+Fallback
+Caso 8
+
+Quiero revisar una política pública.
+
+Debe devolver Socrático como fallback universal, sin afirmar que detectó conceptos específicos.
+
+Regresiones reales
+
+Reejecutar los casos de validación donde el sistema falló:
+
+factores del sistema de salud y barreras rurales;
+deforestación pese a incentivos;
+transporte público y economía informal;
+efectos no intencionados de cuotas de género;
+retroalimentación entre sistema penal y exclusión social.
+
+Registrar patrón seleccionado y conceptos activados.
+
+9. Entregable metodológico
+
+Antes de modificar el algoritmo, presentar una propuesta de esquema JSON para ambos patrones.
+
+La implementación debe hacerse solo después de revisar internamente que:
+
+el modelo es genérico;
+no introduce conocimiento en TypeScript;
+puede soportar un tercer patrón sin modificar el algoritmo;
+mantiene trazabilidad;
+evita duplicación excesiva.
+
+No pedir confirmación externa; hacer la revisión dentro del sprint y documentarla.
+
+10. Architecture Review
+
+Al finalizar responder:
+
+¿Cuál es el nuevo esquema de conocimiento?
+¿Cómo se diferencia un concepto de una keyword?
+¿Cómo se manejan sinónimos y expresiones?
+¿Cómo se evita que muchos términos del mismo concepto inflen el score?
+¿Cómo se premia la activación de varios conceptos distintos?
+¿Qué campos quedaron deprecados?
+¿Cómo se garantiza ADR-0002?
+¿Cómo cambiaría la incorporación de un tercer patrón?
+¿Qué casos reales mejoraron?
+¿Qué casos continúan fallando?
+¿Qué deuda técnica queda?
+11. Entrega
+implementación completa;
+actualización de tipos;
+migración de Socrático;
+migración de Sistémico;
+actualización del algoritmo;
+actualización de ExplanationService;
+pruebas;
+changelog;
+commit;
+push;
+no hacer republish;
+detenerse para revisión.
+Criterio de éxito
+
+HELIOS debe dejar de reconocer únicamente palabras literales y comenzar a identificar familias conceptuales expresadas en lenguaje natural, manteniendo todo el conocimiento fuera del código.

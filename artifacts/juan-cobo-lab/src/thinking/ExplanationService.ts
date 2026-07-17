@@ -5,9 +5,15 @@
  * S-010 requirement: the logic that turns routing signals into user-facing
  * text must live here, not dispersed in Helios.tsx.
  *
+ * S-011 update: now reads from ThinkingCandidate.conceptMatches
+ * (ThinkingConceptMatch[]) instead of the deprecated terminosCoincidentes.
+ * dimensionesDetectadas now contains human-readable concept names
+ * (ThinkingConcept.nombre, e.g. "Retroalimentación") — never raw keyword
+ * tokens or internal identifiers.
+ *
  * Contract:
  *   - Pure function: same inputs → same output, no side effects.
- *   - No LLM calls (S-010 explicitly prohibits them in this version).
+ *   - No LLM calls.
  *   - No direct metadata imports from React code.
  *   - Output must be intelligible to non-technical users.
  */
@@ -17,28 +23,14 @@ import type {
   ExplicacionSeleccion,
   ThinkingRouterInput,
 } from "./types";
-import { NEUTRAL_TERMS } from "./constants";
-import { normalizeText } from "../router/utils";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Returns true when every meaningful token of a term is in NEUTRAL_TERMS.
- * This prevents ultra-generic policy tokens ("política pública", "problema")
- * from appearing in dimensionesDetectadas even when they matched as keywords.
- */
-function isNeutralTerm(termino: string): boolean {
-  const tokens = normalizeText(termino)
-    .split(/\s+/)
-    .filter((t) => t.length > 0);
-  return tokens.length > 0 && tokens.every((t) => NEUTRAL_TERMS.has(t));
-}
-
-/**
- * Joins a list of terms as a natural Spanish enumeration.
- *   []          → ""
- *   ["A"]       → "A"
- *   ["A","B"]   → "A y B"
+ * Joins a list of names as a natural Spanish enumeration.
+ *   []            → ""
+ *   ["A"]         → "A"
+ *   ["A","B"]     → "A y B"
  *   ["A","B","C"] → "A, B y C"
  */
 function joinDimensions(dims: string[]): string {
@@ -57,19 +49,16 @@ function joinDimensions(dims: string[]): string {
  * result — the explanation travels with the result and is never reconstructed
  * in the UI layer.
  *
- * @param candidate - the winning ThinkingCandidate (with terminosCoincidentes
- *                    already tagged with `superficie` by KeywordThinkingAlgorithm)
+ * @param candidate - the winning ThinkingCandidate (with conceptMatches
+ *                    tagged with surface by ConceptualThinkingAlgorithm)
  * @param input     - original ThinkingRouterInput, used for pack name references
  */
 export function buildExplicacionSeleccion(
   candidate: ThinkingCandidate,
   input: ThinkingRouterInput
 ): ExplicacionSeleccion {
-  const { esFallback, motivoSeleccion, terminosCoincidentes, pattern } =
-    candidate;
+  const { esFallback, motivoSeleccion, conceptMatches, pattern } = candidate;
 
-  // enfoqueBreve lives in metadata.json (ADR-0002). Use a generic fallback if
-  // a future pattern omits it — avoids hard crash and signals the gap.
   const enfoqueBreve =
     (pattern.metadata as { enfoqueBreve?: string }).enfoqueBreve ??
     `aplicar el ${pattern.metadata.titulo}`;
@@ -77,9 +66,11 @@ export function buildExplicacionSeleccion(
   // ── 1. fuentePrincipal ────────────────────────────────────────────────────
   //
   // Derived from motivoSeleccion (set by ThinkingRouter from scoreProblema)
-  // and from whether any KEYWORD match came from a pack surface.
-  // Keyword matches from titulo/descripcion are not counted — they are weak
-  // signals and mixing them with pack surfaces would mislead the explanation.
+  // and from whether any match came from a pack surface.
+  //
+  // Only expresion/termino matches count for the pack-surface check — a weak
+  // sinonimo match in the pack is not prominent enough to change the narrative
+  // from "problema" to "mixta".
   let fuentePrincipal: ExplicacionSeleccion["fuentePrincipal"];
 
   if (esFallback) {
@@ -87,55 +78,46 @@ export function buildExplicacionSeleccion(
   } else if (motivoSeleccion === "contexto-del-pack") {
     fuentePrincipal = "contexto-pack";
   } else {
-    // coincidencia-directa: check if any KEYWORD match came from a pack surface
-    const hasPackKeyword = terminosCoincidentes.some(
-      (t) =>
-        t.campo === "keyword" &&
-        (t.superficie === "packNombre" || t.superficie === "packContexto")
+    // coincidencia-directa: check if any significant match came from a pack surface
+    const hasSignificantPackMatch = conceptMatches.some(
+      (m) =>
+        (m.surface === "packNombre" || m.surface === "packContexto") &&
+        m.matchType !== "sinonimo"
     );
-    fuentePrincipal = hasPackKeyword ? "mixta" : "problema";
+    fuentePrincipal = hasSignificantPackMatch ? "mixta" : "problema";
   }
 
   // ── 2. dimensionesDetectadas ──────────────────────────────────────────────
   //
-  // Keyword matches only (campo === "keyword") — description/titulo matches
-  // are too weak and too generic to cite as detected dimensions.
-  // Filter neutral terms. Prefer problema-surface matches so the most
-  // user-anchored evidence appears first.
+  // S-011: unique concept NAMES (ThinkingConcept.nombre), not raw keyword tokens.
+  // conceptMatches are ordered: problema first, then pack surfaces.
+  // First occurrence of each conceptId wins → problema-surface concepts appear first.
   // Cap at 5 to keep the pill list scannable.
-  const seen = new Set<string>();
+  //
+  // Legacy-keyword matches (conceptId='legacy-keyword') use matchedText as the
+  // display name for backward compatibility with unmigrated patterns in tests.
+  const seenConceptIds = new Set<string>();
   const dims: string[] = [];
 
-  // Pass 1: problema surface first
-  for (const t of terminosCoincidentes) {
-    if (t.campo !== "keyword") continue;
-    if (t.superficie !== "problema") continue;
-    if (isNeutralTerm(t.termino)) continue;
-    const key = normalizeText(t.termino);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    dims.push(t.termino);
+  for (const m of conceptMatches) {
     if (dims.length >= 5) break;
-  }
 
-  // Pass 2: pack surfaces (fills contexto-pack and mixta cases)
-  if (dims.length < 5) {
-    for (const t of terminosCoincidentes) {
-      if (t.campo !== "keyword") continue;
-      if (t.superficie === "problema") continue; // already handled
-      if (isNeutralTerm(t.termino)) continue;
-      const key = normalizeText(t.termino);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      dims.push(t.termino);
-      if (dims.length >= 5) break;
-    }
+    // Dedup key: per concept (or per matched text for legacy)
+    const key =
+      m.conceptId === "legacy-keyword"
+        ? `lk:${m.matchedText.toLowerCase()}`
+        : m.conceptId;
+
+    if (seenConceptIds.has(key)) continue;
+    seenConceptIds.add(key);
+    dims.push(m.conceptName); // always the human-readable name
   }
 
   // ── 3. resumen ────────────────────────────────────────────────────────────
   //
   // Template-based. Never exposes scores, weights, or constant names.
-  // Uses enfoqueBreve from metadata so the text stays knowledge-driven.
+  // Uses concept names and enfoqueBreve from metadata so the text is
+  // knowledge-driven and consistent with what the router detected.
   const dimsText = dims.length > 0 ? joinDimensions(dims) : null;
   const packRef = input.packNombre
     ? `el área de ${input.packNombre}`
@@ -159,7 +141,7 @@ export function buildExplicacionSeleccion(
       `La formulación del problema y el contexto de ${packRef} contienen ${signales}. ` +
       `Por eso HELIOS recomienda ${enfoqueBreve}.`;
   } else {
-    // 'problema'
+    // "problema"
     if (dimsText) {
       resumen =
         `La formulación del problema contiene señales de ${dimsText}. ` +

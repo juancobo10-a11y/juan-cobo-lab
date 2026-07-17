@@ -1,5 +1,95 @@
 // ─── Domain types shared across the Thinking Engine ───────────────────────
 
+// ─── Conceptual knowledge model (S-011) ──────────────────────────────────
+//
+// Each Thinking Pattern's knowledge is expressed as an array of ThinkingConcept
+// objects. A concept groups semantically related signals (terms, synonyms,
+// fixed expressions) under a single human-readable name. The algorithm is
+// generic: it iterates over any pattern's conceptos without knowing which
+// pattern it is.
+//
+// Why three tiers (terminos / sinonimos / expresiones)?
+//   expresiones  — full multi-word phrases; highest discrimination power (0.55)
+//   terminos     — primary single-token or short-phrase terms;  medium power (0.35)
+//   sinonimos    — paraphrases and weaker synonyms; lower power (0.20)
+//
+// ADR-0002: all entries in these lists live in metadata.json — never in TS.
+
+/**
+ * A single conceptual family within a Thinking Pattern.
+ * Aggregates semantically related signals at three weight tiers.
+ */
+export type ThinkingConcept = {
+  /** Machine-readable identifier — used as dedup key in ExplanationService */
+  id: string;
+  /** Human-readable name shown in the UI (e.g. "Retroalimentación") */
+  nombre: string;
+  /** One-sentence description of what this concept captures */
+  descripcion: string;
+  /**
+   * Maximum score contribution of this concept — acts as a ceiling so a
+   * concept with many matching terms cannot dominate the score alone.
+   * Defaults to 0.40 in the algorithm if absent.
+   */
+  peso?: number;
+  /** Primary terms — single tokens or short phrases (weight: 0.35) */
+  terminos: string[];
+  /** Paraphrases and weaker synonyms (weight: 0.20) */
+  sinonimos: string[];
+  /** Multi-word fixed expressions — highest discrimination (weight: 0.55) */
+  expresiones: string[];
+  /**
+   * Reserved for future use: contextual signals that increase confidence
+   * when present alongside other concept matches.
+   */
+  indicadores?: string[];
+  /**
+   * Reserved for future use: signals that lower confidence when present
+   * (e.g. "evidencia anecdótica" would contra-indicate "Evidencia sólida").
+   */
+  contraIndicadores?: string[];
+};
+
+/**
+ * A single concept match produced by ConceptualThinkingAlgorithm.
+ * Replaces ThinkingMatchedTerm (which was tied to the flat-keyword model).
+ *
+ * All fields are suitable for logging and traceability but MUST NOT be
+ * exposed directly in the UI — ExplanationService is the only consumer
+ * that should translate these into user-facing language.
+ */
+export type ThinkingConceptMatch = {
+  /** Concept id — used for deduplication in ExplanationService */
+  conceptId: string;
+  /** Human-readable concept name (from ThinkingConcept.nombre) */
+  conceptName: string;
+  /** The exact original text that matched (for debug / traceability) */
+  matchedText: string;
+  /** Which tier of the concept triggered the match */
+  matchType: "termino" | "sinonimo" | "expresion";
+  /** Which component of the router input contained the match */
+  surface: "problema" | "packNombre" | "packContexto";
+  /** Effective weight of this specific match (after diminishing returns) */
+  weight: number;
+};
+
+/**
+ * A single matched term with its provenance and weight.
+ *
+ * @deprecated since S-011 — use ThinkingConceptMatch instead.
+ * Kept only to avoid breaking the legacy KeywordThinkingAlgorithm path
+ * for patterns that have not yet been migrated to the conceptos model.
+ * Will be removed once all patterns use conceptos.
+ */
+export type ThinkingMatchedTerm = {
+  termino: string;
+  campo: "keyword" | "etiqueta" | "titulo" | "descripcion";
+  peso: number;
+  esFrase: boolean;
+  /** Which router input surface this match was found in */
+  superficie: "problema" | "packNombre" | "packContexto";
+};
+
 // ─── Thinking Pattern schema ───────────────────────────────────────────────
 
 /** Shape of each content/thinking/<pattern>/metadata.json */
@@ -9,12 +99,23 @@ export type ThinkingPatternMetadata = {
   descripcion: string;
   /** Method label — analogous to PackMetadata.tema */
   etiqueta: string;
-  /** Activation terms — owned by the pattern, not the router */
-  keywords: string[];
+  /**
+   * Conceptual knowledge model (S-011) — primary knowledge representation.
+   * When present, the ConceptualThinkingAlgorithm uses this for scoring.
+   * Required for all new and migrated patterns; optional only during migration.
+   */
+  conceptos?: ThinkingConcept[];
+  /**
+   * @deprecated since S-011 — superseded by conceptos.
+   * Retained for legacy patterns (e.g. test mocks) that have not been
+   * migrated. Will be removed in a future sprint once all patterns use
+   * conceptos. If conceptos is present, keywords is ignored by the algorithm.
+   */
+  keywords?: string[];
   /**
    * Short user-facing phrase describing what this pattern does.
    * Used by ExplanationService to build the "¿Por qué este patrón?"
-   * sentence. Lives in JSON (ADR-0002); never constructed in code.
+   * sentence. Lives in JSON (ADR-0002).
    *
    * @example "examinar la solidez del diagnóstico y los supuestos"
    * @example "observar cómo funciona el sistema en su conjunto"
@@ -40,7 +141,7 @@ export type ThinkingPatternMetadata = {
 /** A single question within a thinking pattern */
 export type ThinkingQuestion = {
   numero: number;
-  /** Epistemic category: clarificacion | supuestos | evidencia | perspectivas | implicaciones | elementos | relaciones | retroalimentacion | efectos | dinamica */
+  /** Epistemic category */
   categoria: string;
   /** Question template — may include {{problema}} placeholder */
   pregunta: string;
@@ -61,36 +162,11 @@ export type ThinkingPattern = {
 export type ThinkingRouterInput = {
   /** The policy problem text */
   texto: string;
-  /**
-   * Unique identifier of the Knowledge Pack that was selected — used as the
-   * second component of the cache key so the same problem routed through
-   * different packs produces distinct, correctly-enriched results.
-   */
   packId?: string;
-  /** Human-readable domain label (PackMetadata.tema) — added to scoring surface */
+  /** Human-readable domain label (PackMetadata.tema) */
   packNombre?: string;
-  /**
-   * Summarised text from the pack's contexto — enriches keyword matching with
-   * domain-specific vocabulary. Extracted via extractContextSummary() from
-   * thinking/utils.ts, which cuts at sentence boundaries instead of mid-word.
-   */
+  /** Summarised text from the pack's contexto */
   packContextoResumido?: string;
-};
-
-/**
- * A single matched term with its provenance and weight.
- *
- * `superficie` records which component of the router input produced the
- * match — essential for ExplanationService to distinguish evidence from
- * the user's problem text vs. evidence from pack enrichment.
- */
-export type ThinkingMatchedTerm = {
-  termino: string;
-  campo: "keyword" | "etiqueta" | "titulo" | "descripcion";
-  peso: number;
-  esFrase: boolean;
-  /** Which router input surface this match was found in */
-  superficie: "problema" | "packNombre" | "packContexto";
 };
 
 // ─── Explanation ───────────────────────────────────────────────────────────
@@ -108,15 +184,17 @@ export type ExplicacionSeleccion = {
    */
   resumen: string;
   /**
-   * Subset of keyword terms identified as driving the selection.
-   * Human-readable strings (e.g. "efectos indirectos", "supuestos").
-   * Excludes generic policy terms (see NEUTRAL_TERMS in constants.ts).
+   * Human-readable concept names identified as driving the selection
+   * (e.g. "Retroalimentación", "Supuestos", "Interdependencia").
    * Empty array when the pattern was selected by fallback.
+   *
+   * S-011: these are concept names (ThinkingConcept.nombre), not raw
+   * keyword tokens. They are always legible to non-technical users.
    */
   dimensionesDetectadas: string[];
   /**
    * Primary evidence source for the selection:
-   * - "problema"     → the user's problem text provided enough keyword signal.
+   * - "problema"     → the user's problem text provided enough signal.
    * - "contexto-pack"→ the problem text alone was weak; pack context drove it.
    * - "mixta"        → both the problem text and pack context contributed.
    * - "fallback"     → no pattern scored high enough; universal floor applied.
@@ -129,25 +207,20 @@ export type ThinkingCandidate = {
   pattern: ThinkingPattern;
   score: number;
   confianza: "alta" | "media" | "baja";
-  terminosCoincidentes: ThinkingMatchedTerm[];
   /**
-   * True when the pattern was selected via the universalFloor boost, not by
-   * its own keyword score. Use to surface "applied by default" vs "recommended
-   * by direct match" in future transparency UI — do NOT infer by comparing
-   * score === universalFloor numerically.
+   * All concept matches that contributed to this candidate's score.
+   * Ordered: problema matches first, then packNombre, then packContexto.
+   * Used by ExplanationService to build dimensionesDetectadas and determine
+   * fuentePrincipal without re-running the algorithm.
+   *
+   * S-011: replaces terminosCoincidentes (flat-keyword model).
+   */
+  conceptMatches: ThinkingConceptMatch[];
+  /**
+   * True when the pattern was selected via the universalFloor boost, not
+   * by its own concept score. Do NOT infer by comparing score numerically.
    */
   esFallback: boolean;
-  /**
-   * How the pattern was matched. Structured alternative to esFallback for
-   * richer UI and future logging.
-   *
-   * - "coincidencia-directa": the problem text itself contained enough
-   *   keyword signal (scoreProblema ≥ ninguna threshold).
-   * - "contexto-del-pack": the problem text alone was weak, but pack
-   *   enrichment (name or context) pushed the score above threshold.
-   * - "fallback-universal": esUniversal=true and no specific pattern
-   *   competed — universalFloor was applied.
-   */
   motivoSeleccion: "coincidencia-directa" | "contexto-del-pack" | "fallback-universal";
 };
 
@@ -162,12 +235,7 @@ export type ThinkingResult =
   | {
       decision: "seleccionado";
       seleccionado: ThinkingCandidate;
-      /** All scored candidates for transparency */
       candidatos: ThinkingCandidate[];
-      /**
-       * Human-readable explanation of why this pattern was selected.
-       * Built by ExplanationService — not constructed in UI code.
-       */
       explicacionSeleccion: ExplicacionSeleccion;
     }
   | {
@@ -177,7 +245,6 @@ export type ThinkingResult =
     }
   | {
       decision: "ninguno";
-      /** Near-zero scored patterns, for debug/future use */
       candidatos: ThinkingCandidate[];
     };
 
@@ -188,24 +255,20 @@ export type ThinkingResult =
  * reranking, or any future scoring strategy — without touching
  * ThinkingRouter or any UI code.
  *
- * score() is async so implementations can call external APIs, run
- * local inference, or perform vector lookups without changing the
- * router.
+ * S-011: score() now returns conceptMatches (ThinkingConceptMatch[]) instead
+ * of terminosCoincidentes (ThinkingMatchedTerm[]). Implementations that have
+ * not migrated to the conceptual model must wrap their output accordingly.
  */
 export interface ThinkingAlgorithm {
   score(
     input: ThinkingRouterInput,
     metadata: ThinkingPatternMetadata
   ): Promise<{
-    /** Weighted composite score across all surfaces — the value used for routing */
+    /** Weighted composite score across all surfaces */
     score: number;
-    /**
-     * Score computed from the problem text alone (before pack enrichment).
-     * ThinkingRouter uses this to assign motivoSeleccion:
-     *   ≥ ninguna → "coincidencia-directa"
-     *   <  ninguna → "contexto-del-pack"  (pack pushed it above threshold)
-     */
+    /** Score from the problem text alone — used to assign motivoSeleccion */
     scoreProblema: number;
-    terminosCoincidentes: ThinkingMatchedTerm[];
+    /** All concept matches across all surfaces, problema surface first */
+    conceptMatches: ThinkingConceptMatch[];
   }>;
 }

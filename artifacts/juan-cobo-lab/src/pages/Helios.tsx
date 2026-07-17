@@ -1,7 +1,11 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Navbar } from "@/components/layout/Navbar";
-import { ArrowRight, ChevronRight, Sparkles, AlertCircle } from "lucide-react";
+import { ArrowRight, ChevronRight, Sparkles, AlertCircle, FlaskConical } from "lucide-react";
+import type { PolicyHypothesis, ReflectionAnswer } from "@/hypothesis/types";
+import { markPatternChanged } from "@/hypothesis/HypothesisBuilderService";
+import { PantallaHypothesisBuilder } from "@/components/PantallaHypothesisBuilder";
+import { PantallaRevisionHipotesis } from "@/components/PantallaRevisionHipotesis";
 import { heliosRouter } from "@/router/KnowledgeRouter";
 import type {
   KnowledgePack,
@@ -527,7 +531,7 @@ function interpolarProblema(pregunta: string, problema: string): string {
 // without letting it re-run any router logic. Computed once by
 // computePerequeMode() and passed as a single prop.
 
-type PerequeMode =
+export type PerequeMode =
   | {
       mode: "single";
       pattern: ThinkingPattern;
@@ -630,27 +634,38 @@ function PreguntaItem({
   abierta,
   onToggle,
   keyPrefix = "",
+  answer,
+  onAnswerChange,
 }: {
   pregunta: ThinkingQuestion;
   problema: string;
   abierta: string | null;
   onToggle: (key: string) => void;
   keyPrefix?: string;
+  /** Current answer text — empty string when unanswered */
+  answer?: string;
+  /** Called when the user types in the reflection textarea (S-015) */
+  onAnswerChange?: (value: string) => void;
 }) {
   const key = `${keyPrefix}${pregunta.numero}`;
   const isOpen = abierta === key;
   const estiloCategoria =
     categoriaStyle[pregunta.categoria] ??
     "bg-muted/30 text-muted-foreground ring-border";
+  const answerId = `reflection-${key}`;
 
   return (
     <motion.div variants={fadeUp} role="listitem">
+      {/* ── Toggle button (header only) ── accessible interactive element */}
       <button
         type="button"
         onClick={() => onToggle(key)}
         aria-expanded={isOpen}
+        aria-controls={isOpen ? `panel-${key}` : undefined}
         aria-label={`Pregunta ${pregunta.numero}: ${pregunta.categoria}. ${isOpen ? "Cerrar" : "Expandir"}`}
-        className="group w-full text-left rounded-2xl border border-border bg-white px-6 py-5 hover:border-accent/30 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 transition-all duration-300"
+        className={`group w-full text-left rounded-2xl border bg-white px-6 py-5 hover:border-accent/30 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 transition-all duration-300 ${
+          isOpen ? "rounded-b-none border-b-0 border-accent/20" : "border-border"
+        }`}
       >
         <div className="flex items-start gap-4">
           <span
@@ -676,39 +691,66 @@ function PreguntaItem({
             <p className="text-base text-primary leading-[1.7]">
               {interpolarProblema(pregunta.pregunta, problema)}
             </p>
-            <AnimatePresence>
-              {isOpen && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                  className="overflow-hidden"
-                >
-                  <div className="mt-5 space-y-4 border-t border-border pt-5">
-                    <div>
-                      <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground/45 mb-1.5">
-                        Propósito
-                      </p>
-                      <p className="text-sm text-foreground/65 leading-[1.8]">
-                        {pregunta.proposito}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground/45 mb-1.5">
-                        Orientación
-                      </p>
-                      <p className="text-sm text-foreground/65 leading-[1.8]">
-                        {pregunta.orientacion}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
         </div>
       </button>
+
+      {/* ── Expanded panel — outside the button (textarea is invalid inside button) */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            id={`panel-${key}`}
+            role="region"
+            aria-label={`Detalle de pregunta ${pregunta.numero}`}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="rounded-b-2xl border border-t-0 border-accent/20 bg-white px-6 pb-5">
+              <div className="pt-5 space-y-4">
+                <div>
+                  <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground/45 mb-1.5">
+                    Propósito
+                  </p>
+                  <p className="text-sm text-foreground/65 leading-[1.8]">
+                    {pregunta.proposito}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground/45 mb-1.5">
+                    Orientación
+                  </p>
+                  <p className="text-sm text-foreground/65 leading-[1.8]">
+                    {pregunta.orientacion}
+                  </p>
+                </div>
+
+                {/* ── S-015: Reflection answer field ──────────────────── */}
+                {onAnswerChange !== undefined && (
+                  <div className="border-t border-border pt-4">
+                    <label
+                      htmlFor={answerId}
+                      className="block text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground/45 mb-2"
+                    >
+                      Tu reflexión <span className="font-normal normal-case">(opcional)</span>
+                    </label>
+                    <textarea
+                      id={answerId}
+                      value={answer ?? ""}
+                      onChange={(e) => onAnswerChange(e.target.value)}
+                      placeholder="¿Qué observas sobre este aspecto del problema?"
+                      rows={3}
+                      className="w-full rounded-xl border border-border bg-muted/10 px-4 py-3 text-sm text-primary leading-[1.75] placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 resize-none transition-colors"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -718,11 +760,28 @@ function PreguntaItem({
 function PantallaPereque({
   problema,
   perequeMode,
+  reflectionAnswers,
+  onAnswerChange,
+  onConstruirHipotesis,
   onContinuar,
   onVolver,
 }: {
   problema: string;
   perequeMode: PerequeMode;
+  /** S-015: Answers captured so far in this session. */
+  reflectionAnswers: ReflectionAnswer[];
+  /** S-015: Called when the user types in a reflection textarea. */
+  onAnswerChange: (
+    questionKey: string,
+    questionText: string,
+    answerText: string,
+    patternId: string,
+    patternTitulo: string,
+    categoria: string
+  ) => void;
+  /** S-015: Primary CTA — navigate to hypothesis-builder. */
+  onConstruirHipotesis: () => void;
+  /** Legacy CTA — navigate directly to hipotesis (old flow). */
   onContinuar: () => void;
   onVolver: () => void;
 }) {
@@ -739,6 +798,7 @@ function PantallaPereque({
     setAbierta((prev) => (prev === key ? null : key));
 
   const isCombined = perequeMode.mode === "combined";
+  const hasAnswers = reflectionAnswers.some((r) => r.answerText.trim() !== "");
 
   return (
     <motion.div
@@ -843,6 +903,21 @@ function PantallaPereque({
                   abierta={abierta}
                   onToggle={toggle}
                   keyPrefix="single:"
+                  answer={
+                    reflectionAnswers.find(
+                      (r) => r.questionKey === `single:${p.numero}`
+                    )?.answerText
+                  }
+                  onAnswerChange={(value) =>
+                    onAnswerChange(
+                      `single:${p.numero}`,
+                      interpolarProblema(p.pregunta, problema),
+                      value,
+                      perequeMode.pattern.metadata.id,
+                      perequeMode.pattern.metadata.titulo,
+                      p.categoria
+                    )
+                  }
                 />
               ))}
             </motion.div>
@@ -919,6 +994,21 @@ function PantallaPereque({
                     abierta={abierta}
                     onToggle={toggle}
                     keyPrefix="primary:"
+                    answer={
+                      reflectionAnswers.find(
+                        (r) => r.questionKey === `primary:${p.numero}`
+                      )?.answerText
+                    }
+                    onAnswerChange={(value) =>
+                      onAnswerChange(
+                        `primary:${p.numero}`,
+                        interpolarProblema(p.pregunta, problema),
+                        value,
+                        perequeMode.primaryPattern.metadata.id,
+                        perequeMode.primaryPattern.metadata.titulo,
+                        p.categoria
+                      )
+                    }
                   />
                 ))}
               </motion.div>
@@ -957,6 +1047,21 @@ function PantallaPereque({
                       abierta={abierta}
                       onToggle={toggle}
                       keyPrefix="secondary:"
+                      answer={
+                        reflectionAnswers.find(
+                          (r) => r.questionKey === `secondary:${p.numero}`
+                        )?.answerText
+                      }
+                      onAnswerChange={(value) =>
+                        onAnswerChange(
+                          `secondary:${p.numero}`,
+                          interpolarProblema(p.pregunta, problema),
+                          value,
+                          perequeMode.secondaryPattern.metadata.id,
+                          perequeMode.secondaryPattern.metadata.titulo,
+                          p.categoria
+                        )
+                      }
                     />
                   ))}
                 </motion.div>
@@ -972,21 +1077,47 @@ function PantallaPereque({
         {/* ── Botones ───────────────────────────────────────────────── */}
         <motion.div
           variants={fadeUp}
-          className={`${isCombined ? "mt-10" : "mt-12"} flex flex-wrap items-center gap-5`}
+          className={`${isCombined ? "mt-10" : "mt-12"} space-y-4`}
         >
-          <button
-            onClick={onContinuar}
-            className="group flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-primary text-white text-sm font-medium tracking-wide hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 transition-all duration-200"
-          >
-            Continuar con las hipótesis
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
-          </button>
-          <button
-            onClick={onVolver}
-            className="text-sm text-muted-foreground/60 hover:text-primary underline-offset-4 hover:underline transition-colors duration-200"
-          >
-            Volver
-          </button>
+          {/* Non-blocking amber advisory when no answers typed yet */}
+          {!hasAnswers && (
+            <div
+              className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/50 px-5 py-4"
+              role="status"
+              aria-live="polite"
+            >
+              <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" aria-hidden="true" />
+              <p className="text-sm text-amber-700/85 leading-relaxed">
+                Puedes continuar sin reflexiones escritas, pero aportar algunas notas enriquece las hipótesis que construirás a continuación.
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-5">
+            {/* S-015: Primary CTA → Hypothesis Builder */}
+            <button
+              onClick={onConstruirHipotesis}
+              className="group flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-primary text-white text-sm font-medium tracking-wide hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 transition-all duration-200"
+            >
+              <FlaskConical className="w-4 h-4" aria-hidden="true" />
+              Construir hipótesis
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" aria-hidden="true" />
+            </button>
+            {/* Legacy secondary CTA → old hipotesis flow */}
+            <button
+              onClick={onContinuar}
+              className="group flex items-center gap-1.5 text-sm text-muted-foreground/60 hover:text-primary transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 rounded"
+            >
+              Continuar con las hipótesis
+              <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
+            </button>
+            <button
+              onClick={onVolver}
+              className="text-sm text-muted-foreground/50 hover:text-primary underline-offset-4 hover:underline transition-colors duration-200"
+            >
+              Volver
+            </button>
+          </div>
         </motion.div>
 
       </div>
@@ -1357,6 +1488,8 @@ type Pantalla =
   | "sin-pack"
   | "seleccion-thinking-pattern" // S-014: user chooses from multiple candidates
   | "pereque"                    // Thinking Engine — reflexión antes de hipótesis
+  | "hypothesis-builder"         // S-015: structured hypothesis formulation
+  | "revision-hipotesis"         // S-015: final session review before confirming
   | "hipotesis"
   | "pestel"
   | "descubrimiento";
@@ -1408,6 +1541,20 @@ export default function Helios() {
    */
   const [pantallaVolverDesdeSeleccion, setPantallaVolverDesdeSeleccion] =
     useState<Pantalla>("entrada");
+
+  /**
+   * S-015: Reflection answers captured from the pereque accordion.
+   * Keyed by "${prefix}:${numero}" (e.g. "single:3", "primary:1").
+   * Session-only — not persisted to DB or localStorage.
+   */
+  const [reflectionAnswers, setReflectionAnswers] = useState<ReflectionAnswer[]>([]);
+
+  /**
+   * S-015: Hypotheses formulated by the analyst. Session-only.
+   */
+  const [hypotheses, setHypotheses] = useState<PolicyHypothesis[]>([]);
+  const [primaryHypothesisId, setPrimaryHypothesisId] = useState<string | undefined>(undefined);
+  const [hypothesesReviewed, setHypothesesReviewed] = useState(false);
 
   const handleSubmitProblema = async (p: string) => {
     setProblema(p);
@@ -1549,10 +1696,82 @@ export default function Helios() {
     setCandidateExplanations(new Map());
     setPantallaVolverDesdePereque("entrada");
     setPantallaVolverDesdeSeleccion("entrada");
+    // S-015: reset hypothesis session
+    setReflectionAnswers([]);
+    setHypotheses([]);
+    setPrimaryHypothesisId(undefined);
+    setHypothesesReviewed(false);
     setPantalla("entrada");
   };
 
   const handleOtraHipotesis = () => setPantalla("hipotesis");
+
+  // ── S-015: Hypothesis Builder handlers ───────────────────────────────────
+
+  const handleAnswerChange = useCallback(
+    (
+      questionKey: string,
+      questionText: string,
+      answerText: string,
+      patternId: string,
+      patternTitulo: string,
+      categoria: string
+    ) => {
+      setReflectionAnswers((prev) => {
+        const idx = prev.findIndex((r) => r.questionKey === questionKey);
+        if (!answerText.trim()) {
+          // Remove empty answers — keep list clean
+          return idx >= 0 ? prev.filter((_, i) => i !== idx) : prev;
+        }
+        const entry: ReflectionAnswer = {
+          questionKey,
+          questionText,
+          answerText,
+          patternId,
+          patternTitulo,
+          categoria,
+        };
+        return idx >= 0
+          ? prev.map((r, i) => (i === idx ? entry : r))
+          : [...prev, entry];
+      });
+    },
+    []
+  );
+
+  const handleConstruirHipotesis = useCallback(() => {
+    setPantalla("hypothesis-builder");
+  }, []);
+
+  const handleUpdateHypotheses = useCallback(
+    (updated: PolicyHypothesis[]) => setHypotheses(updated),
+    []
+  );
+
+  const handleUpdatePrimaryId = useCallback(
+    (id: string | undefined) => setPrimaryHypothesisId(id),
+    []
+  );
+
+  const handleContinuarDesdeBuilder = useCallback(() => {
+    setPantalla("revision-hipotesis");
+  }, []);
+
+  const handleVolverDesdeBuilder = useCallback(() => {
+    setPantalla("pereque");
+  }, []);
+
+  const handleConfirmarRevision = useCallback(() => {
+    setHypothesesReviewed(true);
+  }, []);
+
+  const handleVolverDesdeRevision = useCallback(() => {
+    setPantalla("hypothesis-builder");
+  }, []);
+
+  const handleVolverRevisionAPereque = useCallback(() => {
+    setPantalla("pereque");
+  }, []);
 
   // ── S-014: Derived values computed before render ──────────────────────────
   // computePerequeMode is a pure function — safe to call in render.
@@ -1622,8 +1841,45 @@ export default function Helios() {
               key="pereque"
               problema={problema}
               perequeMode={perequeMode}
+              reflectionAnswers={reflectionAnswers}
+              onAnswerChange={handleAnswerChange}
+              onConstruirHipotesis={handleConstruirHipotesis}
               onContinuar={handleContinuarDesdePereque}
               onVolver={handleVolverDesdePereque}
+            />
+          )}
+          {/* S-015: Hypothesis Builder */}
+          {pantalla === "hypothesis-builder" && perequeMode && (
+            <PantallaHypothesisBuilder
+              key="hypothesis-builder"
+              problema={problema}
+              perequeMode={perequeMode}
+              reflectionAnswers={reflectionAnswers}
+              hypotheses={hypotheses}
+              primaryHypothesisId={primaryHypothesisId}
+              onUpdateHypotheses={handleUpdateHypotheses}
+              onUpdatePrimaryId={handleUpdatePrimaryId}
+              onContinuar={handleContinuarDesdeBuilder}
+              onVolver={handleVolverDesdeBuilder}
+            />
+          )}
+          {/* S-015: Revision */}
+          {pantalla === "revision-hipotesis" && perequeMode && thinkingResult && (
+            <PantallaRevisionHipotesis
+              key="revision-hipotesis"
+              problema={problema}
+              packActivo={packActivo}
+              thinkingResult={thinkingResult}
+              thinkingUserSelection={thinkingUserSelection}
+              perequeMode={perequeMode}
+              reflectionAnswers={reflectionAnswers}
+              hypotheses={hypotheses}
+              primaryHypothesisId={primaryHypothesisId}
+              hypothesesReviewed={hypothesesReviewed}
+              onEditar={handleVolverDesdeRevision}
+              onConfirmar={handleConfirmarRevision}
+              onVolverPereque={handleVolverRevisionAPereque}
+              onReiniciar={handleReiniciar}
             />
           )}
           {pantalla === "hipotesis" && packActivo && (

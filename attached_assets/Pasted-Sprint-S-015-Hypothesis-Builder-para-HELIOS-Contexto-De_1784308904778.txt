@@ -1,0 +1,833 @@
+Sprint S-015 — Hypothesis Builder para HELIOS
+Contexto
+
+Después de los Sprint S-011 a S-014, HELIOS ya cuenta con una arquitectura estable para:
+
+identificar Thinking Patterns;
+explicar por qué un patrón es pertinente;
+gestionar múltiples candidatos;
+permitir selección individual o combinación;
+presentar preguntas de reflexión;
+preservar la trazabilidad entre la recomendación del Router y la decisión del usuario.
+
+Actualmente el flujo termina en las preguntas de “Démosle pereque”.
+
+El siguiente paso es transformar esa reflexión en una estructura analítica inicial.
+
+HELIOS debe comenzar a producir conocimiento organizado a partir del problema, del Thinking Pattern seleccionado y de la reflexión del usuario.
+
+El objetivo de este sprint es crear un Hypothesis Builder que permita formular hipótesis preliminares de manera estructurada, editable y trazable.
+
+No agregar nuevos Thinking Patterns.
+
+No modificar los scores ni la lógica del Thinking Router.
+
+No introducir LLM, embeddings, APIs externas ni generación automática mediante modelos.
+
+No convertir HELIOS en un chatbot.
+
+Objetivo general
+
+Implementar una nueva etapa del flujo:
+
+Problema
+↓
+Knowledge Pack
+↓
+Thinking Router
+↓
+Selección de enfoque
+↓
+Démosle pereque
+↓
+Hypothesis Builder
+
+El Hypothesis Builder debe permitir que el usuario:
+
+revise los elementos analíticos surgidos de la reflexión;
+formule una o varias hipótesis preliminares;
+estructure cada hipótesis;
+identifique variables;
+especifique el mecanismo causal;
+indique el resultado esperado;
+registre condiciones y límites;
+clasifique el nivel de confianza;
+conserve la relación con el problema y el Thinking Pattern;
+edite, elimine, ordene y confirme las hipótesis.
+Principios metodológicos
+
+Mantener los ADR existentes:
+
+ADR-0001 — HELIOS no es un chatbot.
+ADR-0002 — El conocimiento no vive en el código.
+ADR-0003 — Los Knowledge Packs son composables.
+ADR-0004 — El razonamiento precede a la metodología.
+
+Agregar el siguiente principio:
+
+ADR-0005 — Una hipótesis debe ser explícita, contrastable y revisable
+
+HELIOS no debe presentar opiniones generales como hipótesis.
+
+Una hipótesis debe contener, como mínimo:
+
+Condición o causa
+↓
+Mecanismo esperado
+↓
+Resultado observable
+
+Ejemplo válido:
+
+Cuando los operadores rurales enfrentan costos operativos altos y subsidios inestables, disminuye la continuidad del servicio porque no pueden sostener la operación después de finalizar la inversión inicial.
+
+Ejemplo no válido:
+
+La conectividad rural es importante.
+
+1. Revisión inicial
+
+Antes de implementar, revisar:
+
+estructura actual de Helios.tsx;
+state machine;
+PantallaPereque;
+representación de respuestas del usuario;
+ThinkingResult;
+ThinkingUserSelection;
+preguntas individuales y combinadas;
+navegación;
+reinicio de sesión;
+persistencia actual;
+servicios existentes.
+
+Documentar brevemente:
+
+qué información está disponible al terminar “Démosle pereque”;
+qué información se conserva actualmente;
+qué información falta para construir una hipótesis;
+dónde debe integrarse el nuevo estado.
+
+No implementar hasta completar esta revisión.
+
+2. Nuevo estado del flujo
+
+Agregar un estado explícito:
+
+hypothesis-builder
+
+Flujo esperado:
+
+Démosle pereque
+↓
+Construir hipótesis
+↓
+Revisar hipótesis
+↓
+Continuar
+
+Agregar un botón al final de PantallaPereque:
+
+Construir hipótesis
+
+El botón debe activarse aunque el usuario no haya respondido todas las preguntas.
+
+Si faltan respuestas, mostrar una advertencia no bloqueante:
+
+Puedes construir hipótesis con la información disponible. Las preguntas sin responder quedarán registradas como vacíos de análisis.
+
+No exigir completar todas las preguntas.
+
+3. Modelo de datos
+
+Crear tipos explícitos.
+
+Propuesta:
+
+export type HypothesisConfidence =
+  | 'exploratoria'
+  | 'plausible'
+  | 'bien-sustentada';
+
+export type HypothesisVariableRole =
+  | 'causa'
+  | 'resultado'
+  | 'mediadora'
+  | 'moderadora'
+  | 'control';
+
+export interface HypothesisVariable {
+  id: string;
+  nombre: string;
+  rol: HypothesisVariableRole;
+  descripcion?: string;
+}
+
+export interface PolicyHypothesis {
+  id: string;
+  titulo: string;
+  formulacion: string;
+
+  causa: string;
+  mecanismo: string;
+  resultadoEsperado: string;
+
+  condiciones?: string;
+  limites?: string;
+  evidenciaNecesaria?: string;
+
+  variables: HypothesisVariable[];
+
+  confianza: HypothesisConfidence;
+
+  sourceQuestionIds: string[];
+  thinkingPatternIds: string[];
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+Puede ajustarse el modelo si existe una solución mejor, pero debe conservar como mínimo:
+
+formulación;
+causa;
+mecanismo;
+resultado;
+condiciones;
+límites;
+evidencia necesaria;
+variables;
+confianza;
+trazabilidad;
+fechas.
+
+No persistir todavía en base de datos.
+
+Mantener las hipótesis en el estado de sesión.
+
+4. Hypothesis Builder Service
+
+Crear un servicio puro, por ejemplo:
+
+src/hypothesis/HypothesisBuilderService.ts
+
+Debe centralizar:
+
+creación de hipótesis vacía;
+validación;
+normalización;
+generación de formulación estructurada;
+deduplicación;
+actualización de timestamps;
+ordenamiento;
+verificación de completitud;
+extracción de referencias a preguntas;
+construcción del resumen.
+
+No colocar esta lógica directamente en los componentes.
+
+El servicio no debe contener conocimiento de sectores ni de patrones específicos.
+
+5. Generación asistida, no automática
+
+HELIOS no debe inventar hipótesis completas.
+
+Debe ofrecer una estructura guiada.
+
+El usuario diligencia:
+
+A. Causa o condición
+
+Pregunta guía:
+
+¿Qué factor, decisión, condición o comportamiento podría estar produciendo el problema?
+
+B. Mecanismo
+
+Pregunta guía:
+
+¿Cómo o por qué esa causa produciría el resultado?
+
+C. Resultado esperado
+
+Pregunta guía:
+
+¿Qué cambio observable debería producirse si la hipótesis es correcta?
+
+D. Condiciones
+
+Pregunta guía:
+
+¿Bajo qué circunstancias debería cumplirse?
+
+E. Límites
+
+Pregunta guía:
+
+¿En qué casos podría no cumplirse?
+
+F. Evidencia necesaria
+
+Pregunta guía:
+
+¿Qué información permitiría apoyarla o refutarla?
+
+A partir de los tres primeros campos, el servicio puede construir una formulación provisional:
+
+Cuando [causa], entonces [resultado], porque [mecanismo].
+
+Esta redacción debe ser editable.
+
+No reemplazar el texto escrito manualmente por el usuario.
+
+6. Uso de las respuestas de “Démosle pereque”
+
+Mostrar las respuestas previas como insumos de análisis.
+
+Crear una sección lateral o superior:
+
+Elementos de la reflexión
+
+Por cada respuesta disponible mostrar:
+
+pregunta;
+respuesta;
+Thinking Pattern de origen;
+botón:
+“Usar como insumo”.
+
+Al usar una respuesta como insumo:
+
+no copiar automáticamente en todos los campos;
+permitir asociarla a la hipótesis;
+guardar el questionId en sourceQuestionIds;
+mostrarla como referencia vinculada.
+
+En modo combinado, diferenciar:
+
+preguntas del patrón principal;
+preguntas del patrón complementario.
+7. Plantillas metodológicas por estructura, no por dominio
+
+El Builder puede ofrecer tres plantillas genéricas:
+
+Plantilla causal
+Cuando X ocurre, Y cambia porque Z.
+Plantilla condicional
+El efecto de X sobre Y será mayor o menor cuando Z esté presente.
+Plantilla de mecanismo institucional
+La política produce Y cuando los actores responden a X mediante Z.
+
+Estas plantillas son infraestructura metodológica genérica.
+
+No crear plantillas específicas para:
+
+conectividad;
+educación;
+salud;
+pobreza;
+regulación;
+ningún sector.
+
+La selección de plantilla debe ser opcional.
+
+8. Variables
+
+Permitir agregar variables a cada hipótesis.
+
+Cada variable debe incluir:
+
+nombre;
+rol;
+descripción opcional.
+
+Roles:
+
+causa;
+resultado;
+mediadora;
+moderadora;
+control.
+
+Reglas:
+
+una hipótesis completa debe tener al menos:
+una variable causa;
+una variable resultado;
+mediadoras, moderadoras y controles son opcionales;
+no impedir guardar una hipótesis incompleta;
+mostrar claramente qué falta.
+
+Ejemplo:
+
+Costo operativo rural
+Rol: causa
+
+Continuidad del servicio
+Rol: resultado
+
+Capacidad financiera del operador
+Rol: mediadora
+9. Nivel de confianza
+
+Permitir clasificar cada hipótesis como:
+
+Exploratoria
+
+Existe una relación plausible, pero todavía hay poca evidencia.
+
+Plausible
+
+La hipótesis cuenta con argumentos o evidencia parcial.
+
+Bien sustentada
+
+Existen fundamentos empíricos o teóricos suficientes para priorizar su contrastación.
+
+No usar porcentajes.
+
+No generar confianza automáticamente.
+
+La selección pertenece al usuario.
+
+10. Validación metodológica
+
+Crear una función:
+
+validateHypothesis(hypothesis)
+
+Debe retornar:
+
+interface HypothesisValidation {
+  isComplete: boolean;
+  errors: string[];
+  warnings: string[];
+  strengths: string[];
+}
+Errores de completitud
+no hay formulación;
+no hay causa;
+no hay mecanismo;
+no hay resultado esperado.
+Advertencias
+no hay variable causa;
+no hay variable resultado;
+no se identificaron condiciones;
+no se registró evidencia necesaria;
+no se vinculó ninguna pregunta;
+formulación demasiado general;
+formulación no contiene un resultado observable.
+
+No bloquear el guardado por advertencias.
+
+Bloquear únicamente una confirmación final cuando falten causa, mecanismo o resultado.
+
+11. Heurísticas determinísticas de calidad
+
+Implementar heurísticas simples y transparentes.
+
+No usar IA.
+
+Ejemplos:
+
+Hipótesis demasiado corta
+
+Si la formulación contiene menos de una cantidad mínima razonable de palabras, generar advertencia.
+
+Lenguaje no contrastable
+
+Detectar términos excesivamente vagos como:
+
+mejorar;
+fortalecer;
+optimizar;
+adecuado;
+importante;
+significativo;
+
+solo cuando aparecen sin resultado observable.
+
+No considerar automáticamente esos términos como errores.
+
+Ausencia de relación
+
+Advertir si la formulación no contiene conectores como:
+
+cuando;
+si;
+entonces;
+porque;
+mediante;
+produce;
+afecta;
+aumenta;
+reduce;
+depende.
+
+No hacer parsing lingüístico complejo.
+
+Documentar claramente que son heurísticas orientativas.
+
+12. Múltiples hipótesis
+
+Permitir crear varias hipótesis para un mismo problema.
+
+Funciones:
+
+nueva hipótesis;
+duplicar;
+editar;
+eliminar;
+mover arriba;
+mover abajo;
+marcar como principal.
+
+Debe existir como máximo una hipótesis principal.
+
+No imponer límite estricto, pero mostrar recomendación cuando haya más de cinco:
+
+Para mantener el análisis manejable, conviene priorizar las hipótesis más relevantes.
+
+No bloquear.
+
+13. Pantalla del Builder
+
+Crear un componente:
+
+PantallaHypothesisBuilder.tsx
+
+Estructura sugerida:
+
+Título
+Resumen del problema
+Thinking Pattern seleccionado
+Elementos de reflexión
+Lista de hipótesis
+Editor de hipótesis
+Validación metodológica
+Acciones
+
+Encabezado:
+
+Construyamos hipótesis
+
+Texto:
+
+Una hipótesis conecta una causa, un mecanismo y un resultado que puede contrastarse con evidencia.
+
+14. Tarjeta de hipótesis
+
+Cada hipótesis en la lista debe mostrar:
+
+título;
+formulación resumida;
+confianza;
+estado:
+borrador;
+incompleta;
+lista para contrastar;
+cantidad de variables;
+cantidad de insumos vinculados;
+indicador de hipótesis principal.
+
+Acciones:
+
+editar;
+duplicar;
+marcar como principal;
+mover;
+eliminar.
+
+La eliminación debe solicitar confirmación.
+
+15. Estados de una hipótesis
+
+Calcular el estado de forma determinística:
+
+Borrador
+
+Tiene algunos campos, pero no contiene causa, mecanismo y resultado completos.
+
+Incompleta
+
+Tiene causa, mecanismo y resultado, pero presenta errores metodológicos relevantes.
+
+Lista para contrastar
+
+Tiene:
+
+formulación;
+causa;
+mecanismo;
+resultado;
+una variable causa;
+una variable resultado;
+evidencia necesaria.
+
+No utilizar el nivel de confianza para definir este estado.
+
+Una hipótesis exploratoria puede estar lista para contrastar.
+
+16. Vista de revisión
+
+Crear una vista final:
+
+PantallaRevisionHipotesis
+
+Debe mostrar:
+
+problema;
+Knowledge Pack activo;
+resultado original del Router;
+selección del usuario;
+patrón principal;
+patrón complementario, si existe;
+respuestas vinculadas;
+hipótesis principal;
+hipótesis secundarias;
+variables;
+evidencia necesaria;
+alertas metodológicas.
+
+Acciones:
+
+volver a editar;
+confirmar conjunto de hipótesis;
+volver a “Démosle pereque”;
+reiniciar análisis.
+
+La confirmación no envía información a ningún servidor.
+
+Solo marca el conjunto como revisado dentro de la sesión.
+
+17. Trazabilidad
+
+Mantener una estructura de sesión equivalente a:
+
+interface HeliosAnalysisSession {
+  problem: string;
+  knowledgePackId?: string;
+
+  thinkingResult: ThinkingResult;
+  thinkingUserSelection?: ThinkingUserSelection;
+
+  reflectionAnswers: ReflectionAnswer[];
+
+  hypotheses: PolicyHypothesis[];
+  primaryHypothesisId?: string;
+
+  hypothesesReviewed: boolean;
+}
+
+El sistema debe conservar claramente:
+
+Problema original
+↓
+Recomendación del Router
+↓
+Selección del usuario
+↓
+Preguntas respondidas
+↓
+Hipótesis formuladas
+
+No sobrescribir ninguna capa anterior.
+
+18. Navegación
+Desde Démosle pereque
+
+“Construir hipótesis” abre el Builder.
+
+Volver desde el Builder
+
+Regresa a “Démosle pereque” conservando:
+
+respuestas;
+hipótesis;
+selección;
+Router;
+Knowledge Pack.
+Volver desde revisión
+
+Regresa al Builder sin perder cambios.
+
+Cambiar Thinking Pattern
+
+Si el usuario vuelve hasta selección y cambia el patrón:
+
+conservar las hipótesis existentes;
+
+marcarlas con una advertencia:
+
+El enfoque de razonamiento cambió después de formular esta hipótesis.
+
+permitir:
+conservarlas;
+editarlas;
+eliminarlas.
+
+No borrar hipótesis automáticamente.
+
+19. Accesibilidad
+
+Todos los formularios deben:
+
+usar labels explícitos;
+ser navegables con teclado;
+mostrar errores asociados al campo;
+no depender solo del color;
+anunciar cambios importantes mediante aria-live;
+usar botones reales;
+permitir foco visible;
+mantener orden lógico de tabulación.
+
+No implementar drag-and-drop.
+
+Usar botones “Mover arriba” y “Mover abajo”.
+
+20. Persistencia
+
+En este sprint:
+
+no usar base de datos;
+no usar localStorage salvo que ya exista una política de sesión;
+no enviar datos a servicios externos;
+no crear cuentas;
+no implementar exportación.
+
+Mantener todo en memoria durante la sesión.
+
+Documentar el riesgo de pérdida al recargar la página.
+
+21. Pruebas obligatorias
+
+Crear un archivo de validación S-015.
+
+Caso 1 — Crear hipótesis vacía
+
+Debe generar un id y timestamps.
+
+Caso 2 — Formulación estructurada
+
+Causa + mecanismo + resultado deben producir una formulación provisional.
+
+Caso 3 — Edición manual
+
+La formulación manual no debe sobrescribirse sin autorización.
+
+Caso 4 — Validación incompleta
+
+Debe identificar ausencia de causa, mecanismo y resultado.
+
+Caso 5 — Hipótesis lista para contrastar
+
+Debe reconocer una hipótesis completa.
+
+Caso 6 — Variables
+
+Debe aceptar distintos roles y exigir causa + resultado para completitud.
+
+Caso 7 — Trazabilidad
+
+Debe conservar sourceQuestionIds y thinkingPatternIds.
+
+Caso 8 — Duplicación
+
+Debe crear un nuevo id y conservar el contenido.
+
+Caso 9 — Ordenamiento
+
+Mover arriba y abajo debe ser determinístico.
+
+Caso 10 — Hipótesis principal
+
+Solo una puede estar marcada como principal.
+
+Caso 11 — Eliminación
+
+Debe remover la hipótesis sin afectar las demás.
+
+Caso 12 — Múltiples patrones
+
+Una hipótesis puede estar vinculada a patrón principal y complementario.
+
+Caso 13 — Cambio de patrón
+
+Debe generar advertencia sin borrar hipótesis.
+
+Caso 14 — Volver
+
+Debe conservar respuestas e hipótesis.
+
+Caso 15 — Reiniciar
+
+Debe limpiar todo el estado de análisis.
+
+Caso 16 — Heurística vaga
+
+Debe advertir sobre una formulación no observable.
+
+Caso 17 — Evidencia ausente
+
+Debe generar advertencia, no error bloqueante.
+
+Caso 18 — Más de cinco hipótesis
+
+Debe mostrar recomendación sin impedir creación.
+
+22. Regresión
+
+Ejecutar:
+
+validación S-012;
+validación S-013;
+validación S-014;
+smoke tests;
+typecheck;
+build;
+revisión de consola.
+
+No modificar metadata del Thinking Router para hacer pasar pruebas del Builder.
+
+No cambiar la lógica de selección de patrones.
+
+23. Architecture Review
+
+Al finalizar responder:
+
+¿Cómo se representa una hipótesis?
+¿Qué diferencia existe entre formulación, causa, mecanismo y resultado?
+¿Cómo se vinculan las respuestas de reflexión?
+¿Cómo se preserva el Thinking Result original?
+¿Cómo se preserva la selección del usuario?
+¿Qué heurísticas metodológicas se implementaron?
+¿Qué condiciones hacen que una hipótesis esté lista para contrastar?
+¿Cómo se gestionan múltiples hipótesis?
+¿Cómo se determina la hipótesis principal?
+¿Qué ocurre cuando cambia el Thinking Pattern?
+¿Cómo funciona la navegación?
+¿Qué información se pierde al recargar?
+¿Qué decisiones quedaron fuera del alcance?
+¿Existe alguna tensión con los ADR?
+¿Está HELIOS preparado para avanzar hacia variables e indicadores?
+24. Entrega
+
+Entregar:
+
+revisión inicial;
+ADR-0005;
+tipos;
+HypothesisBuilderService;
+PantallaHypothesisBuilder;
+vista de revisión;
+integración en Helios.tsx;
+navegación;
+validación;
+accesibilidad;
+pruebas;
+informe de arquitectura;
+actualización de changelog;
+commit;
+push;
+no hacer republish;
+detenerse para revisión.

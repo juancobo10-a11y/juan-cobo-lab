@@ -1,5 +1,45 @@
 # HELIOS — Changelog
 
+## S-015 (2026-07-17) — Hypothesis Builder
+
+### Resumen
+Convierte la reflexión del pereque en hipótesis estructuradas, editables y trazables.
+Ningún LLM interviene. Todo el estado es session-only (sin DB ni localStorage).
+ADR-0005 añadido: toda hipótesis debe ser explícita, contrastable y revisable.
+
+### Nuevas pantallas
+- **`hypothesis-builder`** (`PantallaHypothesisBuilder`) — crea, edita, ordena, duplica y elimina hipótesis; vincula reflexiones como insumo; muestra diagnóstico metodológico inline; plantillas genéricas; editor con generador de formulación provisional bajo demanda.
+- **`revision-hipotesis`** (`PantallaRevisionHipotesis`) — resumen de sesión completo: problema → pack → router → selección → patrones → reflexiones → hipótesis con validación. Confirmar = `hypothesesReviewed = true` (no hay Pantalla extra).
+
+### Cambios en pantallas existentes
+- **`PreguntaItem`** — reestructurado: header (botón) separado del panel expandido (ahora un `<div>` con `role="region"`) para permitir `<textarea>` sin HTML inválido (interactive dentro de interactive).
+- **`PantallaPereque`** — nuevas props: `reflectionAnswers`, `onAnswerChange`, `onConstruirHipotesis`. CTA primaria: "Construir hipótesis". CTA secundaria: "Continuar con las hipótesis". Aviso ámbar no bloqueante si no hay reflexiones escritas.
+
+### Nuevos servicios
+- `src/hypothesis/types.ts` — tipos completos: `PolicyHypothesis`, `ReflectionAnswer`, `HypothesisVariable`, `HypothesisValidation`, `HypothesisTemplate`, `HYPOTHESIS_TEMPLATES` (3 plantillas metodológicas genéricas).
+- `src/hypothesis/HypothesisBuilderService.ts` — funciones puras: `createEmptyHypothesis`, `updateHypothesis`, `buildProvisionalFormulacion`, `validateHypothesis`, `computeHypothesisStatus`, `duplicateHypothesis`, `moveHypothesis`, `setPrimaryHypothesis`, `removeHypothesis`, `markPatternChanged`, `linkReflectionAnswer`, `unlinkReflectionAnswer`, `createVariable`, `removeVariable`, `updateVariable`, `exceedsRecommendedCount`, `getAnsweredReflections`, `getPrimaryHypothesis`.
+
+### Cambios en Helios state machine
+- Tipo `Pantalla`: añadidos `"hypothesis-builder"` y `"revision-hipotesis"`.
+- Estado nuevo: `reflectionAnswers`, `hypotheses`, `primaryHypothesisId`, `hypothesesReviewed`.
+- Handlers nuevos: `handleAnswerChange`, `handleConstruirHipotesis`, `handleUpdateHypotheses`, `handleUpdatePrimaryId`, `handleContinuarDesdeBuilder`, `handleVolverDesdeBuilder`, `handleConfirmarRevision`, `handleVolverDesdeRevision`, `handleVolverRevisionAPereque`.
+- `handleReiniciar` restablece todo el estado S-015.
+- `PerequeMode` ahora es `export type` (requerido por los nuevos componentes).
+
+### Reglas de diseño (ADR-0005)
+- `buildProvisionalFormulacion` es pura y nunca se auto-aplica.
+- `computeHypothesisStatus` es independiente de `confianza`.
+- `markPatternChanged` añade flag de advertencia sin borrar hipótesis.
+- Edición en `PantallaHypothesisBuilder` es inmediata (sin ciclo save/cancel).
+- Confirmación de revisión: `hypothesesReviewed = true`, sin Pantalla adicional.
+
+### Validación
+- `src/hypothesis/__tests__/validacion_s015.ts` — 18/18 ✓
+- TypeCheck: 0 errores
+- `docs/validation/hypothesis-builder-s015.md` — 15 preguntas de arquitectura respondidas
+
+---
+
 ## S-014 (2026-07-17) — Gestión explicable de múltiples Thinking Patterns candidatos
 
 ### Resumen

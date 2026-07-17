@@ -11,6 +11,8 @@ import type {
   PackMetadata,
   RouterResult,
 } from "@/router/types";
+import { heliosThinkingEngine } from "@/thinking/ThinkingRouter";
+import type { ThinkingPattern } from "@/thinking/types";
 
 // ─── Animation variants ─────────────────────────────────────────────────────
 const screenEnter: Variants = {
@@ -463,6 +465,221 @@ function PantallaSinPack({
   );
 }
 
+// ─── Pantalla: Démosle pereque (Thinking Engine) ───────────────────────────
+
+// Colores por categoría socrática — extensibles para nuevos patrones
+const categoriaStyle: Record<string, string> = {
+  clarificacion: "bg-slate-50 text-slate-600 ring-slate-200/60",
+  supuestos:     "bg-amber-50  text-amber-700  ring-amber-200/60",
+  evidencia:     "bg-blue-50   text-blue-700   ring-blue-200/60",
+  perspectivas:  "bg-violet-50 text-violet-700 ring-violet-200/60",
+  implicaciones: "bg-emerald-50 text-emerald-700 ring-emerald-200/60",
+};
+
+/**
+ * Sustituye {{problema}} por el texto real del usuario en guillemets.
+ * Facilita lectura fluida sin signos de interrogación anidados.
+ */
+function interpolarProblema(pregunta: string, problema: string): string {
+  return pregunta.replace("{{problema}}", `«${problema}»`);
+}
+
+function PantallaPereque({
+  problema,
+  pattern,
+  onContinuar,
+  onVolver,
+}: {
+  problema: string;
+  pattern: ThinkingPattern;
+  onContinuar: () => void;
+  onVolver: () => void;
+}) {
+  const [abierta, setAbierta] = useState<number | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
+
+  const toggle = (num: number) =>
+    setAbierta((prev) => (prev === num ? null : num));
+
+  return (
+    <motion.div
+      key="pereque"
+      variants={screenEnter}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="min-h-[calc(100vh-4rem)]"
+    >
+      <div className="max-w-2xl mx-auto px-6 py-20 w-full">
+
+        {/* ── Contexto del problema ─────────────────────────────────── */}
+        <motion.div variants={fadeUp} className="mb-10">
+          <span className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground/60">
+            <span className="text-accent" aria-hidden="true">◆</span>
+            Analizando
+          </span>
+          <p className="mt-1.5 text-lg font-serif italic text-primary/70">
+            "{problema}"
+          </p>
+        </motion.div>
+
+        {/* ── Título ────────────────────────────────────────────────── */}
+        <motion.h2
+          ref={headingRef}
+          tabIndex={-1}
+          variants={fadeUp}
+          className="font-serif text-4xl md:text-5xl text-primary leading-[1.15] mb-4 focus:outline-none"
+        >
+          Démosle pereque
+        </motion.h2>
+
+        <motion.p
+          variants={fadeUp}
+          className="text-base text-foreground/60 leading-relaxed mb-10"
+        >
+          Antes de construir hipótesis vale la pena cuestionar la primera
+          interpretación del problema. HELIOS recomienda detenernos unos
+          segundos para ampliar la comprensión.
+        </motion.p>
+
+        {/* ── Badge del patrón (todo viene del ThinkingPattern) ──────── */}
+        <motion.div
+          variants={fadeUp}
+          className="mb-10 flex flex-col gap-1.5 px-5 py-4 rounded-xl border border-border bg-white w-fit max-w-full"
+        >
+          <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground/50">
+            Patrón recomendado
+          </span>
+          <span className="font-serif text-base text-primary">
+            {pattern.metadata.titulo}
+          </span>
+          <span className="text-sm text-foreground/55 leading-snug">
+            {pattern.metadata.descripcion}
+          </span>
+        </motion.div>
+
+        {/* ── Preguntas socrát. (acordeón, solo reflexión) ──────────── */}
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          animate="visible"
+          className="space-y-3"
+          role="list"
+          aria-label="Preguntas de reflexión"
+        >
+          {pattern.preguntas.map((p) => {
+            const isOpen = abierta === p.numero;
+            const estiloCategoria =
+              categoriaStyle[p.categoria] ??
+              "bg-muted/30 text-muted-foreground ring-border";
+
+            return (
+              <motion.div key={p.numero} variants={fadeUp} role="listitem">
+                <button
+                  type="button"
+                  onClick={() => toggle(p.numero)}
+                  aria-expanded={isOpen}
+                  aria-label={`Pregunta ${p.numero}: ${p.categoria}. ${isOpen ? "Cerrar" : "Expandir"}`}
+                  className="group w-full text-left rounded-2xl border border-border bg-white px-6 py-5 hover:border-accent/30 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 transition-all duration-300"
+                >
+                  <div className="flex items-start gap-4">
+                    {/* Número */}
+                    <span
+                      className="shrink-0 font-mono text-xs text-muted-foreground/30 mt-0.5 w-4 select-none"
+                      aria-hidden="true"
+                    >
+                      {p.numero}
+                    </span>
+
+                    <div className="flex-1 min-w-0">
+                      {/* Categoría + chevron */}
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <span
+                          className={`text-[10px] font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-full ring-1 ${estiloCategoria}`}
+                        >
+                          {p.categoria}
+                        </span>
+                        <ChevronRight
+                          className={`shrink-0 w-4 h-4 text-muted-foreground/35 transition-transform duration-300 ${
+                            isOpen ? "rotate-90" : ""
+                          }`}
+                          aria-hidden="true"
+                        />
+                      </div>
+
+                      {/* Pregunta principal — con {{problema}} interpolado */}
+                      <p className="text-base text-primary leading-[1.7]">
+                        {interpolarProblema(p.pregunta, problema)}
+                      </p>
+
+                      {/* Panel expandido: propósito + orientación */}
+                      <AnimatePresence>
+                        {isOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mt-5 space-y-4 border-t border-border pt-5">
+                              <div>
+                                <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground/45 mb-1.5">
+                                  Propósito
+                                </p>
+                                <p className="text-sm text-foreground/65 leading-[1.8]">
+                                  {p.proposito}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground/45 mb-1.5">
+                                  Orientación
+                                </p>
+                                <p className="text-sm text-foreground/65 leading-[1.8]">
+                                  {p.orientacion}
+                                </p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                </button>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+
+        {/* ── Botones ───────────────────────────────────────────────── */}
+        <motion.div
+          variants={fadeUp}
+          className="mt-12 flex flex-wrap items-center gap-5"
+        >
+          <button
+            onClick={onContinuar}
+            className="group flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-primary text-white text-sm font-medium tracking-wide hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 transition-all duration-200"
+          >
+            Continuar con las hipótesis
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
+          </button>
+          <button
+            onClick={onVolver}
+            className="text-sm text-muted-foreground/60 hover:text-primary underline-offset-4 hover:underline transition-colors duration-200"
+          >
+            Volver
+          </button>
+        </motion.div>
+
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Pantalla 2: Hipótesis ──────────────────────────────────────────────────
 function PantallaHipotesis({
   problema,
@@ -824,6 +1041,7 @@ type Pantalla =
   | "enrutando"
   | "confirmacion-candidatos"
   | "sin-pack"
+  | "pereque"            // Thinking Engine — reflexión antes de hipótesis
   | "hipotesis"
   | "pestel"
   | "descubrimiento";
@@ -834,19 +1052,35 @@ export default function Helios() {
   const [packActivo, setPackActivo] = useState<KnowledgePack | null>(null);
   const [routerResult, setRouterResult] = useState<RouterResult | null>(null);
   const [hipotesisActiva, setHipotesisActiva] = useState<Hipotesis | null>(null);
+  // Thinking Engine state — null when no pattern matched or not yet computed
+  const [thinkingPatternActivo, setThinkingPatternActivo] =
+    useState<ThinkingPattern | null>(null);
 
   const handleSubmitProblema = async (p: string) => {
     setProblema(p);
     setPantalla("enrutando");
 
     try {
-      const result = await heliosRouter.route({ texto: p });
-      setRouterResult(result);
+      // Run both routers concurrently — single loading state, no extra transition
+      const [knowledgeResult, thinkingResult] = await Promise.all([
+        heliosRouter.route({ texto: p }),
+        heliosThinkingEngine.route({ texto: p }),
+      ]);
 
-      if (result.decision === "seleccionado") {
-        setPackActivo(result.seleccionado.pack);
-        setPantalla("hipotesis");
-      } else if (result.decision === "candidatos") {
+      setRouterResult(knowledgeResult);
+
+      // Store the thinking pattern if the engine selected one
+      const pattern =
+        thinkingResult.decision === "seleccionado"
+          ? thinkingResult.seleccionado.pattern
+          : null;
+      setThinkingPatternActivo(pattern);
+
+      if (knowledgeResult.decision === "seleccionado") {
+        setPackActivo(knowledgeResult.seleccionado.pack);
+        // ADR-0004: reasoning precedes methodology — show pereque before hipótesis
+        setPantalla(pattern ? "pereque" : "hipotesis");
+      } else if (knowledgeResult.decision === "candidatos") {
         setPantalla("confirmacion-candidatos");
       } else {
         setPantalla("sin-pack");
@@ -859,8 +1093,11 @@ export default function Helios() {
 
   const handleSeleccionarPack = (pack: KnowledgePack) => {
     setPackActivo(pack);
-    setPantalla("hipotesis");
+    // Use the pre-computed thinking pattern from enrutando (if any)
+    setPantalla(thinkingPatternActivo ? "pereque" : "hipotesis");
   };
+
+  const handleContinuarDesdePereque = () => setPantalla("hipotesis");
 
   const handleSeleccionarHipotesis = (h: Hipotesis) => {
     setHipotesisActiva(h);
@@ -874,6 +1111,7 @@ export default function Helios() {
     setPackActivo(null);
     setRouterResult(null);
     setHipotesisActiva(null);
+    setThinkingPatternActivo(null);
     setPantalla("entrada");
   };
 
@@ -907,6 +1145,15 @@ export default function Helios() {
               problema={problema}
               onReiniciar={handleReiniciar}
               packsActivos={heliosRouter.getActivePacks()}
+            />
+          )}
+          {pantalla === "pereque" && thinkingPatternActivo && (
+            <PantallaPereque
+              key="pereque"
+              problema={problema}
+              pattern={thinkingPatternActivo}
+              onContinuar={handleContinuarDesdePereque}
+              onVolver={handleReiniciar}
             />
           )}
           {pantalla === "hipotesis" && packActivo && (

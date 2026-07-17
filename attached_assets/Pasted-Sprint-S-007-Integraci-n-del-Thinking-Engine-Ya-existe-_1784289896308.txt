@@ -1,0 +1,147 @@
+Sprint S-007 — Integración del Thinking Engine
+
+Ya existe un Thinking Engine v0.1 completamente funcional con:
+
+ThinkingRouter
+ThinkingPattern
+Registry
+Algoritmo
+JSON desacoplados
+Tests aprobados
+
+El objetivo de este sprint NO es modificar la arquitectura.
+
+El objetivo es integrar el Thinking Engine dentro de la experiencia de HELIOS respetando todos los ADR aprobados.
+
+ADR que deben respetarse
+ADR-0001 — HELIOS no es un chatbot.
+ADR-0002 — El conocimiento no vive en el código.
+ADR-0003 — Los Knowledge Packs son composables y no excluyentes.
+ADR-0004 — El razonamiento precede a la metodología.
+
+Ninguna implementación puede violar estos principios.
+
+Objetivo funcional
+
+Después de que el usuario describa un problema y el Knowledge Router identifique el Knowledge Pack correspondiente, HELIOS deberá ejecutar automáticamente el Thinking Router.
+
+Si existe un Thinking Pattern recomendado, se mostrará una nueva etapa antes de las hipótesis.
+
+El objetivo de esta etapa no es obtener respuestas del usuario, sino ayudarle a ampliar la comprensión del problema.
+
+Nueva pantalla
+
+Crear una pantalla denominada:
+
+Démosle pereque
+
+Debe contener:
+
+Título
+Démosle pereque
+Texto
+
+Antes de construir hipótesis vale la pena cuestionar la primera interpretación del problema.
+
+HELIOS recomienda detenernos unos segundos para ampliar la comprensión.
+
+Patrón seleccionado
+
+Mostrar automáticamente
+
+Patrón recomendado
+
+Pensamiento Socrático
+
+y una descripción breve tomada del metadata.json.
+
+No escribir textos hardcodeados.
+
+Todo debe venir del Thinking Pattern.
+
+Preguntas
+
+Leer dinámicamente
+
+content/thinking/socratico/preguntas.json
+
+Mostrar únicamente
+
+la pregunta
+
+Al expandir una pregunta mostrar
+
+propósito
+orientación
+
+No pedir respuestas.
+
+No almacenar información.
+
+Solo facilitar la reflexión.
+
+Botones
+
+Continuar con las hipótesis
+
+Volver
+
+Arquitectura
+
+No modificar:
+
+Knowledge Router
+Knowledge Packs
+Registry del Knowledge Router
+
+Consumir únicamente
+
+heliosThinkingEngine
+
+No importar JSON directamente desde React.
+
+Toda la información debe provenir del Thinking Router.
+
+Calidad
+
+Quiero una interfaz elegante.
+
+No parece un formulario.
+
+Debe sentirse como un investigador que hace una pausa para pensar antes de analizar.
+
+Muy importante
+
+No quiero una implementación únicamente.
+
+Quiero una revisión crítica.
+
+Al finalizar responde:
+
+1.
+
+¿Qué decisiones de arquitectura tomaste?
+
+2.
+
+¿Qué riesgos encontraste?
+
+3.
+
+¿Qué mejorarías en Thinking Engine v0.2?
+
+4.
+
+¿Qué mejorarías en la experiencia de usuario?
+
+5.
+
+¿Encontraste alguna contradicción con los ADR?
+
+No hagas republish.
+
+Haz commit.
+
+Haz push.
+
+Detente para revisión.

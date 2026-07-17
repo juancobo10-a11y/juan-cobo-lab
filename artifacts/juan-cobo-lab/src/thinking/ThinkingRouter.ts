@@ -10,6 +10,7 @@ import { KeywordThinkingAlgorithm } from "./algorithms/KeywordThinkingAlgorithm"
 import { THINKING_REGISTRY, type ThinkingRegistryEntry } from "./registry";
 import { THINKING_THRESHOLDS } from "./constants";
 import { normalizeText } from "../router/utils";
+import { buildExplicacionSeleccion } from "./ExplanationService";
 
 // ─── Score guard ──────────────────────────────────────────────────────────
 
@@ -124,13 +125,6 @@ export class ThinkingRouter {
     // [ninguna, baja) range via description-token matches — the floor ensures
     // the semantic contract of esUniversal:true holds regardless.
     //
-    // With the v0.3 separate-surface scoring, universal patterns now receive
-    // their score only from the problem text, so the dilution-by-context issue
-    // is also fixed at the algorithm level. The `< baja` condition is kept as
-    // a belt-and-suspenders guarantee.
-    //
-    // A universal pattern that already scored ≥ baja (0.20) via its own
-    // keywords competes on equal footing with specific patterns.
     // A specific pattern must reach at least "baja" confidence (≥ 0.20) to
     // suppress the universal floor. Weak description-token matches (score in
     // the [ninguna, baja) range) are not meaningful enough to displace a
@@ -221,11 +215,14 @@ export class ThinkingRouter {
       };
     }
 
-    // 7. Clear winner (alta or media)
+    // 7. Clear winner (alta or media) — build explanation and return
+    const explicacionSeleccion = buildExplicacionSeleccion(winner, input);
+
     return {
       decision: "seleccionado",
       seleccionado: winner,
       candidatos: candidates,
+      explicacionSeleccion,
     };
   }
 }

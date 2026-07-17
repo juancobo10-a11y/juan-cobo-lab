@@ -11,6 +11,15 @@ export type ThinkingPatternMetadata = {
   etiqueta: string;
   /** Activation terms — owned by the pattern, not the router */
   keywords: string[];
+  /**
+   * Short user-facing phrase describing what this pattern does.
+   * Used by ExplanationService to build the "¿Por qué este patrón?"
+   * sentence. Lives in JSON (ADR-0002); never constructed in code.
+   *
+   * @example "examinar la solidez del diagnóstico y los supuestos"
+   * @example "observar cómo funciona el sistema en su conjunto"
+   */
+  enfoqueBreve?: string;
   version: string;
   estado: "activo" | "borrador" | "inactivo";
   /**
@@ -68,12 +77,51 @@ export type ThinkingRouterInput = {
   packContextoResumido?: string;
 };
 
-/** A single matched term with its provenance and weight */
+/**
+ * A single matched term with its provenance and weight.
+ *
+ * `superficie` records which component of the router input produced the
+ * match — essential for ExplanationService to distinguish evidence from
+ * the user's problem text vs. evidence from pack enrichment.
+ */
 export type ThinkingMatchedTerm = {
   termino: string;
   campo: "keyword" | "etiqueta" | "titulo" | "descripcion";
   peso: number;
   esFrase: boolean;
+  /** Which router input surface this match was found in */
+  superficie: "problema" | "packNombre" | "packContexto";
+};
+
+// ─── Explanation ───────────────────────────────────────────────────────────
+
+/**
+ * Human-readable explanation of why a pattern was selected.
+ * Built by ExplanationService from ThinkingCandidate + input — never
+ * constructed in Helios.tsx. Must not expose scores, weights, or
+ * internal constant names.
+ */
+export type ExplicacionSeleccion = {
+  /**
+   * One or two complete sentences suitable for display to a non-technical
+   * user. References only concepts the router actually detected.
+   */
+  resumen: string;
+  /**
+   * Subset of keyword terms identified as driving the selection.
+   * Human-readable strings (e.g. "efectos indirectos", "supuestos").
+   * Excludes generic policy terms (see NEUTRAL_TERMS in constants.ts).
+   * Empty array when the pattern was selected by fallback.
+   */
+  dimensionesDetectadas: string[];
+  /**
+   * Primary evidence source for the selection:
+   * - "problema"     → the user's problem text provided enough keyword signal.
+   * - "contexto-pack"→ the problem text alone was weak; pack context drove it.
+   * - "mixta"        → both the problem text and pack context contributed.
+   * - "fallback"     → no pattern scored high enough; universal floor applied.
+   */
+  fuentePrincipal: "problema" | "contexto-pack" | "mixta" | "fallback";
 };
 
 /** A scored candidate pattern, ready for display or selection */
@@ -116,6 +164,11 @@ export type ThinkingResult =
       seleccionado: ThinkingCandidate;
       /** All scored candidates for transparency */
       candidatos: ThinkingCandidate[];
+      /**
+       * Human-readable explanation of why this pattern was selected.
+       * Built by ExplanationService — not constructed in UI code.
+       */
+      explicacionSeleccion: ExplicacionSeleccion;
     }
   | {
       decision: "candidatos";

@@ -1,0 +1,134 @@
+Sprint S-010 — Transparencia semántica del Thinking Router
+Objetivo
+
+Mejorar la transparencia de la pantalla Démosle pereque explicando de forma breve por qué HELIOS seleccionó el Thinking Pattern recomendado.
+
+La explicación debe ser comprensible para usuarios no técnicos y debe basarse en el resultado real del Thinking Router.
+
+No ampliar el catálogo de patrones y no modificar el algoritmo de scoring salvo correcciones estrictamente necesarias.
+
+Requisitos funcionales
+
+En la pantalla de pereque, debajo de la descripción del patrón, mostrar una sección:
+
+¿Por qué este patrón?
+
+El contenido debe generarse a partir de:
+
+motivoSeleccion;
+esFallback;
+patrón seleccionado;
+términos o dimensiones relevantes identificadas por el Router.
+
+No hardcodear una explicación única para todos los patrones.
+
+Casos
+Selección por coincidencia directa
+
+La explicación debe indicar qué características del problema justifican el patrón.
+
+Ejemplo Sistémico:
+
+El problema involucra actores interdependientes, relaciones entre sectores y posibles efectos indirectos. Por eso HELIOS recomienda observar cómo funciona el sistema en conjunto.
+
+Ejemplo Socrático:
+
+La consulta se concentra en supuestos, conceptos y evidencia. Por eso HELIOS recomienda comenzar examinando la solidez del diagnóstico.
+
+Selección apoyada por contexto del pack
+
+Debe aclarar que el contexto disciplinar ayudó a orientar la selección, sin afirmar que el patrón fue determinado únicamente por el sector.
+
+Ejemplo:
+
+Además de la formulación del problema, el contexto del sector educativo muestra relaciones entre docentes, instituciones, tecnología y territorio que hacen pertinente una mirada sistémica.
+
+Fallback universal
+
+Debe ser transparente:
+
+El problema aún no contiene señales suficientes para recomendar un patrón especializado. HELIOS propone comenzar con preguntas socráticas para precisar conceptos, supuestos y evidencia.
+
+No usar lenguaje como “error”, “baja calidad” o “consulta insuficiente”.
+
+Arquitectura
+
+Agregar al resultado una estructura apta para explicación, por ejemplo:
+
+explicacionSeleccion: {
+  resumen: string;
+  dimensionesDetectadas: string[];
+  fuentePrincipal:
+    | 'problema'
+    | 'contexto-pack'
+    | 'mixta'
+    | 'fallback';
+}
+
+La redacción puede construirse en una capa de presentación o servicio dedicado, pero no debe quedar dispersa en Helios.tsx.
+
+No generar la explicación mediante un LLM en esta versión.
+
+No importar metadata directamente desde React.
+
+Mejora algorítmica menor
+
+Revisar términos excesivamente generales como:
+
+política pública;
+sector;
+problema;
+programa;
+gobierno.
+
+Estos términos no deben actuar como señales fuertes para seleccionar un Thinking Pattern.
+
+Implementar una solución centralizada:
+
+lista de términos neutros; o
+reducción explícita de peso.
+
+Documentar la decisión.
+
+Pruebas obligatorias
+Consulta sistémica:
+selecciona Sistémico;
+explicación menciona interdependencia o efectos indirectos.
+Consulta socrática:
+selecciona Socrático directamente;
+explicación menciona supuestos, conceptos o evidencia.
+Consulta genérica:
+selecciona Socrático por fallback;
+explicación declara que no había señales suficientes para un patrón especializado.
+Selección apoyada por pack:
+fuentePrincipal debe poder ser contexto-pack o mixta.
+La explicación no debe exponer:
+scores;
+pesos;
+nombres internos de constantes;
+keywords crudas.
+Knowledge Router sin regresiones.
+Thinking Engine sin regresiones.
+TypeScript y build limpios.
+Architecture Review
+
+Responder:
+
+¿Dónde vive la lógica de explicación?
+¿Cómo se evita inventar razones que el Router no detectó?
+¿Cómo se diferencia evidencia del problema y evidencia del pack?
+¿Qué términos generales fueron neutralizados?
+¿Qué riesgos de sobreexplicación quedan?
+¿La explicación es trazable y testeable?
+¿Existe alguna tensión con los ADR?
+Entrega
+implementación;
+pruebas;
+changelog;
+commit;
+push;
+no hacer republish;
+detenerse para revisión.
+Criterio de éxito
+
+El usuario debe comprender por qué HELIOS recomienda una forma de pensar, sin tener que conocer cómo funciona el algoritmo.

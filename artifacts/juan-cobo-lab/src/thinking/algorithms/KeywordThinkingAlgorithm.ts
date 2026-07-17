@@ -4,7 +4,7 @@ import type {
   ThinkingPatternMetadata,
   ThinkingMatchedTerm,
 } from "../types";
-import { SCORING_WEIGHTS } from "../constants";
+import { SCORING_WEIGHTS, NEUTRAL_TERMS } from "../constants";
 import { normalizeText } from "../../router/utils";
 
 // ─── Stop words (Spanish) ─────────────────────────────────────────────────
@@ -68,15 +68,24 @@ function stemAll(tokens: string[]): string[] {
  * against a pattern's metadata using five matching phases.
  *
  * Returns the raw accumulated score, the meaningful token count (used to
- * normalise the score against surface length), and the list of matched terms.
+ * normalise the score against surface length), and the list of matched terms
+ * tagged with the input surface they came from.
  *
- * Keeping each surface independent is the key v0.3 improvement: combining
- * all surfaces into one string inflated the token count (denominator) and
- * penalised patterns with strong problem-text matches when context was added.
+ * v0.3: three independent surfaces prevent the "dilution by context" bug.
+ *
+ * v0.4 (S-010):
+ *   - `superficieInput` parameter tags every ThinkingMatchedTerm so
+ *     ExplanationService can distinguish problem-text evidence from pack evidence.
+ *   - Phases 4-5 (titulo and descripcion) filter NEUTRAL_TERMS — generic
+ *     policy tokens ("sector", "analisis", "politica", etc.) that appear in
+ *     virtually every pattern description and produce spurious cross-pattern
+ *     scores when the user's query contains them. Keywords (phases 1-2) are
+ *     NEVER filtered: they are explicit author-authored activation signals.
  */
 function scoreSurface(
   surface: string,
-  metadata: ThinkingPatternMetadata
+  metadata: ThinkingPatternMetadata,
+  superficieInput: ThinkingMatchedTerm["superficie"]
 ): { raw: number; tokenCount: number; matched: ThinkingMatchedTerm[] } {
   if (!surface.trim()) return { raw: 0, tokenCount: 1, matched: [] };
 
@@ -103,6 +112,7 @@ function scoreSurface(
         campo: "keyword",
         peso: W.keywordPhrase,
         esFrase: true,
+        superficie: superficieInput,
       });
       for (const part of kwParts) {
         claimed.add(part);
@@ -134,6 +144,7 @@ function scoreSurface(
         campo: "keyword",
         peso: W.keywordToken,
         esFrase: false,
+        superficie: superficieInput,
       });
       claimed.add(normKw);
       claimed.add(kwStem);
@@ -152,10 +163,13 @@ function scoreSurface(
       campo: "etiqueta",
       peso: W.etiqueta,
       esFrase: false,
+      superficie: superficieInput,
     });
   }
 
   // ── Phase 4: titulo tokens ────────────────────────────────────────────────
+  // NEUTRAL_TERMS applied: generic tokens that appear in every pattern's
+  // titulo (e.g. "analisis", "marco") are skipped to prevent spurious matches.
   const tituloTokens = tokenize(metadata.titulo);
   const tituloStemmed = stemAll(tituloTokens);
   const seenTitulo = new Set<string>();
@@ -164,6 +178,8 @@ function scoreSurface(
     const tt = tituloTokens[i];
     const ts = tituloStemmed[i];
     if (seenTitulo.has(ts)) continue;
+    // Skip generic neutral terms in titulo scoring
+    if (NEUTRAL_TERMS.has(tt) || NEUTRAL_TERMS.has(ts)) continue;
 
     if (surfaceTokens.includes(tt) || surfaceStemmed.includes(ts)) {
       raw += W.titulo;
@@ -173,11 +189,15 @@ function scoreSurface(
         campo: "titulo",
         peso: W.titulo,
         esFrase: false,
+        superficie: superficieInput,
       });
     }
   }
 
   // ── Phase 5: descripcion tokens ───────────────────────────────────────────
+  // NEUTRAL_TERMS applied: tokens like "sector", "politica", "publicas",
+  // "analisis", "multiples" appear in every policy-analysis pattern description
+  // and should not act as selection signals.
   const descTokens = tokenize(metadata.descripcion);
   const descStemmed = stemAll(descTokens);
   const seenDesc = new Set<string>();
@@ -186,6 +206,8 @@ function scoreSurface(
     const dt = descTokens[i];
     const ds = descStemmed[i];
     if (seenDesc.has(ds)) continue;
+    // Skip generic neutral terms in descripcion scoring
+    if (NEUTRAL_TERMS.has(dt) || NEUTRAL_TERMS.has(ds)) continue;
 
     if (surfaceTokens.includes(dt) || surfaceStemmed.includes(ds)) {
       raw += W.descripcion;
@@ -195,6 +217,7 @@ function scoreSurface(
         campo: "descripcion",
         peso: W.descripcion,
         esFrase: false,
+        superficie: superficieInput,
       });
     }
   }
@@ -212,6 +235,14 @@ function scoreSurface(
  * This eliminates the "dilution by context" bug where enriching the input with
  * pack vocabulary increased the token count (denominator) and reduced the score
  * of patterns that already matched the problem text directly.
+ *
+ * v0.4 CHANGE (S-010):
+ *   - Each ThinkingMatchedTerm now carries a `superficie` field so
+ *     ExplanationService can distinguish problem-text evidence from pack evidence.
+ *   - Phases 4-5 filter NEUTRAL_TERMS to prevent generic policy tokens from
+ *     biasing pattern selection toward whichever description mentions them most.
+ *   - Deduplication key remains `termino::campo`; first occurrence (problema
+ *     surface) wins, so pack enrichment never overwrites problem-text provenance.
  *
  * Formula:
  *   finalScore = min(
@@ -234,7 +265,8 @@ export class KeywordThinkingAlgorithm implements ThinkingAlgorithm {
     // ── Surface 1: problem text (primary signal) ──────────────────────────
     const { raw: rawP, tokenCount: tcP, matched: matchedP } = scoreSurface(
       input.texto,
-      metadata
+      metadata,
+      "problema"
     );
     const scoreProblema = Math.min(rawP / (tcP * W.keywordPhrase), 1);
 
@@ -244,7 +276,8 @@ export class KeywordThinkingAlgorithm implements ThinkingAlgorithm {
     if (input.packNombre) {
       const { raw: rawN, tokenCount: tcN, matched: mN } = scoreSurface(
         input.packNombre,
-        metadata
+        metadata,
+        "packNombre"
       );
       scoreNombrePack = Math.min(rawN / (tcN * W.keywordPhrase), 1);
       matchedNombre = mN;
@@ -256,7 +289,8 @@ export class KeywordThinkingAlgorithm implements ThinkingAlgorithm {
     if (input.packContextoResumido) {
       const { raw: rawC, tokenCount: tcC, matched: mC } = scoreSurface(
         input.packContextoResumido,
-        metadata
+        metadata,
+        "packContexto"
       );
       scoreContextoPack = Math.min(rawC / (tcC * W.keywordPhrase), 1);
       matchedContexto = mC;
@@ -271,6 +305,8 @@ export class KeywordThinkingAlgorithm implements ThinkingAlgorithm {
     );
 
     // ── Merge terminosCoincidentes (deduplicated by termino+campo) ─────────
+    // First occurrence wins: matchedP comes first so problema-surface
+    // provenance is preserved when the same term also matched in a pack surface.
     const seenKey = new Set<string>();
     const terminosCoincidentes: ThinkingMatchedTerm[] = [];
     for (const m of [...matchedP, ...matchedNombre, ...matchedContexto]) {

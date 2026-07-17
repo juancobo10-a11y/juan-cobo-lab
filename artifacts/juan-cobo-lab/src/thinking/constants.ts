@@ -67,3 +67,43 @@ export type ScoringWeights = typeof SCORING_WEIGHTS;
 // building packContextoResumido. extractContextSummary() in thinking/utils.ts
 // uses this constant and cuts preferentially at a sentence boundary.
 export const CONTEXT_SUMMARY_CHARS = 300 as const;
+
+// ─── Neutral terms (S-010) ────────────────────────────────────────────────────
+//
+// Generic Spanish policy-domain tokens that appear in the DESCRIPTION and
+// TITULO of virtually every analytical pattern. Matching these terms produces
+// spurious scores that bias routing toward whichever pattern happens to mention
+// them more often — not toward the one most relevant to the problem.
+//
+// SCOPE: applied ONLY in Phase 4 (titulo) and Phase 5 (descripcion) of
+// KeywordThinkingAlgorithm.scoreSurface(). Keyword phrases authored in
+// metadata.json (Phases 1-2) are NEVER filtered — those are deliberate
+// activation signals chosen by the knowledge author.
+//
+// FORM: store normalised tokens (no accents, lowercase). Also store both
+// singular and plural so the check works against either the raw token or
+// its stem without depending on stemming correctness.
+//
+// DECISION: ADR-S-010 — centralised neutral-term list is preferred over
+// weight reduction because it is explicit, auditable, and zero-cost (no
+// floating-point tweak required). If a term is later needed as a genuine
+// signal for a new pattern, remove it from this set and add it to the
+// pattern's keywords array instead.
+export const NEUTRAL_TERMS = new Set<string>([
+  // Geographic / administrative scope
+  "sector", "sectores",
+  // Ubiquitous problem framing
+  "problema", "problemas",
+  // Bureaucratic actors / instruments (too generic)
+  "programa", "programas",
+  "gobierno", "gobiernos",
+  // "público / pública" — nearly every policy tool mentions these
+  "publica", "publico", "publicas", "publicos",
+  // "política" as an isolated token (the PHRASE "política pública" in
+  // keywords is intentional and unaffected)
+  "politica", "politicas",
+  // Methodological framing tokens common to all analytical patterns
+  "analisis",
+  "marco",
+  "multiple", "multiples",
+]);

@@ -12,7 +12,7 @@ import type {
   RouterResult,
 } from "@/router/types";
 import { heliosThinkingEngine } from "@/thinking/ThinkingRouter";
-import type { ThinkingPattern, ThinkingResult } from "@/thinking/types";
+import type { ThinkingPattern, ThinkingResult, ExplicacionSeleccion } from "@/thinking/types";
 import { extractContextSummary } from "@/thinking/utils";
 
 // ─── Animation variants ─────────────────────────────────────────────────────
@@ -499,11 +499,17 @@ function interpolarProblema(pregunta: string, problema: string): string {
 function PantallaPereque({
   problema,
   pattern,
+  explicacion,
   onContinuar,
   onVolver,
 }: {
   problema: string;
   pattern: ThinkingPattern;
+  /**
+   * Explanation built by ExplanationService — why this pattern was selected.
+   * null only when the result came from a non-seleccionado decision (defensive).
+   */
+  explicacion: ExplicacionSeleccion | null;
   onContinuar: () => void;
   onVolver: () => void;
 }) {
@@ -573,6 +579,33 @@ function PantallaPereque({
             {pattern.metadata.descripcion}
           </span>
         </motion.div>
+
+        {/* ── ¿Por qué este patrón? ─────────────────────────────────── */}
+        {explicacion && (
+          <motion.div
+            variants={fadeUp}
+            className="mb-10 rounded-xl border border-border bg-amber-50/40 px-5 py-4"
+          >
+            <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground/50 mb-2">
+              ¿Por qué este patrón?
+            </p>
+            <p className="text-sm text-foreground/68 leading-[1.85]">
+              {explicacion.resumen}
+            </p>
+            {explicacion.dimensionesDetectadas.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {explicacion.dimensionesDetectadas.map((d) => (
+                  <span
+                    key={d}
+                    className="text-[10px] px-2.5 py-0.5 rounded-full bg-accent/10 text-accent/80 ring-1 ring-accent/20 font-medium tracking-wide"
+                  >
+                    {d}
+                  </span>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
 
         {/* ── Preguntas socrát. (acordeón, solo reflexión) ──────────── */}
         <motion.div
@@ -1200,6 +1233,7 @@ export default function Helios() {
                 key="pereque"
                 problema={problema}
                 pattern={thinkingResult.seleccionado.pattern}
+                explicacion={thinkingResult.explicacionSeleccion}
                 onContinuar={handleContinuarDesdePereque}
                 onVolver={handleVolverDesdePereque}
               />

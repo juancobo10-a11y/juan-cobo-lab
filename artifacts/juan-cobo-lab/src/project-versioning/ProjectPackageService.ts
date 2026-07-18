@@ -1,16 +1,20 @@
 /**
- * S-024 — ProjectPackageService
+ * S-024 / S-024.1 — ProjectPackageService
  *
- * Pure functions for creating, serializing, deserializing, validating,
+ * Pure async functions for creating, serializing, deserializing, validating,
  * importing, and exporting HELIOS project packages (.helios.json).
  *
- * Security note: packages are not encrypted. The packageHash guarantees
- * integrity (tampering detection), not confidentiality. Users must protect
- * exported files. The content is the complete methodological state.
+ * Security note (ADR-0013A):
+ *   The SHA-256 packageHash verifies content integrity — it confirms that the
+ *   package has not been modified since export. It does NOT verify authorship,
+ *   identity, or origin. The package is not digitally signed.
+ *   Do not describe the hash as "authentic", "certified", or "inviolable".
  *
- * exportedAt is EXCLUDED from the packageHash calculation to allow
- * date-stripped reproducibility (same content exported twice → same hash).
- * This decision is documented here and in ADR-0013.
+ * exportedAt is EXCLUDED from the packageHash to allow date-stripped
+ * reproducibility (same content exported twice → same hash).
+ *
+ * Transactional import: no step before commitImportTransaction() modifies
+ * the active project state. All processing is done on copies.
  */
 
 import type {
@@ -21,61 +25,57 @@ import type {
   ProjectImportResult,
   ProjectIntegrityResult,
   ImportStrategy,
+  ImportConflict,
+  ImportTransaction,
+  SchemaMigrationResult,
 } from "./types";
 import { CURRENT_PROJECT_SCHEMA_VERSION } from "./types";
 import {
   validateSnapshot,
   addProjectSnapshot,
+  deepClone,
 } from "./SnapshotService";
 import { canMigrate, migrateSnapshot } from "./migrations/MigrationService";
+import { sha256Hex } from "./crypto/CryptoHashAdapter";
+import { canonicalStringify } from "./crypto/canonicalize";
 
+export { CURRENT_PROJECT_SCHEMA_VERSION };
 export const CURRENT_PACKAGE_VERSION = "1.0.0";
 
 // ─── Hash ─────────────────────────────────────────────────────────────────────
 
-/** Re-uses the same deterministic hash algorithm as SnapshotService */
-function murmurFingerprint128(s: string): string {
-  const seeds = [0xdeadbeef, 0x41c6ce57, 0xb0f57ee3, 0x7b573bf9];
-  const hexParts = seeds.map((seed) => {
-    let h1 = seed >>> 0;
-    let h2 = (seed ^ 0xf1b2c3d4) >>> 0;
-    for (let i = 0; i < s.length; i++) {
-      const ch = s.charCodeAt(i);
-      h1 = (Math.imul(h1 ^ ch, 0x9e3779b9) >>> 0);
-      h2 = (Math.imul(h2 ^ ch, 0x517cc1b7) >>> 0);
-    }
-    h1 = (Math.imul(h1 ^ (h1 >>> 16), 0x85ebca6b) ^ Math.imul(h2 ^ (h2 >>> 13), 0xc2b2ae35)) >>> 0;
-    h2 = (Math.imul(h2 ^ (h2 >>> 16), 0x85ebca6b) ^ Math.imul(h1 ^ (h1 >>> 13), 0xc2b2ae35)) >>> 0;
-    return h1.toString(16).padStart(8, "0") + h2.toString(16).padStart(8, "0");
-  });
-  return hexParts.join("");
-}
-
-function computePackageHash(
+/**
+ * Compute SHA-256 of package content.
+ * Inputs: manifest fields (excluding exportedAt + packageHash) + sorted snapshot hashes.
+ * Excludes exportedAt so the same content exported on different dates yields the same hash.
+ */
+async function computePackageHash(
   snapshots: ProjectSnapshot[],
   manifest: Omit<ProjectPackageManifest, "packageHash" | "exportedAt">
-): string {
-  const canonical = JSON.stringify({
+): Promise<string> {
+  const canonical = canonicalStringify({
     format: manifest.format,
     packageVersion: manifest.packageVersion,
     schemaVersion: manifest.schemaVersion,
     projectId: manifest.projectId,
     projectName: manifest.projectName,
+    snapshotCount: manifest.snapshotCount,
+    versionCount: manifest.versionCount,
     snapshotHashes: [...snapshots]
       .sort((a, b) => a.id.localeCompare(b.id))
       .map((s) => s.contentHash),
   });
-  return murmurFingerprint128(canonical);
+  return sha256Hex(canonical);
 }
 
 // ─── Create ───────────────────────────────────────────────────────────────────
 
-export function createProjectPackage(
+export async function createProjectPackage(
   projectId: string,
   projectName: string,
   snapshots: ProjectSnapshot[],
   versions: ProjectVersion[]
-): ProjectPackage {
+): Promise<ProjectPackage> {
   const manifestBase = {
     format: "HELIOS_PROJECT_PACKAGE" as const,
     packageVersion: CURRENT_PACKAGE_VERSION,
@@ -89,7 +89,7 @@ export function createProjectPackage(
   const manifest: ProjectPackageManifest = {
     ...manifestBase,
     exportedAt: new Date().toISOString(),
-    packageHash: computePackageHash(snapshots, manifestBase),
+    packageHash: await computePackageHash(snapshots, manifestBase),
   };
 
   return { manifest, snapshots: [...snapshots], versions: [...versions] };
@@ -115,12 +115,29 @@ export function deserializeProjectPackage(raw: string): ProjectPackage | null {
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
-export function validateProjectPackage(pkg: unknown): ProjectIntegrityResult {
+/**
+ * Validate package structure AND hash integrity.
+ *
+ * Extended checks (S-024.1):
+ *   - Each snapshot's own hash is verified.
+ *   - Version → snapshot references are checked.
+ *   - parentVersionId references are checked.
+ *   - Duplicate IDs are detected.
+ *   - No version cycles are allowed.
+ */
+export async function validateProjectPackage(pkg: unknown): Promise<ProjectIntegrityResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
 
   if (!pkg || typeof pkg !== "object") {
-    return { valid: false, hashMatch: false, schemaVersionMatch: false, snapshotCount: 0, errors: ["Not an object"], warnings };
+    return {
+      valid: false,
+      hashMatch: false,
+      schemaVersionMatch: false,
+      snapshotCount: 0,
+      errors: ["Not an object"],
+      warnings,
+    };
   }
 
   const p = pkg as Partial<ProjectPackage>;
@@ -134,25 +151,76 @@ export function validateProjectPackage(pkg: unknown): ProjectIntegrityResult {
     if (!p.manifest.projectName) errors.push("manifest.projectName required");
     if (!p.manifest.schemaVersion) errors.push("manifest.schemaVersion required");
     if (!p.manifest.packageHash) errors.push("manifest.packageHash required");
-    if (typeof p.manifest.snapshotCount !== "number") errors.push("manifest.snapshotCount must be a number");
+    if (typeof p.manifest.snapshotCount !== "number")
+      errors.push("manifest.snapshotCount must be a number");
   }
 
   if (!Array.isArray(p.snapshots)) {
     errors.push("snapshots must be an array");
   } else {
+    // Structural validation per snapshot
     p.snapshots.forEach((s, i) => {
       const r = validateSnapshot(s);
       if (!r.valid) errors.push(`snapshots[${i}]: ${r.errors.join(", ")}`);
+    });
+
+    // Duplicate snapshot IDs
+    const snapIds = new Set<string>();
+    p.snapshots.forEach((s) => {
+      if (snapIds.has(s.id)) errors.push(`Duplicate snapshot id: ${s.id}`);
+      snapIds.add(s.id);
     });
   }
 
   if (!Array.isArray(p.versions)) {
     errors.push("versions must be an array");
+  } else {
+    const snapIdSet = new Set((p.snapshots ?? []).map((s) => s.id));
+    const versionIdSet = new Set<string>();
+
+    // Duplicate version IDs
+    p.versions.forEach((v) => {
+      if (versionIdSet.has(v.id)) errors.push(`Duplicate version id: ${v.id}`);
+      versionIdSet.add(v.id);
+    });
+
+    // Version → snapshot reference integrity
+    p.versions.forEach((v) => {
+      if (!snapIdSet.has(v.snapshotId)) {
+        errors.push(`Version ${v.id} references non-existent snapshot ${v.snapshotId}`);
+      }
+    });
+
+    // parentVersionId reference integrity
+    p.versions.forEach((v) => {
+      if (v.parentVersionId && !versionIdSet.has(v.parentVersionId)) {
+        errors.push(
+          `Version ${v.id} has invalid parentVersionId ${v.parentVersionId}`
+        );
+      }
+    });
+
+    // Cycle detection in version graph (DFS)
+    const hasCycle = (() => {
+      const parentMap = new Map<string, string | undefined>(
+        (p.versions ?? []).map((v) => [v.id, v.parentVersionId])
+      );
+      for (const startId of versionIdSet) {
+        const visited = new Set<string>();
+        let cur: string | undefined = startId;
+        while (cur) {
+          if (visited.has(cur)) { return true; }
+          visited.add(cur);
+          cur = parentMap.get(cur);
+        }
+      }
+      return false;
+    })();
+    if (hasCycle) errors.push("Cycle detected in version parentVersionId graph");
   }
 
   const snapshotCount = Array.isArray(p.snapshots) ? p.snapshots.length : 0;
-  const schemaVersionMatch =
-    p.manifest?.schemaVersion === CURRENT_PROJECT_SCHEMA_VERSION;
+  const schemaVersionMatch = p.manifest?.schemaVersion === CURRENT_PROJECT_SCHEMA_VERSION;
 
   if (!schemaVersionMatch && p.manifest?.schemaVersion) {
     warnings.push(
@@ -160,10 +228,10 @@ export function validateProjectPackage(pkg: unknown): ProjectIntegrityResult {
     );
   }
 
-  // Hash verification (if structure is valid)
+  // Hash verification (if structure is valid so far)
   let hashMatch = false;
   if (errors.length === 0 && p.manifest && p.snapshots) {
-    const expectedHash = computePackageHash(p.snapshots, {
+    const expectedHash = await computePackageHash(p.snapshots, {
       format: "HELIOS_PROJECT_PACKAGE",
       packageVersion: p.manifest.packageVersion,
       schemaVersion: p.manifest.schemaVersion,
@@ -173,7 +241,12 @@ export function validateProjectPackage(pkg: unknown): ProjectIntegrityResult {
       versionCount: p.manifest.versionCount,
     });
     hashMatch = expectedHash === p.manifest.packageHash;
-    if (!hashMatch) errors.push("Package hash mismatch — package may be corrupted or tampered");
+    if (!hashMatch) {
+      errors.push(
+        "Package SHA-256 hash does not match — content may have changed since export. " +
+          "This does not indicate authorship issues."
+      );
+    }
   }
 
   return {
@@ -186,32 +259,275 @@ export function validateProjectPackage(pkg: unknown): ProjectIntegrityResult {
   };
 }
 
-export function verifyProjectPackageIntegrity(pkg: ProjectPackage): boolean {
-  const result = validateProjectPackage(pkg);
+export async function verifyProjectPackageIntegrity(pkg: ProjectPackage): Promise<boolean> {
+  const result = await validateProjectPackage(pkg);
   return result.valid && result.hashMatch;
 }
 
-// ─── Import ───────────────────────────────────────────────────────────────────
+// ─── Import transaction ───────────────────────────────────────────────────────
 
 /**
- * Import a project package according to the chosen strategy.
- *
- * "create-copy": generates new IDs for all entities to avoid conflicts.
- * "replace-current": replaces the session state (caller must confirm).
- * "cancel": returns immediately with no changes.
- *
- * Never replaces the active project silently.
+ * Create an ImportTransaction from a raw package.
+ * This is the "parsed" phase — no validation, no mutations.
  */
-export function importProjectPackage(
+export function createImportTransaction(pkg: ProjectPackage): ImportTransaction {
+  return {
+    id: crypto.randomUUID(),
+    status: "parsed",
+    originalPackage: pkg,
+    migrationResults: [],
+    conflicts: [],
+  };
+}
+
+/**
+ * Advance the transaction through validation, verification, migration,
+ * and conflict detection. Returns a transaction in "ready" or "failed" status.
+ *
+ * No active project state is modified at any point.
+ */
+export async function prepareImportTransaction(
+  transaction: ImportTransaction,
+  currentSnapshots: ProjectSnapshot[],
+  currentVersions: ProjectVersion[],
+  strategy: ImportStrategy,
+  targetVersion?: string
+): Promise<ImportTransaction> {
+  const tx: ImportTransaction = {
+    ...deepClone(transaction),
+    strategy,
+    errors: [],
+    warnings: [],
+  };
+  const pkg = tx.originalPackage;
+
+  // Step 1: Schema version (future block)
+  const pkgSchema = pkg.manifest.schemaVersion;
+  const target = targetVersion ?? CURRENT_PROJECT_SCHEMA_VERSION;
+
+  if (pkgSchema > target) {
+    return {
+      ...tx,
+      status: "failed",
+      errors: [
+        `Cannot import package with future schemaVersion ${pkgSchema} (current: ${target}). ` +
+          `This file was created with a newer version of HELIOS.`,
+      ],
+    };
+  }
+
+  tx.status = "validated";
+
+  // Step 2: Structural + hash validation
+  const validation = await validateProjectPackage(pkg);
+  if (!validation.valid) {
+    return {
+      ...tx,
+      status: "failed",
+      errors: validation.errors,
+      warnings: validation.warnings,
+    };
+  }
+
+  tx.status = "verified";
+
+  // Step 3: Migrate snapshots if needed
+  const migrationResults: SchemaMigrationResult[] = [];
+  const migratedSnapshots: ProjectSnapshot[] = [];
+
+  for (const snap of pkg.snapshots) {
+    if (snap.schemaVersion !== target) {
+      if (canMigrate(snap.schemaVersion, target)) {
+        const result = migrateSnapshot(snap, target);
+        migrationResults.push(result);
+        if (result.success) {
+          migratedSnapshots.push({
+            ...snap,
+            payload: result.migratedPayload as typeof snap.payload,
+            schemaVersion: target,
+          });
+        } else {
+          return {
+            ...tx,
+            status: "failed",
+            migrationResults,
+            errors: [`Migration failed for snapshot ${snap.id}: ${result.errors.join(", ")}`],
+          };
+        }
+      } else {
+        return {
+          ...tx,
+          status: "failed",
+          migrationResults,
+          errors: [
+            `No migration path for snapshot ${snap.id} (${snap.schemaVersion} → ${target})`,
+          ],
+        };
+      }
+    } else {
+      migratedSnapshots.push(snap);
+    }
+  }
+
+  tx.status = "migrated";
+  tx.migrationResults = migrationResults;
+
+  // Step 4: Conflict detection + prepare final package
+  const existingSnapshotIds = new Set(currentSnapshots.map((s) => s.id));
+  const existingVersionIds = new Set(currentVersions.map((v) => v.id));
+  const conflicts: ImportConflict[] = [];
+  const snapshotIdMap = new Map<string, string>();
+
+  const finalSnapshots: ProjectSnapshot[] = [...migratedSnapshots];
+  const finalVersions: ProjectVersion[] = [...pkg.versions];
+
+  if (strategy === "create-copy") {
+    // Assign new IDs and remap
+    finalSnapshots.forEach((snap, i) => {
+      const newId = crypto.randomUUID();
+      snapshotIdMap.set(snap.id, newId);
+      if (existingSnapshotIds.has(snap.id)) {
+        conflicts.push({
+          entityType: "snapshot",
+          existingId: snap.id,
+          importedId: snap.id,
+          resolution: "remap",
+          newId,
+        });
+      }
+      finalSnapshots[i] = { ...snap, id: newId };
+    });
+
+    finalVersions.forEach((ver, i) => {
+      const newVerId = crypto.randomUUID();
+      const mappedSnapId = snapshotIdMap.get(ver.snapshotId) ?? ver.snapshotId;
+      if (existingVersionIds.has(ver.id)) {
+        conflicts.push({
+          entityType: "version",
+          existingId: ver.id,
+          importedId: ver.id,
+          resolution: "remap",
+          newId: newVerId,
+        });
+      }
+      finalVersions[i] = { ...ver, id: newVerId, snapshotId: mappedSnapId };
+    });
+  } else if (strategy === "replace-current") {
+    pkg.snapshots.forEach((snap) => {
+      if (existingSnapshotIds.has(snap.id)) {
+        conflicts.push({
+          entityType: "snapshot",
+          existingId: snap.id,
+          importedId: snap.id,
+          resolution: "overwrite",
+        });
+      }
+    });
+    pkg.versions.forEach((ver) => {
+      if (existingVersionIds.has(ver.id)) {
+        conflicts.push({
+          entityType: "version",
+          existingId: ver.id,
+          importedId: ver.id,
+          resolution: "overwrite",
+        });
+      }
+    });
+  }
+
+  tx.conflicts = conflicts;
+  tx.preparedPackage = {
+    ...pkg,
+    snapshots: finalSnapshots,
+    versions: finalVersions,
+  };
+  tx.status = "ready";
+  return tx;
+}
+
+/**
+ * Atomically commit a "ready" import transaction.
+ * Produces a new (snapshots, versions) state without mutating any argument.
+ * Fails completely if the transaction is not in "ready" status.
+ */
+export function commitImportTransaction(
+  transaction: ImportTransaction,
+  currentSnapshots: ProjectSnapshot[],
+  currentVersions: ProjectVersion[]
+): {
+  success: boolean;
+  resultingSnapshots: ProjectSnapshot[];
+  resultingVersions: ProjectVersion[];
+  errors: string[];
+} {
+  if (transaction.status !== "ready") {
+    return {
+      success: false,
+      resultingSnapshots: currentSnapshots,
+      resultingVersions: currentVersions,
+      errors: [`Cannot commit transaction in status "${transaction.status}"`],
+    };
+  }
+  if (!transaction.preparedPackage) {
+    return {
+      success: false,
+      resultingSnapshots: currentSnapshots,
+      resultingVersions: currentVersions,
+      errors: ["Transaction has no prepared package"],
+    };
+  }
+
+  const strategy = transaction.strategy;
+
+  let resultingSnapshots = [...currentSnapshots];
+  let resultingVersions = [...currentVersions];
+
+  if (strategy === "replace-current") {
+    // Atomic: replace all
+    const incomingSnapIds = new Set(transaction.preparedPackage.snapshots.map((s) => s.id));
+    const incomingVerIds = new Set(transaction.preparedPackage.versions.map((v) => v.id));
+    resultingSnapshots = resultingSnapshots.filter((s) => !incomingSnapIds.has(s.id));
+    resultingVersions = resultingVersions.filter((v) => !incomingVerIds.has(v.id));
+    resultingSnapshots = [...resultingSnapshots, ...transaction.preparedPackage.snapshots];
+    resultingVersions = [...resultingVersions, ...transaction.preparedPackage.versions];
+  } else if (strategy === "create-copy") {
+    for (const snap of transaction.preparedPackage.snapshots) {
+      resultingSnapshots = addProjectSnapshot(resultingSnapshots, snap);
+    }
+    for (const ver of transaction.preparedPackage.versions) {
+      if (!resultingVersions.some((v) => v.id === ver.id)) {
+        resultingVersions = [...resultingVersions, ver];
+      }
+    }
+  }
+
+  return {
+    success: true,
+    resultingSnapshots,
+    resultingVersions,
+    errors: [],
+  };
+}
+
+// ─── Legacy importProjectPackage (for backward compatibility with S-024 tests) ──
+
+/**
+ * Import a project package in one call.
+ * Internally uses the transactional pipeline.
+ * @deprecated Prefer prepareImportTransaction + commitImportTransaction for UI flows.
+ */
+export async function importProjectPackage(
   pkg: ProjectPackage,
   currentSnapshots: ProjectSnapshot[],
   currentVersions: ProjectVersion[],
   strategy: ImportStrategy,
   targetVersion?: string
-): ProjectImportResult & {
-  resultingSnapshots: ProjectSnapshot[];
-  resultingVersions: ProjectVersion[];
-} {
+): Promise<
+  ProjectImportResult & {
+    resultingSnapshots: ProjectSnapshot[];
+    resultingVersions: ProjectVersion[];
+  }
+> {
   if (strategy === "cancel") {
     return {
       success: false,
@@ -228,138 +544,53 @@ export function importProjectPackage(
     };
   }
 
-  const errors: string[] = [];
-  const warnings: string[] = [];
-  const migrationsApplied: string[] = [];
-  const conflictsDetected: string[] = [];
+  const tx = createImportTransaction(pkg);
+  const prepared = await prepareImportTransaction(
+    tx,
+    currentSnapshots,
+    currentVersions,
+    strategy,
+    targetVersion
+  );
 
-  // Schema version check FIRST — before hash validation so "future version"
-  // error is reported even when the hash reflects a modified manifest.
-  const pkgSchema = pkg.manifest.schemaVersion;
-  const target = targetVersion ?? CURRENT_PROJECT_SCHEMA_VERSION;
-
-  if (pkgSchema > target) {
+  if (prepared.status !== "ready") {
     return {
       success: false,
       strategy,
       importedProjectId: pkg.manifest.projectId,
       snapshotsImported: 0,
       versionsImported: 0,
-      migrationsApplied,
-      conflictsDetected,
-      errors: [`Cannot import package with future schemaVersion ${pkgSchema} (current: ${target})`],
-      warnings,
+      migrationsApplied: prepared.migrationResults
+        .filter((r) => r.success)
+        .map((r) => `${r.fromVersion}→${r.toVersion}`),
+      conflictsDetected: prepared.conflicts.map(
+        (c) => `${c.entityType} ${c.existingId} → ${c.resolution}`
+      ),
+      errors: prepared.errors ?? [],
+      warnings: prepared.warnings ?? [],
       resultingSnapshots: currentSnapshots,
       resultingVersions: currentVersions,
     };
   }
 
-  // Validate hash and structure
-  const validation = validateProjectPackage(pkg);
-  if (!validation.valid) {
-    return {
-      success: false,
-      strategy,
-      importedProjectId: pkg.manifest.projectId,
-      snapshotsImported: 0,
-      versionsImported: 0,
-      migrationsApplied,
-      conflictsDetected,
-      errors: validation.errors,
-      warnings: validation.warnings,
-      resultingSnapshots: currentSnapshots,
-      resultingVersions: currentVersions,
-    };
-  }
-
-  // Check for ID conflicts
-  const existingSnapshotIds = new Set(currentSnapshots.map((s) => s.id));
-  const existingVersionIds = new Set(currentVersions.map((v) => v.id));
-
-  // Process snapshots
-  let resultingSnapshots = [...currentSnapshots];
-  let resultingVersions = [...currentVersions];
-  let snapshotsImported = 0;
-  let versionsImported = 0;
-
-  const snapshotIdMap = new Map<string, string>(); // old → new (for create-copy)
-
-  for (const snap of pkg.snapshots) {
-    let processedSnap = snap;
-
-    // Migrate if needed
-    if (snap.schemaVersion !== target && canMigrate(snap.schemaVersion, target)) {
-      const migResult = migrateSnapshot(snap, target);
-      if (migResult.success) {
-        migrationsApplied.push(`${snap.id}: ${snap.schemaVersion}→${target}`);
-        processedSnap = {
-          ...snap,
-          payload: migResult.migratedPayload as ProjectSnapshotPayload,
-          schemaVersion: target,
-        };
-      } else {
-        errors.push(`Failed to migrate snapshot ${snap.id}: ${migResult.errors.join(", ")}`);
-        continue;
-      }
-    } else if (snap.schemaVersion !== target && !canMigrate(snap.schemaVersion, target)) {
-      errors.push(`No migration path for snapshot ${snap.id} (${snap.schemaVersion}→${target})`);
-      continue;
-    }
-
-    if (strategy === "create-copy") {
-      // Assign new ID to avoid conflicts
-      const newId = crypto.randomUUID();
-      snapshotIdMap.set(snap.id, newId);
-      const copiedSnap: ProjectSnapshot = { ...processedSnap, id: newId };
-      if (existingSnapshotIds.has(snap.id)) {
-        conflictsDetected.push(`Snapshot ${snap.id} — assigned new ID ${newId}`);
-      }
-      resultingSnapshots = addProjectSnapshot(resultingSnapshots, copiedSnap);
-      snapshotsImported++;
-    } else {
-      // replace-current: use original IDs
-      if (existingSnapshotIds.has(snap.id)) {
-        conflictsDetected.push(`Snapshot ${snap.id} overwritten`);
-      }
-      resultingSnapshots = resultingSnapshots.filter((s) => s.id !== processedSnap.id);
-      resultingSnapshots = [...resultingSnapshots, processedSnap];
-      snapshotsImported++;
-    }
-  }
-
-  for (const ver of pkg.versions) {
-    const mappedSnapshotId =
-      strategy === "create-copy"
-        ? snapshotIdMap.get(ver.snapshotId) ?? ver.snapshotId
-        : ver.snapshotId;
-
-    if (strategy === "create-copy") {
-      const newVerId = crypto.randomUUID();
-      const copiedVer: ProjectVersion = { ...ver, id: newVerId, snapshotId: mappedSnapshotId };
-      if (existingVersionIds.has(ver.id)) {
-        conflictsDetected.push(`Version ${ver.id} — assigned new ID ${newVerId}`);
-      }
-      resultingVersions = [...resultingVersions, copiedVer];
-      versionsImported++;
-    } else {
-      resultingVersions = resultingVersions.filter((v) => v.id !== ver.id);
-      resultingVersions = [...resultingVersions, { ...ver, snapshotId: mappedSnapshotId }];
-      versionsImported++;
-    }
-  }
+  const committed = commitImportTransaction(prepared, currentSnapshots, currentVersions);
 
   return {
-    success: errors.length === 0,
+    success: committed.success,
     strategy,
     importedProjectId: pkg.manifest.projectId,
-    snapshotsImported,
-    versionsImported,
-    migrationsApplied,
-    conflictsDetected,
-    errors,
-    warnings,
-    resultingSnapshots,
-    resultingVersions,
+    snapshotsImported: prepared.preparedPackage?.snapshots.length ?? 0,
+    versionsImported: prepared.preparedPackage?.versions.length ?? 0,
+    migrationsApplied: prepared.migrationResults
+      .filter((r) => r.success)
+      .map((r) => `${r.fromVersion}→${r.toVersion}`),
+    conflictsDetected: prepared.conflicts.map(
+      (c) => `${c.entityType} ${c.existingId} → ${c.resolution}`
+    ),
+    errors: committed.errors,
+    warnings: prepared.warnings ?? [],
+    resultingSnapshots: committed.resultingSnapshots,
+    resultingVersions: committed.resultingVersions,
   };
 }
 
@@ -371,12 +602,14 @@ export function exportProjectPackage(pkg: ProjectPackage): string {
 
 /** Sanitize a filename for cross-platform compatibility */
 export function sanitizeFilename(name: string): string {
-  return name
-    .replace(/[^\w\s\-\.]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/^[\-\.]+/, "")
-    .slice(0, 100)
-    .toLowerCase() || "helios-project";
+  return (
+    name
+      .replace(/[^\w\s\-\.]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/^[\-\.]+/, "")
+      .slice(0, 100)
+      .toLowerCase() || "helios-project"
+  );
 }
 
 export function buildExportFilename(projectName: string, versionLabel?: string): string {
@@ -411,7 +644,6 @@ export function removeProjectVersion(
 ): ProjectVersion[] | null {
   const ver = versions.find((v) => v.id === versionId);
   if (!ver) return versions;
-  // Check if any other version depends on this version's snapshot via parentVersionId
   const dependents = versions.filter(
     (v) => v.id !== versionId && v.parentVersionId === versionId
   );

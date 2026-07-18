@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * S-024 — Validación: Project Snapshot, Versioning & Reproducibility Engine
+ * (Actualizado para S-024.1: todas las funciones de hash/snapshot son async)
  *
  * Cobertura:
  *   Snapshots, Versiones, Diff, Reproducibilidad,
@@ -55,7 +56,6 @@ import {
 } from "../ProjectPackageService";
 
 import {
-  registerMigration,
   findMigrationPath,
   canMigrate,
   migrateSnapshot,
@@ -70,24 +70,21 @@ import type {
   ProjectVersion,
 } from "../types";
 
-// ─── Test harness ─────────────────────────────────────────────────────────────
+// ─── Test harness (async queue) ───────────────────────────────────────────────
 
 let passed = 0;
 let failed = 0;
+const testQueue: Array<{ suite: string; msg: string; fn: () => void | Promise<void> }> = [];
+let currentSuite = "";
 
 function describe(name: string, fn: () => void) {
+  currentSuite = name;
+  console.log(`\n${name}`);
   fn();
 }
 
-function it(msg: string, fn: () => void) {
-  try {
-    fn();
-    passed++;
-    console.log(`  ✓ ${msg}`);
-  } catch (e: unknown) {
-    failed++;
-    console.error(`  ✗ ${msg}: ${(e instanceof Error ? e.message : String(e))}`);
-  }
+function it(msg: string, fn: () => void | Promise<void>) {
+  testQueue.push({ suite: currentSuite, msg, fn });
 }
 
 function expect(val: unknown) {
@@ -184,127 +181,123 @@ const META = {
   tags: [],
 };
 
-// ─── Register test migration ──────────────────────────────────────────────────
-
-registerMigration(migration_0_9_0_to_1_0_0);
-
 // ─── Snapshot tests ───────────────────────────────────────────────────────────
 
 describe("Snapshot — creación", () => {
-  it("crea snapshot con ID", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("crea snapshot con ID", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     expect(snap.id.length).toBeGreaterThan(0);
   });
 
-  it("crea snapshot con schemaVersion actual", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("crea snapshot con schemaVersion actual", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     expect(snap.schemaVersion).toBe(CURRENT_PROJECT_SCHEMA_VERSION);
   });
 
-  it("crea snapshot con contentHash", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("crea snapshot con contentHash", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     expect(snap.contentHash.length).toBeGreaterThan(0);
   });
 
-  it("crea snapshot con createdAt", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("crea snapshot con createdAt", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     expect(snap.createdAt.length).toBeGreaterThan(0);
   });
 
-  it("snapshot tiene projectId en metadata", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("snapshot tiene projectId en metadata", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     expect(snap.metadata.projectId).toBe("proj-001");
   });
 
-  it("acepta versionLabel", () => {
-    const snap = createProjectSnapshot(basePayload, META, "v1.0");
+  it("acepta versionLabel", async () => {
+    const snap = await createProjectSnapshot(basePayload, META, "v1.0");
     expect(snap.version).toBe("v1.0");
   });
 });
 
 describe("Snapshot — inmutabilidad", () => {
-  it("el snapshot está congelado", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("el snapshot está congelado", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     expect(Object.isFrozen(snap)).toBeTrue();
   });
 
-  it("el payload está congelado", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("el payload está congelado", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     expect(Object.isFrozen(snap.payload)).toBeTrue();
   });
 
-  it("modificar el payload original no altera el snapshot", () => {
+  it("modificar el payload original no altera el snapshot", async () => {
     const payload = JSON.parse(JSON.stringify(basePayload)) as ProjectSnapshotPayload;
-    const snap = createProjectSnapshot(payload, META);
+    const snap = await createProjectSnapshot(payload, META);
     const hashBefore = snap.contentHash;
     payload.problema = "MODIFICADO";
     expect(snap.contentHash).toBe(hashBefore);
     expect(snap.payload.problema).toBe(basePayload.problema);
   });
 
-  it("clonar snapshot produce ID diferente", () => {
-    const snap = createProjectSnapshot(basePayload, META);
-    const clone = cloneSnapshot(snap);
+  it("clonar snapshot produce ID diferente", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
+    const clone = await cloneSnapshot(snap);
     expect(clone.id !== snap.id).toBeTrue();
   });
 
-  it("clonar snapshot referencia al original en sourceSnapshotId", () => {
-    const snap = createProjectSnapshot(basePayload, META);
-    const clone = cloneSnapshot(snap);
+  it("clonar snapshot referencia al original en sourceSnapshotId", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
+    const clone = await cloneSnapshot(snap);
     expect(clone.metadata.sourceSnapshotId).toBe(snap.id);
   });
 });
 
 describe("Snapshot — hash", () => {
-  it("mismo contenido → mismo hash", () => {
-    const s1 = createProjectSnapshot(basePayload, META);
-    const s2 = createProjectSnapshot(basePayload, META);
+  it("mismo contenido → mismo hash", async () => {
+    const s1 = await createProjectSnapshot(basePayload, META);
+    const s2 = await createProjectSnapshot(basePayload, META);
     expect(s1.contentHash).toBe(s2.contentHash);
   });
 
-  it("contenido distinto → hash distinto", () => {
-    const s1 = createProjectSnapshot(basePayload, META);
-    const s2 = createProjectSnapshot(altPayload, META);
+  it("contenido distinto → hash distinto", async () => {
+    const s1 = await createProjectSnapshot(basePayload, META);
+    const s2 = await createProjectSnapshot(altPayload, META);
     expect(s1.contentHash === s2.contentHash).toBeFalse();
   });
 
-  it("createdAt no altera el hash", () => {
-    const h1 = computeSnapshotHash(CURRENT_PROJECT_SCHEMA_VERSION, basePayload, META);
-    const h2 = computeSnapshotHash(CURRENT_PROJECT_SCHEMA_VERSION, basePayload, META);
+  it("createdAt no altera el hash", async () => {
+    const h1 = await computeSnapshotHash(CURRENT_PROJECT_SCHEMA_VERSION, basePayload, META);
+    const h2 = await computeSnapshotHash(CURRENT_PROJECT_SCHEMA_VERSION, basePayload, META);
     expect(h1).toBe(h2);
   });
 
-  it("orden accidental de claves no altera el hash", () => {
+  it("orden accidental de claves no altera el hash", async () => {
     const p1 = { ...basePayload };
     const p2 = { ...basePayload, hypotheses: [...basePayload.hypotheses] };
-    const h1 = computeSnapshotHash(CURRENT_PROJECT_SCHEMA_VERSION, p1, META);
-    const h2 = computeSnapshotHash(CURRENT_PROJECT_SCHEMA_VERSION, p2, META);
+    const h1 = await computeSnapshotHash(CURRENT_PROJECT_SCHEMA_VERSION, p1, META);
+    const h2 = await computeSnapshotHash(CURRENT_PROJECT_SCHEMA_VERSION, p2, META);
     expect(h1).toBe(h2);
   });
 
-  it("projectName diferente → hash diferente", () => {
-    const h1 = computeSnapshotHash(CURRENT_PROJECT_SCHEMA_VERSION, basePayload, { ...META, projectName: "A" });
-    const h2 = computeSnapshotHash(CURRENT_PROJECT_SCHEMA_VERSION, basePayload, { ...META, projectName: "B" });
+  it("projectName diferente → hash diferente", async () => {
+    const h1 = await computeSnapshotHash(CURRENT_PROJECT_SCHEMA_VERSION, basePayload, { ...META, projectName: "A" });
+    const h2 = await computeSnapshotHash(CURRENT_PROJECT_SCHEMA_VERSION, basePayload, { ...META, projectName: "B" });
     expect(h1 === h2).toBeFalse();
   });
 });
 
 describe("Snapshot — verificación de integridad", () => {
-  it("verifySnapshotIntegrity: snapshot válido → true", () => {
-    const snap = createProjectSnapshot(basePayload, META);
-    expect(verifySnapshotIntegrity(snap)).toBeTrue();
+  it("verifySnapshotIntegrity: snapshot válido → true", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
+    expect(await verifySnapshotIntegrity(snap)).toBeTrue();
   });
 
-  it("verifySnapshotIntegrity: hash alterado → false", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("verifySnapshotIntegrity: hash alterado → false", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const tampered = { ...snap, contentHash: "000000000000000000000000000000000000000000000000000000000000dead" };
-    expect(verifySnapshotIntegrity(tampered)).toBeFalse();
+    expect(await verifySnapshotIntegrity(tampered)).toBeFalse();
   });
 });
 
 describe("Snapshot — validación estructural", () => {
-  it("snapshot válido", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("snapshot válido", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const r = validateSnapshot(snap);
     expect(r.valid).toBeTrue();
   });
@@ -323,51 +316,51 @@ describe("Snapshot — validación estructural", () => {
     expect(validateSnapshot(null).valid).toBeFalse();
   });
 
-  it("warnings para schemaVersion diferente", () => {
-    const snap = { ...createProjectSnapshot(basePayload, META), schemaVersion: "0.9.0" };
+  it("warnings para schemaVersion diferente", async () => {
+    const snap = { ...(await createProjectSnapshot(basePayload, META)), schemaVersion: "0.9.0" };
     const r = validateSnapshot(snap);
     expect(r.warnings.length).toBeGreaterThan(0);
   });
 });
 
 describe("Snapshot — equivalencia", () => {
-  it("mismo contenido → equivalentes", () => {
-    const s1 = createProjectSnapshot(basePayload, META);
-    const s2 = createProjectSnapshot(basePayload, META);
+  it("mismo contenido → equivalentes", async () => {
+    const s1 = await createProjectSnapshot(basePayload, META);
+    const s2 = await createProjectSnapshot(basePayload, META);
     expect(isSnapshotEquivalent(s1, s2)).toBeTrue();
   });
 
-  it("contenido diferente → no equivalentes", () => {
-    const s1 = createProjectSnapshot(basePayload, META);
-    const s2 = createProjectSnapshot(altPayload, META);
+  it("contenido diferente → no equivalentes", async () => {
+    const s1 = await createProjectSnapshot(basePayload, META);
+    const s2 = await createProjectSnapshot(altPayload, META);
     expect(isSnapshotEquivalent(s1, s2)).toBeFalse();
   });
 });
 
 describe("Snapshot — reconstrucción de sesión", () => {
-  it("reconstruye session con problema correcto", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("reconstruye session con problema correcto", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const session = reconstructSessionFromSnapshot(snap);
     expect(session.problema).toBe(basePayload.problema);
   });
 
-  it("session reconstruida es independiente del snapshot", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("session reconstruida es independiente del snapshot", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const session = reconstructSessionFromSnapshot(snap);
     session.problema = "MODIFICADO";
     expect(snap.payload.problema).toBe(basePayload.problema);
   });
 
-  it("session tiene todas las matrices", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("session tiene todas las matrices", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const session = reconstructSessionFromSnapshot(snap);
     expect(Array.isArray(session.hypotheses)).toBeTrue();
     expect(Array.isArray(session.conceptualModels)).toBeTrue();
     expect(Array.isArray(session.reportDefinitions)).toBeTrue();
   });
 
-  it("primaryHypothesisId preservado", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("primaryHypothesisId preservado", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const session = reconstructSessionFromSnapshot(snap);
     expect(session.primaryHypothesisId).toBe("hyp-001");
   });
@@ -376,21 +369,21 @@ describe("Snapshot — reconstrucción de sesión", () => {
 // ─── Snapshot session operations ──────────────────────────────────────────────
 
 describe("Snapshot — CRUD de sesión", () => {
-  it("addProjectSnapshot agrega snapshot", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("addProjectSnapshot agrega snapshot", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const result = addProjectSnapshot([], snap);
     expect(result.length).toBe(1);
   });
 
-  it("addProjectSnapshot no duplica", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("addProjectSnapshot no duplica", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const list = addProjectSnapshot([], snap);
     const list2 = addProjectSnapshot(list, snap);
     expect(list2.length).toBe(1);
   });
 
-  it("findProjectSnapshot por id", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("findProjectSnapshot por id", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const list = addProjectSnapshot([], snap);
     const found = findProjectSnapshot(list, snap.id);
     expect(found?.id).toBe(snap.id);
@@ -400,16 +393,16 @@ describe("Snapshot — CRUD de sesión", () => {
     expect(findProjectSnapshot([], "no-existe")).toBeUndefined();
   });
 
-  it("removeProjectSnapshot: bloqueado si hay versión referenciada", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("removeProjectSnapshot: bloqueado si hay versión referenciada", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const ver = createProjectVersion(snap.id, "v1");
     const list = addProjectSnapshot([], snap);
     const result = removeProjectSnapshot(list, [ver], snap.id);
     expect(result).toBeNull();
   });
 
-  it("removeProjectSnapshot: permitido si no hay versiones", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("removeProjectSnapshot: permitido si no hay versiones", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const list = addProjectSnapshot([], snap);
     const result = removeProjectSnapshot(list, [], snap.id);
     expect(result?.length).toBe(0);
@@ -464,24 +457,24 @@ describe("Versiones — creación y CRUD", () => {
     expect(v3.parentVersionId).toBe(v2.id);
   });
 
-  it("removeProjectVersion: bloqueado si hay dependientes", () => {
+  it("removeProjectVersion: bloqueado si hay dependientes", async () => {
     const v1 = createProjectVersion("snap-001", "v1");
     const v2 = createProjectVersion("snap-002", "v2", { parentVersionId: v1.id });
-    const snap = createProjectSnapshot(basePayload, META);
+    const snap = await createProjectSnapshot(basePayload, META);
     const result = removeProjectVersion([v1, v2], [snap], v1.id);
     expect(result).toBeNull();
   });
 
-  it("removeProjectVersion: permitido sin dependientes", () => {
+  it("removeProjectVersion: permitido sin dependientes", async () => {
     const v1 = createProjectVersion("snap-001", "v1");
-    const snap = createProjectSnapshot(basePayload, META);
+    const snap = await createProjectSnapshot(basePayload, META);
     const result = removeProjectVersion([v1], [snap], v1.id);
     expect(result?.length).toBe(0);
   });
 
-  it("múltiples versiones, múltiples snapshots", () => {
-    const s1 = createProjectSnapshot(basePayload, META);
-    const s2 = createProjectSnapshot(altPayload, META);
+  it("múltiples versiones, múltiples snapshots", async () => {
+    const s1 = await createProjectSnapshot(basePayload, META);
+    const s2 = await createProjectSnapshot(altPayload, META);
     const v1 = createProjectVersion(s1.id, "v1");
     const v2 = createProjectVersion(s2.id, "v2");
     const list = addProjectVersion(addProjectVersion([], v1), v2);
@@ -492,48 +485,48 @@ describe("Versiones — creación y CRUD", () => {
 // ─── Diff ─────────────────────────────────────────────────────────────────────
 
 describe("Diff — compareSnapshots", () => {
-  it("mismo snapshot → sin cambios", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("mismo snapshot → sin cambios", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const diff = compareSnapshots(snap, snap);
     expect(diff.summary.added).toBe(0);
     expect(diff.summary.removed).toBe(0);
     expect(diff.summary.modified).toBe(0);
   });
 
-  it("payload distinto → modified en problema", () => {
-    const s1 = createProjectSnapshot(basePayload, META);
-    const s2 = createProjectSnapshot(altPayload, META);
+  it("payload distinto → modified en problema", async () => {
+    const s1 = await createProjectSnapshot(basePayload, META);
+    const s2 = await createProjectSnapshot(altPayload, META);
     const diff = compareSnapshots(s1, s2);
     const problemaChange = diff.changes.find((c) => c.entityType === "problema");
     expect(problemaChange?.changeType).toBe("modified");
   });
 
-  it("hipótesis agregada en target → added", () => {
-    const s1 = createProjectSnapshot(basePayload, META);
-    const s2 = createProjectSnapshot(altPayload, META);
+  it("hipótesis agregada en target → added", async () => {
+    const s1 = await createProjectSnapshot(basePayload, META);
+    const s2 = await createProjectSnapshot(altPayload, META);
     const diff = compareSnapshots(s1, s2);
     const added = findAddedEntities(diff.changes).filter((c) => c.entityType === "hypothesis");
     expect(added.length).toBe(1);
   });
 
-  it("hipótesis eliminada → removed", () => {
-    const s1 = createProjectSnapshot(altPayload, META);
-    const s2 = createProjectSnapshot(basePayload, META);
+  it("hipótesis eliminada → removed", async () => {
+    const s1 = await createProjectSnapshot(altPayload, META);
+    const s2 = await createProjectSnapshot(basePayload, META);
     const diff = compareSnapshots(s1, s2);
     const removed = findRemovedEntities(diff.changes).filter((c) => c.entityType === "hypothesis");
     expect(removed.length).toBe(1);
   });
 
-  it("hipótesis removida → breaking change", () => {
-    const s1 = createProjectSnapshot(altPayload, META);
-    const s2 = createProjectSnapshot(basePayload, META);
+  it("hipótesis removida → breaking change", async () => {
+    const s1 = await createProjectSnapshot(altPayload, META);
+    const s2 = await createProjectSnapshot(basePayload, META);
     const diff = compareSnapshots(s1, s2);
     expect(diff.summary.hasBreakingChanges).toBeTrue();
   });
 
-  it("no mutación de inputs", () => {
-    const s1 = createProjectSnapshot(basePayload, META);
-    const s2 = createProjectSnapshot(altPayload, META);
+  it("no mutación de inputs", async () => {
+    const s1 = await createProjectSnapshot(basePayload, META);
+    const s2 = await createProjectSnapshot(altPayload, META);
     const originalHash1 = s1.contentHash;
     const originalHash2 = s2.contentHash;
     compareSnapshots(s1, s2);
@@ -541,17 +534,17 @@ describe("Diff — compareSnapshots", () => {
     expect(s2.contentHash).toBe(originalHash2);
   });
 
-  it("baseSnapshotId y targetSnapshotId correctos", () => {
-    const s1 = createProjectSnapshot(basePayload, META);
-    const s2 = createProjectSnapshot(altPayload, META);
+  it("baseSnapshotId y targetSnapshotId correctos", async () => {
+    const s1 = await createProjectSnapshot(basePayload, META);
+    const s2 = await createProjectSnapshot(altPayload, META);
     const diff = compareSnapshots(s1, s2);
     expect(diff.baseSnapshotId).toBe(s1.id);
     expect(diff.targetSnapshotId).toBe(s2.id);
   });
 
-  it("diff idempotente: mismo resultado si se corre dos veces", () => {
-    const s1 = createProjectSnapshot(basePayload, META);
-    const s2 = createProjectSnapshot(altPayload, META);
+  it("diff idempotente: mismo resultado si se corre dos veces", async () => {
+    const s1 = await createProjectSnapshot(basePayload, META);
+    const s2 = await createProjectSnapshot(altPayload, META);
     const d1 = compareSnapshots(s1, s2);
     const d2 = compareSnapshots(s1, s2);
     expect(d1.changes.length).toBe(d2.changes.length);
@@ -633,17 +626,17 @@ describe("Diff — resumen y changelog", () => {
     expect(grouped["variable"].length).toBe(1);
   });
 
-  it("generateMethodologicalChangelog produce secciones", () => {
-    const s1 = createProjectSnapshot(basePayload, META);
-    const s2 = createProjectSnapshot(altPayload, META);
+  it("generateMethodologicalChangelog produce secciones", async () => {
+    const s1 = await createProjectSnapshot(basePayload, META);
+    const s2 = await createProjectSnapshot(altPayload, META);
     const diff = compareSnapshots(s1, s2);
     const changelog = generateMethodologicalChangelog(diff);
     expect(changelog.sections.length).toBeGreaterThan(0);
   });
 
-  it("changelog solo incluye secciones con cambios", () => {
-    const s1 = createProjectSnapshot(basePayload, META);
-    const s2 = createProjectSnapshot(basePayload, META);
+  it("changelog solo incluye secciones con cambios", async () => {
+    const s1 = await createProjectSnapshot(basePayload, META);
+    const s2 = await createProjectSnapshot(basePayload, META);
     const diff = compareSnapshots(s1, s2);
     const changelog = generateMethodologicalChangelog(diff);
     // With identical snapshots, no sections should show changes
@@ -657,26 +650,26 @@ describe("Diff — resumen y changelog", () => {
 // ─── Reproducibilidad ─────────────────────────────────────────────────────────
 
 describe("Reproducibilidad", () => {
-  it("reconstruye sesión desde snapshot", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("reconstruye sesión desde snapshot", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const session = reconstructSessionFromSnapshot(snap);
     expect(session.hypotheses.length).toBe(1);
   });
 
-  it("generateReportFromSnapshot: sin reportDef → null", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("generateReportFromSnapshot: sin reportDef → null", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const result = generateReportFromSnapshot(snap, "no-existe");
     expect(result).toBeNull();
   });
 
-  it("verifyReportReproducibility: sin reportDef → not reproducible", () => {
-    const snap = createProjectSnapshot(basePayload, META);
-    const result = verifyReportReproducibility(snap, "no-existe");
+  it("verifyReportReproducibility: sin reportDef → not reproducible", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
+    const result = await verifyReportReproducibility(snap, "no-existe");
     expect(result.reproducible).toBeFalse();
   });
 
-  it("snapshot inválido → reconstrucción produce valores por defecto", () => {
-    const emptySnap = createProjectSnapshot({
+  it("snapshot inválido → reconstrucción produce valores por defecto", async () => {
+    const emptySnap = await createProjectSnapshot({
       ...basePayload,
       problema: "",
       hypotheses: [],
@@ -691,28 +684,28 @@ describe("Reproducibilidad", () => {
 // ─── Paquete ──────────────────────────────────────────────────────────────────
 
 describe("Paquete — crear y serializar", () => {
-  it("crea paquete con manifest correcto", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("crea paquete con manifest correcto", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const ver = createProjectVersion(snap.id, "v1");
-    const pkg = createProjectPackage("proj-001", "Proyecto Educación", [snap], [ver]);
+    const pkg = await createProjectPackage("proj-001", "Proyecto Educación", [snap], [ver]);
     expect(pkg.manifest.format).toBe("HELIOS_PROJECT_PACKAGE");
     expect(pkg.manifest.snapshotCount).toBe(1);
     expect(pkg.manifest.versionCount).toBe(1);
   });
 
-  it("serializa a string JSON válido", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("serializa a string JSON válido", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const ver = createProjectVersion(snap.id, "v1");
-    const pkg = createProjectPackage("proj-001", "Test", [snap], [ver]);
+    const pkg = await createProjectPackage("proj-001", "Test", [snap], [ver]);
     const json = serializeProjectPackage(pkg);
     expect(typeof json).toBe("string");
     expect(json).toContain("HELIOS_PROJECT_PACKAGE");
   });
 
-  it("deserializa desde JSON", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("deserializa desde JSON", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const ver = createProjectVersion(snap.id, "v1");
-    const pkg = createProjectPackage("proj-001", "Test", [snap], [ver]);
+    const pkg = await createProjectPackage("proj-001", "Test", [snap], [ver]);
     const json = serializeProjectPackage(pkg);
     const restored = deserializeProjectPackage(json);
     expect(restored?.manifest.projectId).toBe("proj-001");
@@ -726,46 +719,46 @@ describe("Paquete — crear y serializar", () => {
     expect(deserializeProjectPackage("{}")).toBe(null) !== null || expect(true).toBeTrue();
   });
 
-  it("validateProjectPackage: paquete válido → valid=true y hashMatch=true", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("validateProjectPackage: paquete válido → valid=true y hashMatch=true", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const ver = createProjectVersion(snap.id, "v1");
-    const pkg = createProjectPackage("proj-001", "Test", [snap], [ver]);
-    const result = validateProjectPackage(pkg);
+    const pkg = await createProjectPackage("proj-001", "Test", [snap], [ver]);
+    const result = await validateProjectPackage(pkg);
     expect(result.valid).toBeTrue();
     expect(result.hashMatch).toBeTrue();
   });
 
-  it("hash incorrecto → hashMatch=false", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("hash incorrecto → hashMatch=false", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const ver = createProjectVersion(snap.id, "v1");
-    const pkg = createProjectPackage("proj-001", "Test", [snap], [ver]);
+    const pkg = await createProjectPackage("proj-001", "Test", [snap], [ver]);
     const tampered = { ...pkg, manifest: { ...pkg.manifest, packageHash: "aaaa" } };
-    const result = validateProjectPackage(tampered);
+    const result = await validateProjectPackage(tampered);
     expect(result.hashMatch).toBeFalse();
   });
 
-  it("verifyProjectPackageIntegrity: paquete válido → true", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("verifyProjectPackageIntegrity: paquete válido → true", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const ver = createProjectVersion(snap.id, "v1");
-    const pkg = createProjectPackage("proj-001", "Test", [snap], [ver]);
-    expect(verifyProjectPackageIntegrity(pkg)).toBeTrue();
+    const pkg = await createProjectPackage("proj-001", "Test", [snap], [ver]);
+    expect(await verifyProjectPackageIntegrity(pkg)).toBeTrue();
   });
 
-  it("múltiples snapshots en paquete", () => {
-    const s1 = createProjectSnapshot(basePayload, META);
-    const s2 = createProjectSnapshot(altPayload, META);
+  it("múltiples snapshots en paquete", async () => {
+    const s1 = await createProjectSnapshot(basePayload, META);
+    const s2 = await createProjectSnapshot(altPayload, META);
     const v1 = createProjectVersion(s1.id, "v1");
     const v2 = createProjectVersion(s2.id, "v2");
-    const pkg = createProjectPackage("proj-001", "Test", [s1, s2], [v1, v2]);
+    const pkg = await createProjectPackage("proj-001", "Test", [s1, s2], [v1, v2]);
     expect(pkg.manifest.snapshotCount).toBe(2);
     expect(pkg.manifest.versionCount).toBe(2);
   });
 
-  it("exportación determinística: mismo contenido → mismo hash", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("exportación determinística: mismo contenido → mismo hash", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const ver = createProjectVersion(snap.id, "v1");
-    const pkg1 = createProjectPackage("proj-001", "Test", [snap], [ver]);
-    const pkg2 = createProjectPackage("proj-001", "Test", [snap], [ver]);
+    const pkg1 = await createProjectPackage("proj-001", "Test", [snap], [ver]);
+    const pkg2 = await createProjectPackage("proj-001", "Test", [snap], [ver]);
     expect(pkg1.manifest.packageHash).toBe(pkg2.manifest.packageHash);
   });
 
@@ -782,87 +775,76 @@ describe("Paquete — crear y serializar", () => {
 // ─── Importación ──────────────────────────────────────────────────────────────
 
 describe("Importación", () => {
-  const makePackage = (overrideSchema?: string) => {
-    const snap = createProjectSnapshot(basePayload, META);
+  const makePackage = async (overrideSchema?: string) => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const ver = createProjectVersion(snap.id, "v1");
-    const pkg = createProjectPackage("proj-001", "Test", [snap], [ver]);
+    const pkg = await createProjectPackage("proj-001", "Test", [snap], [ver]);
     if (overrideSchema) {
       return { ...pkg, manifest: { ...pkg.manifest, schemaVersion: overrideSchema } };
     }
     return pkg;
   };
 
-  it("create-copy: importa snapshots con nuevos IDs", () => {
-    const pkg = makePackage();
-    const result = importProjectPackage(pkg, [], [], "create-copy");
+  it("create-copy: importa snapshots con nuevos IDs", async () => {
+    const pkg = await makePackage();
+    const result = await importProjectPackage(pkg, [], [], "create-copy");
     expect(result.success).toBeTrue();
     expect(result.snapshotsImported).toBe(1);
     expect(result.resultingSnapshots.length).toBe(1);
     expect(result.strategy).toBe("create-copy");
   });
 
-  it("cancel: no hace nada", () => {
-    const pkg = makePackage();
-    const result = importProjectPackage(pkg, [], [], "cancel");
+  it("cancel: no hace nada", async () => {
+    const pkg = await makePackage();
+    const result = await importProjectPackage(pkg, [], [], "cancel");
     expect(result.success).toBeFalse();
     expect(result.snapshotsImported).toBe(0);
     expect(result.resultingSnapshots.length).toBe(0);
   });
 
-  it("replace-current: importa con IDs originales", () => {
-    const pkg = makePackage();
-    const result = importProjectPackage(pkg, [], [], "replace-current");
+  it("replace-current: importa con IDs originales", async () => {
+    const pkg = await makePackage();
+    const result = await importProjectPackage(pkg, [], [], "replace-current");
     expect(result.success).toBeTrue();
     expect(result.resultingSnapshots[0].id).toBe(pkg.snapshots[0].id);
   });
 
-  it("versión futura → error", () => {
-    const pkg = makePackage("99.0.0");
-    const result = importProjectPackage(pkg, [], [], "create-copy");
+  it("versión futura → error", async () => {
+    const pkg = await makePackage("99.0.0");
+    const result = await importProjectPackage(pkg, [], [], "create-copy");
     expect(result.success).toBeFalse();
     expect(result.errors.some((e) => e.includes("future"))).toBeTrue();
   });
 
-  it("hash inválido → error de validación", () => {
-    const pkg = makePackage();
+  it("hash inválido → error de validación", async () => {
+    const pkg = await makePackage();
     const tampered = { ...pkg, manifest: { ...pkg.manifest, packageHash: "invalid" } };
-    const result = importProjectPackage(tampered, [], [], "create-copy");
+    const result = await importProjectPackage(tampered, [], [], "create-copy");
     expect(result.success).toBeFalse();
   });
 
-  it("no reemplazo silencioso: cancel preserva estado original", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("no reemplazo silencioso: cancel preserva estado original", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const ver = createProjectVersion(snap.id, "v1");
     const currentSnaps = [snap];
     const currentVers = [ver];
-    const pkg = makePackage();
-    const result = importProjectPackage(pkg, currentSnaps, currentVers, "cancel");
+    const pkg = await makePackage();
+    const result = await importProjectPackage(pkg, currentSnaps, currentVers, "cancel");
     expect(result.resultingSnapshots.length).toBe(1);
     expect(result.resultingSnapshots[0].id).toBe(snap.id);
   });
 
-  it("create-copy: snapshot importado es copia independiente", () => {
-    const pkg = makePackage();
-    const result = importProjectPackage(pkg, [], [], "create-copy");
+  it("create-copy: snapshot importado es copia independiente", async () => {
+    const pkg = await makePackage();
+    const result = await importProjectPackage(pkg, [], [], "create-copy");
     const importedSnap = result.resultingSnapshots[0];
     expect(importedSnap).toBeDefined();
-    // The snapshot should be structurally valid
     expect(importedSnap.payload.problema).toBe(basePayload.problema);
   });
 
-  it("importar versión migrable 0.9.0", () => {
-    const snap = createProjectSnapshot(basePayload, META);
-    const ver = createProjectVersion(snap.id, "v1");
-    // Simulate a 0.9.0 package
-    const oldSnap = { ...snap, schemaVersion: "0.9.0" };
-    const pkg = createProjectPackage("proj-old", "Test Old", [snap], [ver]);
-    const oldPkg = {
-      ...pkg,
-      snapshots: [oldSnap],
-      manifest: { ...pkg.manifest, schemaVersion: "0.9.0", packageHash: pkg.manifest.packageHash },
-    };
-    // Skip hash validation by using a valid package
-    const result = importProjectPackage(pkg, [], [], "create-copy");
+  it("importar versión migrable 0.9.0", async () => {
+    const pkg = await makePackage();
+    const result = await importProjectPackage(pkg, [], [], "create-copy");
     expect(result.success).toBeTrue();
   });
 });
@@ -912,15 +894,15 @@ describe("Migraciones", () => {
     expect(Array.isArray(result.evidenceEvaluationMatrices)).toBeTrue();
   });
 
-  it("migrateSnapshot: versión actual → mismo payload", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("migrateSnapshot: versión actual → mismo payload", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const result = migrateSnapshot(snap, CURRENT_PROJECT_SCHEMA_VERSION);
     expect(result.success).toBeTrue();
     expect(result.fromVersion).toBe(CURRENT_PROJECT_SCHEMA_VERSION);
   });
 
-  it("migrateSnapshot: sin ruta → error", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("migrateSnapshot: sin ruta → error", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const oldSnap = { ...snap, schemaVersion: "0.1.0" };
     const result = migrateSnapshot(oldSnap, "99.0.0");
     expect(result.success).toBeFalse();
@@ -932,12 +914,12 @@ describe("Migraciones", () => {
     expect(result.valid).toBeTrue();
   });
 
-  it("migración no muta el input", () => {
-    const input = JSON.parse(JSON.stringify(basePayload));
-    const snap = { ...createProjectSnapshot(basePayload, META), schemaVersion: "0.9.0" };
-    const before = JSON.stringify(snap);
-    migrateSnapshot(snap, "1.0.0");
-    const after = JSON.stringify(snap);
+  it("migración no muta el input", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
+    const oldSnap = { ...snap, schemaVersion: "0.9.0" };
+    const before = JSON.stringify(oldSnap);
+    migrateSnapshot(oldSnap, "1.0.0");
+    const after = JSON.stringify(oldSnap);
     expect(before).toBe(after);
   });
 });
@@ -964,8 +946,8 @@ describe("Utilidades", () => {
 // ─── Regresión ────────────────────────────────────────────────────────────────
 
 describe("Regresión", () => {
-  it("snapshot no incluye estado de UI", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("snapshot no incluye estado de UI", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const keys = Object.keys(snap.payload);
     expect(keys.includes("pantalla")).toBeFalse();
     expect(keys.includes("hipotesisActiva")).toBeFalse();
@@ -974,52 +956,65 @@ describe("Regresión", () => {
     expect(keys.includes("candidateExplanations")).toBeFalse();
   });
 
-  it("snapshot no incluye derivados", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("snapshot no incluye derivados", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const keys = Object.keys(snap.payload);
     expect(keys.includes("knowledgeGraph")).toBeFalse();
     expect(keys.includes("audit")).toBeFalse();
     expect(keys.includes("generatedReport")).toBeFalse();
   });
 
-  it("paquete serializado se puede re-validar", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("paquete serializado se puede re-validar", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const ver = createProjectVersion(snap.id, "v1");
-    const pkg = createProjectPackage("proj-001", "Test", [snap], [ver]);
+    const pkg = await createProjectPackage("proj-001", "Test", [snap], [ver]);
     const json = exportProjectPackage(pkg);
     const restored = deserializeProjectPackage(json);
-    const result = validateProjectPackage(restored!);
+    const result = await validateProjectPackage(restored!);
     expect(result.valid).toBeTrue();
     expect(result.hashMatch).toBeTrue();
   });
 
-  it("múltiples operaciones no mutan listas originales", () => {
-    const snap1 = createProjectSnapshot(basePayload, META);
-    const snap2 = createProjectSnapshot(altPayload, META);
+  it("múltiples operaciones no mutan listas originales", async () => {
+    const snap1 = await createProjectSnapshot(basePayload, META);
+    const snap2 = await createProjectSnapshot(altPayload, META);
     const list1 = addProjectSnapshot([], snap1);
     const list2 = addProjectSnapshot(list1, snap2);
     expect(list1.length).toBe(1);
     expect(list2.length).toBe(2);
   });
 
-  it("integración completa: crear → exportar → importar → verificar", () => {
-    const snap = createProjectSnapshot(basePayload, META);
+  it("integración completa: crear → exportar → importar → verificar", async () => {
+    const snap = await createProjectSnapshot(basePayload, META);
     const ver = createProjectVersion(snap.id, "v1");
-    const pkg = createProjectPackage("proj-001", "Integration Test", [snap], [ver]);
+    const pkg = await createProjectPackage("proj-001", "Integration Test", [snap], [ver]);
     const json = exportProjectPackage(pkg);
     const restored = deserializeProjectPackage(json)!;
-    const importResult = importProjectPackage(restored, [], [], "create-copy");
+    const importResult = await importProjectPackage(restored, [], [], "create-copy");
     expect(importResult.success).toBeTrue();
     const importedSnap = importResult.resultingSnapshots[0];
     expect(importedSnap.payload.problema).toBe(basePayload.problema);
   });
 });
 
-// ─── Final report ─────────────────────────────────────────────────────────────
+// ─── Async test runner ────────────────────────────────────────────────────────
 
-console.log("\n──────────────────────────────────────────────────────");
-console.log(`   Passed : ${passed}`);
-console.log(`   Failed : ${failed}`);
-console.log(`   Total  : ${passed + failed}`);
-console.log("──────────────────────────────────────────────────────\n");
-if (failed > 0) process.exit(1);
+(async () => {
+  for (const test of testQueue) {
+    try {
+      await Promise.resolve(test.fn());
+      passed++;
+      console.log(`  ✓ ${test.msg}`);
+    } catch (e: unknown) {
+      failed++;
+      console.error(`  ✗ ${test.msg}: ${(e instanceof Error ? e.message : String(e))}`);
+    }
+  }
+
+  console.log("\n──────────────────────────────────────────────────────");
+  console.log(`   Passed : ${passed}`);
+  console.log(`   Failed : ${failed}`);
+  console.log(`   Total  : ${passed + failed}`);
+  console.log("──────────────────────────────────────────────────────\n");
+  if (failed > 0) process.exit(1);
+})();

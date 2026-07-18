@@ -151,3 +151,19 @@ Los informes se **reconstruyen** desde el snapshot; no se almacenan dentro de é
 ⚠️ El hash no es SHA-256; upgrade a Web Crypto requiere API asíncrona  
 ⚠️ Los snapshots no son backups externos (son estado de sesión serializado)  
 ⚠️ No hay cifrado; la confidencialidad es responsabilidad del usuario
+
+---
+
+## Addendum: S-024.1 — Hash Algorithm Upgrade
+
+**See also:** [ADR-0013A — Cryptographic Integrity](ADR-0013A-cryptographic-integrity.md)
+
+In S-024.1, the hashing algorithm was upgraded from **MurmurHash3-128** (synchronous, non-cryptographic) to **SHA-256** (asynchronous, cryptographic integrity).
+
+Key changes from this ADR's original text:
+- All snapshot/package creation and verification functions are now **async**.
+- `contentHash` is now a 64-character lowercase hex SHA-256 digest (was variable-length MurmurHash3 output).
+- Canonicalization now applies Unicode NFC normalization (was plain `JSON.stringify`).
+- The `computeSnapshotHash` function now includes 9 metadata fields (not just payload).
+
+**What did NOT change:** SHA-256 still only verifies **content integrity**, not authorship or origin. ADR-0013A documents this boundary explicitly and defines the required UI language.

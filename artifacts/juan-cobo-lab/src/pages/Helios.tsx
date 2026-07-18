@@ -45,8 +45,6 @@ import PantallaProjectImport from "@/components/PantallaProjectImport";
 import {
   type ProjectSnapshot,
   type ProjectVersion,
-  registerMigration,
-  migration_0_9_0_to_1_0_0,
 } from "@/project-versioning";
 import type { ContrastationMatrix } from "@/contrastation/types";
 import {
@@ -1553,8 +1551,8 @@ type Pantalla =
   | "pestel"
   | "descubrimiento";
 
-// Register S-024 schema migration once at module load (synchronous, idempotent)
-registerMigration(migration_0_9_0_to_1_0_0);
+// S-024.1: migrations are registered declaratively in migrations/registry.ts
+// No module-level side-effects required here.
 
 export default function Helios() {
   const [pantalla, setPantalla] = useState<Pantalla>("entrada");

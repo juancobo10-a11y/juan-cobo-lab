@@ -111,6 +111,11 @@ const suites: Suite[] = [
     args: ["exec", "tsx", "src/project-versioning/__tests__/validacion_s024.ts"],
   },
   {
+    name: "S-024.1",
+    cmd: "pnpm",
+    args: ["exec", "tsx", "src/project-versioning/__tests__/validacion_s024_1.ts"],
+  },
+  {
     name: "Smoke",
     cmd: "pnpm",
     args: ["exec", "tsx", "src/thinking/__tests__/smoke.ts"],

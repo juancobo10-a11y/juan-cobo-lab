@@ -1,64 +1,81 @@
 /**
- * S-024 — VersionComparisonService
+ * S-024 / S-024.1 — VersionComparisonService
  *
  * Pure functions for comparing two project snapshots.
  * No mutations. No storage access. No LLM-generated descriptions.
  *
  * Comparison strategy:
- * - Entities are compared by ID, not by array index.
- * - modification vs reordering: an entity is "reordered" if its content
- *   (excluding position) is unchanged but its index in the parent list differs.
- * - breaking changes: explicit rule set (hypothesis removed, variable removed
- *   that is referenced by an indicator, etc.).
+ * - Entities are compared by ID, never by array index alone.
+ * - reordered: same entity, same canonical content, different index.
+ * - modified: same entity, different canonical content.
+ * - modified + reordered: content changed AND position changed simultaneously.
+ *   In this case: changeType = "modified", reordered = true.
+ * - breaking changes: evaluated using the BreakingChangeRules catalog.
+ *
+ * Index tracking:
+ * - beforeIndex: position in base snapshot array (-1 if not present).
+ * - afterIndex: position in target snapshot array (-1 if not present).
+ *
+ * Precedence rule for simultaneous content+position change:
+ *   changeType = "modified" (content takes precedence), reordered = true.
  */
 
 import type {
   ProjectDiff,
   ProjectDiffSummary,
   ProjectEntityChange,
-  ProjectChangeType,
   ProjectSnapshot,
   MethodologicalChangelog,
   MethodologicalChangelogSection,
 } from "./types";
+import {
+  isBreakingChange,
+  evaluateBreakingChange,
+} from "./breaking-change-rules";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function stableJson(v: unknown): string {
-  return JSON.stringify(v, Object.keys(v as object ?? {}).sort() as never);
-}
-
 function contentEqual(a: unknown, b: unknown): boolean {
+  // Use JSON.stringify for deep equality — order of keys must match
+  // (canonicalize is used upstream; here we compare already-normalized values)
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
 /**
  * Compare two lists of entities keyed by ID.
- * Detects added, removed, modified, reordered, unchanged.
+ * Detects: added, removed, modified, reordered, unchanged.
+ * Modified + reordered simultaneously → changeType = "modified", reordered = true.
  */
 function compareEntityList(
   entityType: string,
   before: Array<{ id: string } & Record<string, unknown>>,
   after: Array<{ id: string } & Record<string, unknown>>,
-  traceabilityFn?: (e: { id: string } & Record<string, unknown>) => { hypothesisId?: string; parentEntityId?: string }
+  traceabilityFn?: (
+    e: { id: string } & Record<string, unknown>
+  ) => { hypothesisId?: string; parentEntityId?: string }
 ): ProjectEntityChange[] {
   const changes: ProjectEntityChange[] = [];
   const beforeMap = new Map(before.map((e) => [e.id, e]));
   const afterMap = new Map(after.map((e) => [e.id, e]));
-  const beforeIndex = new Map(before.map((e, i) => [e.id, i]));
-  const afterIndex = new Map(after.map((e, i) => [e.id, i]));
+  const beforeIndexMap = new Map(before.map((e, i) => [e.id, i]));
+  const afterIndexMap = new Map(after.map((e, i) => [e.id, i]));
 
   // Removed
   before.forEach((bEntity) => {
     if (!afterMap.has(bEntity.id)) {
-      changes.push({
+      const change: ProjectEntityChange = {
         entityType,
         entityId: bEntity.id,
         changeType: "removed",
         before: bEntity,
         after: undefined,
+        beforeIndex: beforeIndexMap.get(bEntity.id) ?? -1,
+        afterIndex: -1,
         traceability: traceabilityFn?.(bEntity),
-      });
+      };
+      const rule = evaluateBreakingChange(change);
+      if (rule) change.breakingRuleId = rule.id;
+      changes.push(change);
     }
   });
 
@@ -71,13 +88,18 @@ function compareEntityList(
         changeType: "added",
         before: undefined,
         after: aEntity,
+        beforeIndex: -1,
+        afterIndex: afterIndexMap.get(aEntity.id) ?? -1,
         traceability: traceabilityFn?.(aEntity),
       });
     } else {
       const bEntity = beforeMap.get(aEntity.id)!;
-      const posChanged = beforeIndex.get(aEntity.id) !== afterIndex.get(aEntity.id);
+      const bIdx = beforeIndexMap.get(aEntity.id) ?? -1;
+      const aIdx = afterIndexMap.get(aEntity.id) ?? -1;
+      const posChanged = bIdx !== aIdx;
+      const equal = contentEqual(bEntity, aEntity);
 
-      if (contentEqual(bEntity, aEntity)) {
+      if (equal) {
         // Same content
         if (posChanged) {
           changes.push({
@@ -86,6 +108,9 @@ function compareEntityList(
             changeType: "reordered",
             before: bEntity,
             after: aEntity,
+            beforeIndex: bIdx,
+            afterIndex: aIdx,
+            reordered: true,
             traceability: traceabilityFn?.(aEntity),
           });
         } else {
@@ -93,6 +118,8 @@ function compareEntityList(
             entityType,
             entityId: aEntity.id,
             changeType: "unchanged",
+            beforeIndex: bIdx,
+            afterIndex: aIdx,
             traceability: traceabilityFn?.(aEntity),
           });
         }
@@ -101,15 +128,22 @@ function compareEntityList(
         const changedFields = Object.keys(aEntity).filter(
           (k) => !contentEqual(bEntity[k], aEntity[k])
         );
-        changes.push({
+        const change: ProjectEntityChange = {
           entityType,
           entityId: aEntity.id,
           changeType: "modified",
           before: bEntity,
           after: aEntity,
           changedFields,
+          beforeIndex: bIdx,
+          afterIndex: aIdx,
+          // If position also changed alongside content: modified + reordered = true
+          reordered: posChanged ? true : undefined,
           traceability: traceabilityFn?.(aEntity),
-        });
+        };
+        const rule = evaluateBreakingChange(change);
+        if (rule) change.breakingRuleId = rule.id;
+        changes.push(change);
       }
     }
   });
@@ -143,35 +177,8 @@ export function findUnchangedEntities(changes: ProjectEntityChange[]): ProjectEn
   return changes.filter((c) => c.changeType === "unchanged");
 }
 
-// ─── Breaking change detection ────────────────────────────────────────────────
-
-/**
- * A change is "breaking" if it could invalidate downstream methodological
- * entities that depend on the removed/modified entity.
- *
- * Breaking conditions (explicit rules):
- * 1. A hypothesis is removed
- * 2. A ConceptualModel is removed
- * 3. A ConceptualVariable is removed (it may be referenced by indicators)
- * 4. A ConceptualIndicator is removed
- * 5. An ObservedEvidence is removed (it may be referenced by EvidenceAssessment)
- * 6. An OperationalizationMatrix is removed
- * 7. A ContrastationMatrix row is removed
- */
-function isBreakingChange(change: ProjectEntityChange): boolean {
-  if (change.changeType !== "removed") return false;
-  const breakingTypes = [
-    "hypothesis",
-    "conceptualModel",
-    "conceptualVariable",
-    "conceptualIndicator",
-    "observedEvidence",
-    "operationalizationMatrix",
-    "contrastationMatrix",
-    "evidenceEvaluationMatrix",
-    "hypothesisEvidenceConclusion",
-  ];
-  return breakingTypes.includes(change.entityType);
+export function findReorderedEntities(changes: ProjectEntityChange[]): ProjectEntityChange[] {
+  return changes.filter((c) => c.changeType === "reordered" || c.reordered === true);
 }
 
 // ─── Snapshot comparison ──────────────────────────────────────────────────────
@@ -184,7 +191,14 @@ export function compareSnapshots(base: ProjectSnapshot, target: ProjectSnapshot)
 
   // Problem
   if (bp.problema !== tp.problema) {
-    changes.push({ entityType: "problema", entityId: "problema", changeType: "modified", before: bp.problema, after: tp.problema, changedFields: ["problema"] });
+    changes.push({
+      entityType: "problema",
+      entityId: "problema",
+      changeType: "modified",
+      before: bp.problema,
+      after: tp.problema,
+      changedFields: ["problema"],
+    });
   } else {
     changes.push({ entityType: "problema", entityId: "problema", changeType: "unchanged" });
   }
@@ -193,22 +207,33 @@ export function compareSnapshots(base: ProjectSnapshot, target: ProjectSnapshot)
   const bPackId = bp.packActivo?.metadata.id ?? null;
   const tPackId = tp.packActivo?.metadata.id ?? null;
   if (bPackId !== tPackId) {
-    changes.push({ entityType: "pack", entityId: "pack", changeType: "modified", before: bp.packActivo, after: tp.packActivo, changedFields: ["pack"] });
+    changes.push({
+      entityType: "pack",
+      entityId: "pack",
+      changeType: "modified",
+      before: bp.packActivo,
+      after: tp.packActivo,
+      changedFields: ["pack"],
+    });
   }
 
   // Hypotheses
-  changes.push(...compareEntityList(
-    "hypothesis",
-    bp.hypotheses as unknown as Array<{ id: string } & Record<string, unknown>>,
-    tp.hypotheses as unknown as Array<{ id: string } & Record<string, unknown>>
-  ));
+  changes.push(
+    ...compareEntityList(
+      "hypothesis",
+      bp.hypotheses as unknown as Array<{ id: string } & Record<string, unknown>>,
+      tp.hypotheses as unknown as Array<{ id: string } & Record<string, unknown>>
+    )
+  );
 
   // Conceptual models
-  changes.push(...compareEntityList(
-    "conceptualModel",
-    bp.conceptualModels as unknown as Array<{ id: string } & Record<string, unknown>>,
-    tp.conceptualModels as unknown as Array<{ id: string } & Record<string, unknown>>
-  ));
+  changes.push(
+    ...compareEntityList(
+      "conceptualModel",
+      bp.conceptualModels as unknown as Array<{ id: string } & Record<string, unknown>>,
+      tp.conceptualModels as unknown as Array<{ id: string } & Record<string, unknown>>
+    )
+  );
 
   // Variables (embedded in models)
   const bVars = bp.conceptualModels.flatMap((m) =>
@@ -217,9 +242,11 @@ export function compareSnapshots(base: ProjectSnapshot, target: ProjectSnapshot)
   const tVars = tp.conceptualModels.flatMap((m) =>
     (m.variables ?? []).map((v) => ({ ...(v as object), _modelId: m.id }))
   ) as unknown as Array<{ id: string } & Record<string, unknown>>;
-  changes.push(...compareEntityList("conceptualVariable", bVars, tVars, (e) => ({
-    parentEntityId: (e as { _modelId?: string })._modelId,
-  })));
+  changes.push(
+    ...compareEntityList("conceptualVariable", bVars, tVars, (e) => ({
+      parentEntityId: (e as { _modelId?: string })._modelId,
+    }))
+  );
 
   // Indicators
   const bInds = bp.conceptualModels.flatMap((m) =>
@@ -228,9 +255,11 @@ export function compareSnapshots(base: ProjectSnapshot, target: ProjectSnapshot)
   const tInds = tp.conceptualModels.flatMap((m) =>
     (m.indicators ?? []).map((i) => ({ ...(i as object), _modelId: m.id }))
   ) as unknown as Array<{ id: string } & Record<string, unknown>>;
-  changes.push(...compareEntityList("conceptualIndicator", bInds, tInds, (e) => ({
-    parentEntityId: (e as { _modelId?: string })._modelId,
-  })));
+  changes.push(
+    ...compareEntityList("conceptualIndicator", bInds, tInds, (e) => ({
+      parentEntityId: (e as { _modelId?: string })._modelId,
+    }))
+  );
 
   // Evidence sources
   const bSrcs = bp.conceptualModels.flatMap((m) =>
@@ -242,25 +271,31 @@ export function compareSnapshots(base: ProjectSnapshot, target: ProjectSnapshot)
   changes.push(...compareEntityList("evidenceSource", bSrcs, tSrcs));
 
   // Operationalization matrices
-  changes.push(...compareEntityList(
-    "operationalizationMatrix",
-    bp.operationalizationMatrices as unknown as Array<{ id: string } & Record<string, unknown>>,
-    tp.operationalizationMatrices as unknown as Array<{ id: string } & Record<string, unknown>>
-  ));
+  changes.push(
+    ...compareEntityList(
+      "operationalizationMatrix",
+      bp.operationalizationMatrices as unknown as Array<{ id: string } & Record<string, unknown>>,
+      tp.operationalizationMatrices as unknown as Array<{ id: string } & Record<string, unknown>>
+    )
+  );
 
   // Contrastation matrices
-  changes.push(...compareEntityList(
-    "contrastationMatrix",
-    bp.contrastationMatrices as unknown as Array<{ id: string } & Record<string, unknown>>,
-    tp.contrastationMatrices as unknown as Array<{ id: string } & Record<string, unknown>>
-  ));
+  changes.push(
+    ...compareEntityList(
+      "contrastationMatrix",
+      bp.contrastationMatrices as unknown as Array<{ id: string } & Record<string, unknown>>,
+      tp.contrastationMatrices as unknown as Array<{ id: string } & Record<string, unknown>>
+    )
+  );
 
   // Evidence evaluation matrices
-  changes.push(...compareEntityList(
-    "evidenceEvaluationMatrix",
-    bp.evidenceEvaluationMatrices as unknown as Array<{ id: string } & Record<string, unknown>>,
-    tp.evidenceEvaluationMatrices as unknown as Array<{ id: string } & Record<string, unknown>>
-  ));
+  changes.push(
+    ...compareEntityList(
+      "evidenceEvaluationMatrix",
+      bp.evidenceEvaluationMatrices as unknown as Array<{ id: string } & Record<string, unknown>>,
+      tp.evidenceEvaluationMatrices as unknown as Array<{ id: string } & Record<string, unknown>>
+    )
+  );
 
   // Observed evidences (embedded)
   const bEvs = bp.evidenceEvaluationMatrices.flatMap((m) =>
@@ -272,18 +307,22 @@ export function compareSnapshots(base: ProjectSnapshot, target: ProjectSnapshot)
   changes.push(...compareEntityList("observedEvidence", bEvs, tEvs));
 
   // Hypothesis evidence conclusions
-  changes.push(...compareEntityList(
-    "hypothesisEvidenceConclusion",
-    bp.hypothesisEvidenceConclusions as unknown as Array<{ id: string } & Record<string, unknown>>,
-    tp.hypothesisEvidenceConclusions as unknown as Array<{ id: string } & Record<string, unknown>>
-  ));
+  changes.push(
+    ...compareEntityList(
+      "hypothesisEvidenceConclusion",
+      bp.hypothesisEvidenceConclusions as unknown as Array<{ id: string } & Record<string, unknown>>,
+      tp.hypothesisEvidenceConclusions as unknown as Array<{ id: string } & Record<string, unknown>>
+    )
+  );
 
   // Report definitions
-  changes.push(...compareEntityList(
-    "reportDefinition",
-    bp.reportDefinitions as unknown as Array<{ id: string } & Record<string, unknown>>,
-    tp.reportDefinitions as unknown as Array<{ id: string } & Record<string, unknown>>
-  ));
+  changes.push(
+    ...compareEntityList(
+      "reportDefinition",
+      bp.reportDefinitions as unknown as Array<{ id: string } & Record<string, unknown>>,
+      tp.reportDefinitions as unknown as Array<{ id: string } & Record<string, unknown>>
+    )
+  );
 
   const summary = summarizeDiff(changes);
 
@@ -297,16 +336,29 @@ export function compareSnapshots(base: ProjectSnapshot, target: ProjectSnapshot)
 }
 
 export function summarizeDiff(changes: ProjectEntityChange[]): ProjectDiffSummary {
-  let added = 0, removed = 0, modified = 0, reordered = 0, unchanged = 0;
+  let added = 0,
+    removed = 0,
+    modified = 0,
+    reordered = 0,
+    unchanged = 0;
   const affectedTypes = new Set<string>();
   let hasBreakingChanges = false;
 
   changes.forEach((c) => {
-    if (c.changeType === "added") { added++; affectedTypes.add(c.entityType); }
-    else if (c.changeType === "removed") { removed++; affectedTypes.add(c.entityType); }
-    else if (c.changeType === "modified") { modified++; affectedTypes.add(c.entityType); }
-    else if (c.changeType === "reordered") { reordered++; }
-    else unchanged++;
+    if (c.changeType === "added") {
+      added++;
+      affectedTypes.add(c.entityType);
+    } else if (c.changeType === "removed") {
+      removed++;
+      affectedTypes.add(c.entityType);
+    } else if (c.changeType === "modified") {
+      modified++;
+      affectedTypes.add(c.entityType);
+    } else if (c.changeType === "reordered") {
+      reordered++;
+    } else {
+      unchanged++;
+    }
     if (isBreakingChange(c)) hasBreakingChanges = true;
   });
 
@@ -361,7 +413,7 @@ export function generateMethodologicalChangelog(diff: ProjectDiff): Methodologic
         added: items.filter((c) => c.changeType === "added").length,
         removed: items.filter((c) => c.changeType === "removed").length,
         modified: items.filter((c) => c.changeType === "modified").length,
-        reordered: items.filter((c) => c.changeType === "reordered").length,
+        reordered: items.filter((c) => c.changeType === "reordered" || c.reordered === true).length,
       };
     })
     .filter((s) => s.added + s.removed + s.modified + s.reordered > 0);

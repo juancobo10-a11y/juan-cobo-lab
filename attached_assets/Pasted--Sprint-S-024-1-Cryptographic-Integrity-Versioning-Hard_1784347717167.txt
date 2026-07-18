@@ -1,0 +1,1106 @@
+# Sprint S-024.1 — Cryptographic Integrity & Versioning Hardening
+
+## Contexto
+
+El Sprint S-024 incorporó a HELIOS:
+
+* snapshots inmutables;
+* versionado lineal;
+* comparación entre versiones;
+* paquetes `.helios.json`;
+* importación y exportación;
+* migraciones de esquema;
+* reconstrucción de informes;
+* interfaces de gestión de versiones.
+
+La implementación quedó funcional y con regresión completa en verde. Sin embargo, la revisión arquitectónica identificó una desviación crítica y varias áreas de endurecimiento:
+
+1. Se utilizó `MurmurHash3-128`, que no es un hash criptográfico.
+2. No está suficientemente demostrado que el diff distinga `modified` de `reordered`.
+3. La canonización determinística requiere mayor cobertura.
+4. La importación debe ser estrictamente transaccional.
+5. El registro de migraciones no debe depender de efectos secundarios en la UI.
+6. La inmutabilidad profunda debe demostrarse explícitamente.
+7. La documentación debe diferenciar integridad, autenticidad y firma digital.
+8. La suite S-024 quedó por debajo de la cobertura solicitada.
+
+Este sprint es exclusivamente de hardening.
+
+No agregar nuevas capacidades funcionales.
+
+No agregar nuevas pantallas salvo ajustes mínimos de mensajes o estados.
+
+No modificar el modelo metodológico.
+
+No modificar el Thinking Router.
+
+No introducir IA generativa, LLM, APIs externas ni firma digital.
+
+No hacer republish.
+
+---
+
+# Objetivo general
+
+Cerrar técnicamente S-024 mediante:
+
+```text
+Hash no criptográfico
+↓
+SHA-256
+↓
+Canonización determinística
+↓
+Importación transaccional
+↓
+Migraciones declarativas
+↓
+Diff semántico robusto
+↓
+Reproducibilidad verificable
+```
+
+Al finalizar, HELIOS debe ofrecer integridad criptográfica interna, sin afirmar autenticidad ni autoría.
+
+---
+
+# ADR-0013A
+
+Agregar:
+
+## ADR-0013A — La integridad de snapshots y paquetes requiere hash criptográfico
+
+MurmurHash3 no debe utilizarse para verificar integridad frente a manipulación deliberada.
+
+HELIOS debe usar SHA-256 para:
+
+* snapshots;
+* paquetes;
+* reportes reproducibles;
+* verificaciones de integridad.
+
+La integridad criptográfica no acredita:
+
+* autoría;
+* identidad;
+* origen;
+* firma;
+* autenticidad institucional.
+
+Una firma digital será una capacidad futura distinta.
+
+---
+
+# 1. Revisión inicial obligatoria
+
+Antes de implementar, revisar:
+
+* `SnapshotService`
+* `ProjectPackageService`
+* `VersionComparisonService`
+* `MigrationService`
+* registro actual de migraciones
+* `ReportBuilderService`
+* cálculo actual de hashes
+* normalización del payload
+* flujo de importación
+* estado activo de sesión
+* pruebas S-024
+* documentación de seguridad
+
+Responder primero:
+
+1. ¿Dónde se usa actualmente MurmurHash3?
+2. ¿Qué funciones dependen de una API síncrona?
+3. ¿Qué impacto tendría migrar a SHA-256 asíncrono?
+4. ¿Qué datos se normalizan antes del hash?
+5. ¿Qué listas tienen orden semántico?
+6. ¿Qué listas pueden normalizarse por ID?
+7. ¿Cómo se distingue actualmente `modified` de `reordered`?
+8. ¿La importación puede dejar estado parcial?
+9. ¿Dónde se registran las migraciones?
+10. ¿Qué afirmaciones documentales deben corregirse?
+
+No implementar antes de completar esta revisión.
+
+---
+
+# 2. Reemplazo de MurmurHash3 por SHA-256
+
+Sustituir completamente MurmurHash3 en:
+
+```ts
+computeSnapshotHash()
+computePackageHash()
+computeReportHash()
+verifySnapshotIntegrity()
+verifyProjectPackageIntegrity()
+verifyReportReproducibility()
+```
+
+No mantener MurmurHash como fallback de integridad.
+
+Eliminar código muerto, dependencias, helpers y documentación asociada.
+
+---
+
+# 3. Estrategia SHA-256
+
+Preferir:
+
+```ts
+crypto.subtle.digest("SHA-256", data)
+```
+
+Siempre que el entorno de navegador y tests lo soporte.
+
+Si se utiliza Web Crypto, convertir las APIs afectadas a `async` de manera explícita.
+
+Ejemplo:
+
+```ts
+async function computeSnapshotHash(...): Promise<string>
+```
+
+No ocultar asincronía mediante estados globales o callbacks improvisados.
+
+Si el entorno de tests no expone `crypto.subtle`, usar un adaptador controlado:
+
+```ts
+CryptoHashAdapter
+```
+
+con implementación:
+
+* navegador: Web Crypto;
+* tests Node: `node:crypto`.
+
+No implementar SHA-256 manualmente salvo imposibilidad técnica documentada.
+
+---
+
+# 4. CryptoHashAdapter
+
+Crear:
+
+```text
+src/project-versioning/crypto/CryptoHashAdapter.ts
+```
+
+Interfaz:
+
+```ts
+export interface CryptoHashAdapter {
+  sha256(input: string | Uint8Array): Promise<string>;
+}
+```
+
+Implementaciones:
+
+```ts
+WebCryptoHashAdapter
+NodeCryptoHashAdapter
+```
+
+El servicio de dominio debe depender de la interfaz o de una función inyectable, no de `window`.
+
+No duplicar lógica de conversión hexadecimal.
+
+---
+
+# 5. Canonización determinística
+
+Crear o endurecer:
+
+```ts
+canonicalize()
+canonicalStringify()
+normalizeSnapshotPayload()
+normalizeProjectPackage()
+normalizeGeneratedReport()
+```
+
+La salida canónica debe:
+
+* ordenar claves de objetos;
+* preservar `null`;
+* excluir `undefined`;
+* rechazar referencias circulares;
+* representar fechas como strings normalizados;
+* conservar tipos JSON válidos;
+* manejar Unicode consistentemente;
+* no depender del orden accidental de creación de propiedades.
+
+---
+
+# 6. Unicode
+
+Normalizar strings mediante una forma documentada, preferiblemente:
+
+```ts
+value.normalize("NFC")
+```
+
+Aplicar de forma consistente antes del hash.
+
+Agregar pruebas con:
+
+* caracteres acentuados;
+* caracteres compuestos y descompuestos;
+* emojis;
+* caracteres especiales.
+
+Documentar la decisión.
+
+---
+
+# 7. Orden semántico
+
+Clasificar expresamente las colecciones.
+
+## Preservar orden
+
+Cuando el orden representa una decisión del usuario:
+
+* variables;
+* indicadores;
+* filas de operacionalización;
+* filas de contrastación;
+* evidencias;
+* secciones del reporte;
+* hipótesis ordenadas editorialmente;
+* versiones lineales cuando corresponda.
+
+## Ordenar establemente
+
+Cuando el orden no tiene significado:
+
+* tags;
+* sets conceptuales;
+* listas de IDs de referencias principales, si la UI no les asigna jerarquía;
+* claves de mapas;
+* catálogos declarativos.
+
+Documentar cada decisión.
+
+No ordenar todos los arrays indiscriminadamente.
+
+---
+
+# 8. Hash de snapshot
+
+El hash debe calcularse sobre:
+
+```text
+schemaVersion
++
+metadata estable relevante
++
+payload normalizado
+```
+
+Excluir:
+
+* `createdAt`;
+* `contentHash`;
+* estado UI;
+* auditorías derivadas;
+* previews;
+* reportes generados;
+* timestamps de ejecución.
+
+Definir explícitamente qué campos de metadata entran al hash.
+
+Recomendación:
+
+Incluir:
+
+* `projectId`;
+* `projectName`;
+* `versionLabel`;
+* `description`;
+* `author`;
+* `tags`;
+* `sourceSnapshotId`;
+* `changeSummary`.
+
+Excluir únicamente campos operativos temporales.
+
+---
+
+# 9. Hash de paquete
+
+El hash del paquete debe calcularse sobre:
+
+* manifest estable;
+* snapshots normalizados;
+* versiones normalizadas.
+
+Excluir:
+
+* `packageHash`;
+* `exportedAt`, si la reproducibilidad binaria lo requiere.
+
+La decisión sobre `exportedAt` debe documentarse y probarse.
+
+No afirmar autenticidad del paquete.
+
+---
+
+# 10. Hash de reporte reproducible
+
+Crear o endurecer:
+
+```ts
+computeGeneratedReportHash()
+```
+
+Excluir:
+
+* fecha de ejecución;
+* timestamps de exportación;
+* metadatos transitorios.
+
+Incluir:
+
+* estructura;
+* bloques;
+* contenido;
+* trazabilidad;
+* orden de secciones.
+
+El mismo snapshot y `ReportDefinition` deben producir el mismo hash.
+
+---
+
+# 11. Compatibilidad de APIs
+
+Mantener compatibilidad razonable con S-024.
+
+Si las funciones deben convertirse en asíncronas:
+
+* actualizar consumidores;
+* actualizar UI;
+* actualizar tests;
+* actualizar documentación;
+* evitar wrappers engañosamente síncronos.
+
+No mantener dos implementaciones paralelas de hash.
+
+---
+
+# 12. Inmutabilidad profunda
+
+Endurecer:
+
+```ts
+createProjectSnapshot()
+cloneSnapshot()
+reconstructSessionFromSnapshot()
+```
+
+Garantizar:
+
+* deep copy;
+* sin referencias compartidas;
+* snapshot no afectado por mutaciones posteriores;
+* sesión reconstruida independiente del snapshot;
+* una reconstrucción no muta el original.
+
+Aplicar `deepFreeze()` al snapshot en entornos compatibles.
+
+Crear:
+
+```ts
+deepClone()
+deepFreeze()
+```
+
+como utilidades puras y probadas.
+
+No depender únicamente de `Readonly<T>`, porque es garantía de TypeScript, no de runtime.
+
+---
+
+# 13. Diff semántico
+
+Endurecer `VersionComparisonService`.
+
+Debe distinguir:
+
+```text
+added
+removed
+modified
+reordered
+unchanged
+```
+
+Comparar por ID, nunca solo por índice.
+
+---
+
+# 14. Reordered
+
+Definir `reordered` como:
+
+```text
+misma entidad
++
+mismo contenido canónico
++
+posición distinta
+```
+
+Ejemplos:
+
+* misma evidencia, otra posición;
+* misma sección de informe, otro orden;
+* misma variable, otra posición.
+
+No clasificar como `modified` si el contenido no cambió.
+
+---
+
+# 15. Modificado y reordenado simultáneamente
+
+Cuando una entidad cambia contenido y posición, definir una regla explícita.
+
+Recomendación:
+
+```text
+changeType = modified
+reordered = true
+```
+
+Extender `ProjectEntityChange` con:
+
+```ts
+reordered?: boolean;
+beforeIndex?: number;
+afterIndex?: number;
+```
+
+No perder información de reordenamiento.
+
+Documentar la precedencia.
+
+---
+
+# 16. Breaking changes
+
+Formalizar un catálogo:
+
+```text
+src/project-versioning/breaking-change-rules.ts
+```
+
+Reglas mínimas:
+
+* hipótesis eliminada;
+* variable eliminada con dependientes;
+* indicador eliminado y usado;
+* fuente eliminada y usada;
+* criterio eliminado con evidencia;
+* evidencia eliminada y usada en conclusión;
+* referencias rotas;
+* schema incompatible.
+
+No clasificar como breaking:
+
+* corrección ortográfica;
+* edición de descripción;
+* reordenamiento;
+* actualización de notas;
+* cambio de tags.
+
+Cada breaking change debe indicar la regla aplicada.
+
+---
+
+# 17. Importación transaccional
+
+Reestructurar la importación así:
+
+```text
+Archivo
+↓
+Parseo
+↓
+Validación estructural
+↓
+Verificación de hash
+↓
+Verificación de snapshots internos
+↓
+Compatibilidad de esquema
+↓
+Migración en memoria
+↓
+Validación post-migración
+↓
+Detección de conflictos
+↓
+Preview
+↓
+Confirmación
+↓
+Commit atómico
+```
+
+Ninguna etapa previa a la confirmación debe modificar el proyecto activo.
+
+---
+
+# 18. ImportTransaction
+
+Crear:
+
+```ts
+interface ImportTransaction {
+  id: string;
+  status:
+    | "parsed"
+    | "validated"
+    | "verified"
+    | "migrated"
+    | "ready"
+    | "committed"
+    | "cancelled"
+    | "failed";
+
+  originalPackage: ProjectPackage;
+  preparedPackage?: ProjectPackage;
+  migrationResults: SchemaMigrationResult[];
+  conflicts: ImportConflict[];
+  strategy?: ImportStrategy;
+}
+```
+
+Puede mantenerse en estado temporal de UI.
+
+No persistirla en la sesión metodológica.
+
+---
+
+# 19. Commit atómico
+
+Crear:
+
+```ts
+commitImportTransaction()
+```
+
+Debe:
+
+* recibir el estado activo;
+* recibir una transacción `ready`;
+* producir un nuevo estado;
+* no mutar el original;
+* fallar completamente si alguna validación final falla.
+
+No realizar múltiples `setState` parciales durante la importación.
+
+---
+
+# 20. Estrategias
+
+## create-copy
+
+Debe:
+
+* crear nuevo `projectId`;
+* preservar relaciones internas;
+* evitar colisiones;
+* producir una copia independiente.
+
+Definir si los IDs internos también se regeneran.
+
+Recomendación:
+
+* regenerar `projectId`;
+* conservar IDs internos si no hay conflicto;
+* remapear IDs internos si hay conflicto;
+* mantener tabla explícita de remapeo.
+
+---
+
+## replace-current
+
+Debe:
+
+* requerir confirmación explícita;
+* reemplazar en una única operación;
+* preservar un snapshot de seguridad opcional solo si ya existe infraestructura para ello;
+* no ejecutarse por selección accidental.
+
+---
+
+## cancel
+
+Debe:
+
+* no mutar estado;
+* limpiar estado temporal;
+* conservar el archivo original intacto.
+
+---
+
+# 21. Validación de paquetes internos
+
+No basta con validar el hash del manifest.
+
+Verificar:
+
+* hash de cada snapshot;
+* referencias de versiones a snapshots;
+* parentVersionId válido;
+* projectId consistente;
+* schemaVersion consistente;
+* IDs duplicados;
+* referencias internas rotas;
+* reportDefinitions existentes;
+* ausencia de ciclos en versiones.
+
+Bloquear activación ante error.
+
+---
+
+# 22. Migraciones declarativas
+
+Eliminar el registro de migraciones desde `Helios.tsx`.
+
+Crear:
+
+```text
+src/project-versioning/migrations/registry.ts
+```
+
+Ejemplo:
+
+```ts
+export const REGISTERED_MIGRATIONS: SchemaMigration[] = [
+  migration090To100,
+];
+```
+
+`MigrationService` debe construirse o consultar este registro.
+
+No usar efectos secundarios al montar UI.
+
+---
+
+# 23. Registro idempotente
+
+Si se mantiene una API `registerMigration()`, debe:
+
+* rechazar duplicados exactos o ignorarlos determinísticamente;
+* no duplicar rutas;
+* no cambiar el resultado al registrar dos veces;
+* detectar conflictos entre migraciones con mismo `fromVersion` y `toVersion`.
+
+Agregar pruebas.
+
+---
+
+# 24. Ruta de migración
+
+Mantener BFS o equivalente.
+
+Agregar pruebas para:
+
+* ruta directa;
+* ruta múltiple;
+* ruta inexistente;
+* ciclos en registro;
+* migraciones duplicadas;
+* versiones futuras;
+* migración que lanza excepción;
+* validación post-migración;
+* no mutación del paquete original.
+
+---
+
+# 25. Lenguaje de seguridad
+
+Actualizar UI y documentación.
+
+Sustituir expresiones como:
+
+* “archivo auténtico”;
+* “integridad garantizada”;
+* “contenido certificado”;
+* “archivo inviolable”.
+
+Por:
+
+> El hash SHA-256 permite verificar que el contenido no cambió respecto del valor almacenado.
+
+Agregar:
+
+> El hash no acredita autoría, identidad ni origen. El paquete no está firmado digitalmente.
+
+---
+
+# 26. Pantallas
+
+No crear pantallas nuevas.
+
+Actualizar mínimamente:
+
+## PantallaProjectVersions
+
+Mostrar:
+
+* algoritmo: SHA-256;
+* hash completo opcional;
+* estado de verificación;
+* nota sobre autenticidad.
+
+## PantallaProjectImport
+
+Mostrar claramente:
+
+```text
+Integridad verificada
+```
+
+y por separado:
+
+```text
+Autoría no verificada
+```
+
+No usar un único badge ambiguo.
+
+## PantallaVersionComparison
+
+Mostrar `reordered` como categoría propia.
+
+Cuando sea `modified + reordered`, mostrar ambos estados.
+
+---
+
+# 27. Manejo de errores
+
+Crear errores tipados:
+
+```ts
+SnapshotIntegrityError
+PackageIntegrityError
+UnsupportedSchemaVersionError
+MigrationPathNotFoundError
+ImportConflictError
+CanonicalizationError
+```
+
+No lanzar strings.
+
+No ocultar causas.
+
+La UI debe mostrar mensajes comprensibles sin exponer stack traces.
+
+---
+
+# 28. Pruebas S-024.1
+
+Crear:
+
+```text
+validacion_s024_1.ts
+```
+
+No reemplazar `validacion_s024.ts`.
+
+Debe incluir como mínimo:
+
+## SHA-256
+
+1. hash SHA-256 conocido para string vacío;
+2. hash conocido para `"abc"`;
+3. longitud de 64 caracteres hexadecimales;
+4. mismo input, mismo hash;
+5. input diferente, hash diferente;
+6. no uso de MurmurHash;
+7. snapshot hash;
+8. package hash;
+9. report hash;
+10. verificación válida;
+11. verificación inválida.
+
+## Canonización
+
+12. claves en distinto orden;
+13. objetos anidados;
+14. arrays semánticos;
+15. arrays no semánticos;
+16. `undefined`;
+17. `null`;
+18. fechas;
+19. Unicode NFC;
+20. emojis;
+21. caracteres escapados;
+22. referencia circular;
+23. números;
+24. booleanos;
+25. string vacío.
+
+## Inmutabilidad
+
+26. mutación del estado después del snapshot;
+27. mutación de array anidado;
+28. mutación de objeto anidado;
+29. snapshot congelado;
+30. clone independiente;
+31. sesión reconstruida independiente;
+32. no mutación de argumentos.
+
+## Diff
+
+33. added;
+34. removed;
+35. modified;
+36. reordered;
+37. unchanged;
+38. modified + reordered;
+39. beforeIndex;
+40. afterIndex;
+41. cambio textual no breaking;
+42. eliminación de hipótesis breaking;
+43. eliminación de indicador usado breaking;
+44. eliminación de evidencia referenciada breaking;
+45. reordenamiento no breaking;
+46. diff idempotente.
+
+## Importación
+
+47. preview no muta estado;
+48. validación no muta estado;
+49. migración no muta estado;
+50. cancel no muta estado;
+51. create-copy cambia projectId;
+52. create-copy conserva referencias;
+53. conflicto de IDs;
+54. remapeo de IDs;
+55. replace-current sin confirmación;
+56. replace-current con confirmación;
+57. commit atómico;
+58. fallo durante commit;
+59. hash de package inválido;
+60. hash interno de snapshot inválido;
+61. versión futura;
+62. versión antigua migrable;
+63. versión antigua no migrable;
+64. referencias rotas;
+65. parentVersionId inválido;
+66. versión sin snapshot;
+67. IDs duplicados;
+68. paquete incompleto;
+69. JSON inválido;
+70. propiedades desconocidas.
+
+## Migraciones
+
+71. registro declarativo;
+72. registro idempotente;
+73. conflicto de migración;
+74. ruta directa;
+75. ruta múltiple;
+76. ruta inexistente;
+77. ciclo en migraciones;
+78. migración fallida;
+79. validación post-migración;
+80. original sin mutar.
+
+## Reproducibilidad
+
+81. mismo snapshot, mismo reporte;
+82. misma definición, mismo hash;
+83. timestamp excluido;
+84. proyecto activo modificado no cambia reporte anterior;
+85. reportDefinition inexistente;
+86. snapshot inválido;
+87. HTML determinístico;
+88. Markdown determinístico;
+89. JSON determinístico;
+90. caracteres especiales.
+
+## UI e integración
+
+91. muestra SHA-256;
+92. separa integridad de autenticidad;
+93. muestra reordered;
+94. muestra modified + reordered;
+95. importación requiere confirmación;
+96. error accesible;
+97. aria-live;
+98. navegación;
+99. reinicio;
+100. regresión.
+
+La suite debe superar **180 aserciones reales**, no artificiales.
+
+---
+
+# 29. Regresión completa
+
+Ejecutar:
+
+* Typecheck
+* S-012
+* S-013
+* S-014
+* S-015
+* S-016
+* S-017
+* S-018
+* S-019
+* S-020
+* S-021
+* S-022
+* S-023
+* S-024
+* S-024.1
+* Smoke
+* Integration
+* Build
+
+Todos deben permanecer en verde.
+
+---
+
+# 30. Architecture Review
+
+Responder:
+
+1. ¿Por qué MurmurHash no era suficiente?
+2. ¿Cómo se implementó SHA-256?
+3. ¿Qué adapter se utiliza en navegador y tests?
+4. ¿Qué datos entran al hash?
+5. ¿Qué datos quedan excluidos?
+6. ¿Cómo funciona la canonización?
+7. ¿Cómo se trata Unicode?
+8. ¿Qué arrays preservan orden?
+9. ¿Qué arrays se normalizan?
+10. ¿Cómo se demuestra inmutabilidad profunda?
+11. ¿Cómo se distingue `modified` de `reordered`?
+12. ¿Cómo se representa `modified + reordered`?
+13. ¿Qué cambios son breaking?
+14. ¿Cómo se garantiza importación transaccional?
+15. ¿Qué significa commit atómico?
+16. ¿Cómo funciona `create-copy`?
+17. ¿Cómo se resuelven conflictos de IDs?
+18. ¿Dónde se registran las migraciones?
+19. ¿Cómo se garantiza idempotencia del registro?
+20. ¿Qué verifica el hash?
+21. ¿Qué no verifica el hash?
+22. ¿Qué limitaciones de seguridad permanecen?
+23. ¿Qué deuda técnica queda?
+24. ¿Puede considerarse S-024 plenamente cerrado?
+
+---
+
+# 31. Documentación
+
+Agregar:
+
+```text
+docs/adr/ADR-0013A-cryptographic-integrity.md
+docs/architecture/S-024-1-versioning-hardening-review.md
+docs/versioning/canonicalization-spec.md
+docs/versioning/import-transaction-model.md
+docs/security/integrity-vs-authenticity.md
+```
+
+Actualizar:
+
+* ADR-0013;
+* README;
+* formato de snapshots;
+* formato de paquetes;
+* migraciones;
+* reportes reproducibles;
+* catálogo de errores;
+* CHANGELOG;
+* scripts de validación.
+
+Eliminar toda referencia a MurmurHash como mecanismo de integridad.
+
+---
+
+# 32. Entrega
+
+Entregar:
+
+* revisión inicial;
+* ADR-0013A;
+* `CryptoHashAdapter`;
+* implementación SHA-256;
+* canonización endurecida;
+* deep clone y deep freeze;
+* diff con `reordered`;
+* catálogo de breaking changes;
+* importación transaccional;
+* registro declarativo de migraciones;
+* errores tipados;
+* ajustes mínimos de UI;
+* validación S-024.1;
+* regresión completa;
+* documentación;
+* CHANGELOG;
+* commit;
+* push;
+* no hacer republish;
+* detenerse para revisión.
+
+---
+
+# Criterio de éxito
+
+S-024 solo podrá considerarse plenamente cerrado cuando HELIOS demuestre que:
+
+```text
+Mismo contenido
+↓
+misma representación canónica
+↓
+mismo SHA-256
+```
+
+y que:
+
+```text
+Importación
+↓
+validación completa
+↓
+preview
+↓
+confirmación explícita
+↓
+commit atómico
+```
+
+Además, debe distinguir correctamente:
+
+```text
+integridad
+≠
+autenticidad
+≠
+firma digital
+```
+
+y:
+
+```text
+modified
+≠
+reordered
+```
+
+Al finalizar S-024.1, HELIOS deberá poder afirmar únicamente:
+
+> El sistema verifica mediante SHA-256 que el contenido coincide con su representación canónica almacenada.
+
+No deberá afirmar que el archivo fue creado por una persona determinada, que su origen está certificado o que cuenta con firma digital.

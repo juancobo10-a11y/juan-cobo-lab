@@ -1,12 +1,16 @@
 /**
- * S-024 — Project Snapshot, Versioning & Reproducibility Engine
+ * S-024 / S-024.1 — Project Snapshot, Versioning & Reproducibility Engine
  *
  * Types for the project-versioning module.
  *
  * ADR-0013: Snapshots are immutable, deterministic, verifiable representations
  * of the methodological state. They are NOT backups, NOT encrypted, and NOT
- * equivalent to version control. The hash guarantees integrity, not
- * confidentiality.
+ * equivalent to version control.
+ *
+ * ADR-0013A: SHA-256 is used for all hashes. The hash verifies that content
+ * has not changed since the snapshot was created. It does NOT verify authorship,
+ * identity, origin, or provide a digital signature. Authenticity and signature
+ * are separate concerns, deferred to a future sprint.
  */
 
 import type { KnowledgePack } from "@/router/types";
@@ -80,8 +84,12 @@ export interface ProjectSnapshotMetadata {
  * An immutable, verifiable representation of the methodological state
  * at a specific point in time.
  *
- * contentHash is computed over: schemaVersion + normalized payload + stable metadata.
- * It excludes: createdAt, contentHash itself, transitory text, accidental key order.
+ * contentHash is computed via SHA-256 over:
+ *   schemaVersion + normalized payload + stable metadata fields.
+ * Excluded: createdAt, contentHash itself, transitory text, accidental key order.
+ *
+ * The hash confirms integrity (content has not changed).
+ * It does NOT confirm authorship, identity, or origin.
  */
 export interface ProjectSnapshot {
   id: string;
@@ -91,7 +99,7 @@ export interface ProjectSnapshot {
   schemaVersion: string;
   metadata: ProjectSnapshotMetadata;
   payload: ProjectSnapshotPayload;
-  /** Deterministic content fingerprint (MurmurHash3-128, hex) */
+  /** SHA-256 hex digest (64 chars) of the canonical content */
   contentHash: string;
   createdAt: string; // ISO-8601
 }
@@ -131,10 +139,27 @@ export interface ProjectEntityChange {
   before?: unknown;
   after?: unknown;
   changedFields?: string[];
+  /**
+   * True when the entity also changed position, regardless of changeType.
+   * When changeType === "modified" AND reordered === true, the entity
+   * changed both content and position simultaneously.
+   * When changeType === "reordered", content is identical; only position changed.
+   * Precedence rule: if content changed, changeType = "modified"; reordered is additive.
+   */
+  reordered?: boolean;
+  /** Array index in the base snapshot (-1 if not present in base) */
+  beforeIndex?: number;
+  /** Array index in the target snapshot (-1 if not present in target) */
+  afterIndex?: number;
   traceability?: {
     hypothesisId?: string;
     parentEntityId?: string;
   };
+  /**
+   * ID of the BreakingChangeRule that matched, if any.
+   * Null/undefined when the change is not breaking.
+   */
+  breakingRuleId?: string;
 }
 
 export interface ProjectDiffSummary {
@@ -198,9 +223,10 @@ export interface ProjectPackageManifest {
   snapshotCount: number;
   versionCount: number;
   /**
-   * Hash over: format + packageVersion + schemaVersion + projectId +
-   *            sorted snapshot contentHashes.
+   * SHA-256 hex digest over: format + packageVersion + schemaVersion +
+   * projectId + sorted snapshot contentHashes.
    * Excludes exportedAt (allows date-stripped reproducibility) and packageHash itself.
+   * The hash verifies content integrity. It does NOT verify authorship or origin.
    */
   packageHash: string;
 }
@@ -225,6 +251,47 @@ export interface ProjectImportResult {
   conflictsDetected: string[];
   errors: string[];
   warnings: string[];
+}
+
+/**
+ * A single ID conflict detected during import.
+ * "remap" means a new ID was assigned; "overwrite" means the existing entity
+ * was replaced; "skip" means the import was not applied.
+ */
+export interface ImportConflict {
+  entityType: "snapshot" | "version";
+  existingId: string;
+  importedId: string;
+  resolution: "remap" | "overwrite" | "skip";
+  newId?: string;
+}
+
+/**
+ * Represents the in-progress state of an import operation.
+ * Never persisted in the session — lives in UI state only.
+ *
+ * Lifecycle:
+ *   parsed → validated → verified → migrated → ready → committed
+ *   Any step can transition to: cancelled | failed
+ */
+export interface ImportTransaction {
+  id: string;
+  status:
+    | "parsed"
+    | "validated"
+    | "verified"
+    | "migrated"
+    | "ready"
+    | "committed"
+    | "cancelled"
+    | "failed";
+  originalPackage: ProjectPackage;
+  preparedPackage?: ProjectPackage;
+  migrationResults: SchemaMigrationResult[];
+  conflicts: ImportConflict[];
+  strategy?: ImportStrategy;
+  errors?: string[];
+  warnings?: string[];
 }
 
 export interface ProjectIntegrityResult {

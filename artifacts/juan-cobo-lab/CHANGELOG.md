@@ -1,5 +1,45 @@
 # HELIOS — Changelog
 
+## S-024.1 (2026-07-18) — Cryptographic Integrity & Versioning Hardening
+
+### Resumen
+Hardening del motor de versionamiento de S-024. SHA-256 reemplaza MurmurHash3-128 como algoritmo de hash. Canonización determinística con Unicode NFC. Importación transaccional (`ImportTransaction`/`commitImportTransaction`). Registro declarativo de migraciones (`REGISTERED_MIGRATIONS`). Diff semántico extendido: `reordered`/`beforeIndex`/`afterIndex`/`modified+reordered`. Errores tipados. 117/117 aserciones de nueva suite.
+
+### ADR-0013A
+SHA-256 verifica integridad del contenido. No verifica autoría, identidad ni origen. Ver `docs/adr/ADR-0013A-cryptographic-integrity.md` y `docs/security/integrity-vs-authenticity.md`.
+
+### Nuevos archivos
+- **`src/project-versioning/crypto/CryptoHashAdapter.ts`** — `CryptoHashAdapter` interface + `WebCryptoHashAdapter` (browser/Node 18+) + `NodeCryptoHashAdapter` (fallback) + `DefaultCryptoHashAdapter` (auto-detect) + `sha256Hex()`. NFC normalization aplicada antes de hashing.
+- **`src/project-versioning/crypto/canonicalize.ts`** — `canonicalStringify()`, `canonicalize()`, `normalizeProjectPackage()`, `normalizeGeneratedReport()`. Ordena claves, NFC strings, excluye `undefined`, preserva `null`, detecta referencias circulares (lanza `CanonicalizationError`). `SEMANTIC_ARRAY_KEYS` / `NON_SEMANTIC_ARRAY_KEYS`.
+- **`src/project-versioning/errors.ts`** — Errores tipados: `HeliosVersioningError` (base), `SnapshotIntegrityError`, `PackageIntegrityError`, `UnsupportedSchemaVersionError`, `MigrationPathNotFoundError`, `ImportConflictError`, `CanonicalizationError`.
+- **`src/project-versioning/breaking-change-rules.ts`** — `BREAKING_CHANGE_RULES` (10 reglas), `BreakingChangeRule` interface, `evaluateBreakingChange()`, `isBreakingChange()`, `findAllBreakingChanges()`.
+- **`src/project-versioning/migrations/registry.ts`** — `REGISTERED_MIGRATIONS` declarativo.
+- **`src/project-versioning/__tests__/validacion_s024_1.ts`** — 117/117 aserciones.
+- **`docs/adr/ADR-0013A-cryptographic-integrity.md`** — ADR completo.
+- **`docs/security/integrity-vs-authenticity.md`** — Guía de lenguaje UI: integridad ≠ autenticidad.
+- **`docs/versioning/canonicalization-spec.md`** — Especificación del algoritmo de canonización.
+- **`docs/versioning/import-transaction-model.md`** — Modelo transaccional de importación.
+
+### Archivos refactorizados
+- **`src/project-versioning/SnapshotService.ts`** — Eliminado `murmurFingerprint128`; todas las funciones de hash async (SHA-256); `computeSnapshotHash` incluye 9 campos de metadata estables; `createProjectSnapshot`, `cloneSnapshot`, `verifySnapshotIntegrity`, `verifyReportReproducibility` async; añadidos `deepFreeze()`, `deepClone()`, `computeGeneratedReportHash()` exportados.
+- **`src/project-versioning/VersionComparisonService.ts`** — `compareEntityList()` produce `beforeIndex`/`afterIndex`/`reordered` en cada cambio; usa `evaluateBreakingChange()` para `breakingRuleId`; añadido `findReorderedEntities()`; precedencia modified+reordered documentada.
+- **`src/project-versioning/ProjectPackageService.ts`** — `computePackageHash()` async; `createProjectPackage()` async; `validateProjectPackage()` async (verificación extendida: hash por snapshot, IDs duplicados, refs rotas, detección de ciclos); `verifyProjectPackageIntegrity()` async; añadidos `createImportTransaction()`, `prepareImportTransaction()` (pipeline completo), `commitImportTransaction()` (atómico); `importProjectPackage()` retro-compatible (usa pipeline interno).
+- **`src/project-versioning/migrations/MigrationService.ts`** — Inicializa desde `REGISTERED_MIGRATIONS`; `registerMigration()` lanza error en conflicto (misma ruta, función distinta); añadido `resetMigrationsToRegistry()` para aislamiento en tests.
+- **`src/project-versioning/index.ts`** — Barrel actualizado: exporta todos los nuevos símbolos.
+- **`src/project-versioning/__tests__/validacion_s024.ts`** — Migrado a harness async (queue-based); eliminado `registerMigration` de nivel de módulo (ya en registro declarativo); todos los `it()` que llaman funciones async son `async/await`. 106/106.
+- **`src/components/PantallaProjectVersions.tsx`** — `handleCreateSnapshot` async; `handleExport` async; `verifySnapshotIntegrity` movida a `useEffect` + `integrityMap` state (SHA-256 async); badge de integridad muestra "SHA-256 ✓/✗" con tooltip distinguiendo integridad de autenticidad.
+- **`src/components/PantallaProjectImport.tsx`** — `validateProjectPackage` y `importProjectPackage` async; estado `validation` tipado correctamente como `ProjectIntegrityResult | null`.
+- **`src/pages/Helios.tsx`** — Eliminado `registerMigration` y `migration_0_9_0_to_1_0_0` del nivel de módulo (ya en registro declarativo).
+- **`scripts/validate-all.ts`** — Suite S-024.1 añadida; 17 → 18 suites.
+- **`package.json`** — Script `validate:s024_1`.
+
+### Resultado de validación
+- TypeCheck: 0 errores
+- S-024: 106/106
+- S-024.1: 117/117
+
+---
+
 ## S-024 (2026-07-18) — Project Snapshot, Versioning & Reproducibility Engine
 
 ### Resumen

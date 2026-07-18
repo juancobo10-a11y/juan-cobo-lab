@@ -5,7 +5,7 @@
  * All methodological data passed as props — no internal state fetches.
  */
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Camera, GitBranch, Shield, ShieldCheck, ShieldX,
@@ -89,6 +89,23 @@ export function PantallaProjectVersions({
   const [changeSummary, setChangeSummary] = useState("");
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState<string | null>(null);
+  // Async integrity results: snapshotId → boolean
+  const [integrityMap, setIntegrityMap] = useState<Map<string, boolean>>(new Map());
+
+  // Compute SHA-256 integrity for all snapshots asynchronously
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { verifySnapshotIntegrity: verify } = await import("@/project-versioning/SnapshotService");
+      const map = new Map<string, boolean>();
+      for (const snap of snapshots) {
+        const ok = await verify(snap);
+        map.set(snap.id, ok);
+      }
+      if (!cancelled) setIntegrityMap(new Map(map));
+    })();
+    return () => { cancelled = true; };
+  }, [snapshots]);
 
   // Stats of current payload for preview
   const payloadStats = useMemo(() => ({
@@ -101,11 +118,11 @@ export function PantallaProjectVersions({
     reportDefs: currentPayload.reportDefinitions.length,
   }), [currentPayload]);
 
-  const handleCreateSnapshot = useCallback(() => {
+  const handleCreateSnapshot = useCallback(async () => {
     if (!versionLabel.trim()) return;
     setCreating(true);
     try {
-      const snap = createProjectSnapshot(
+      const snap = await createProjectSnapshot(
         currentPayload,
         {
           projectId,
@@ -146,8 +163,8 @@ export function PantallaProjectVersions({
     onUpdateSnapshots(result);
   }, [snapshots, versions, onUpdateSnapshots]);
 
-  const handleExport = useCallback(() => {
-    const pkg = createProjectPackage(projectId, projectName, snapshots, versions);
+  const handleExport = useCallback(async () => {
+    const pkg = await createProjectPackage(projectId, projectName, snapshots, versions);
     const content = exportProjectPackage(pkg);
     const filename = buildExportFilename(projectName, versions[versions.length - 1]?.label);
     const blob = new Blob([content], { type: "application/json" });
@@ -376,7 +393,7 @@ export function PantallaProjectVersions({
               ) : (
                 <ul className="space-y-3" role="list" aria-label="Lista de versiones">
                   {versionItems.map(({ version, snapshot }, idx) => {
-                    const integrity = verifySnapshotIntegrity(snapshot);
+                    const integrity = integrityMap.get(snapshot.id) ?? null; // null = loading
                     const prevSnapshot = idx < versionItems.length - 1
                       ? versionItems[idx + 1].snapshot
                       : null;
@@ -409,12 +426,15 @@ export function PantallaProjectVersions({
                                 {snapshot.contentHash.slice(0, 12)}…
                               </span>
                               <span
-                                className={`flex items-center gap-1 ${integrity ? "text-emerald-600" : "text-red-500"}`}
-                                aria-label={integrity ? "Integridad verificada" : "Error de integridad"}
+                                className={`flex items-center gap-1 ${integrity === null ? "text-muted-foreground" : integrity ? "text-emerald-600" : "text-red-500"}`}
+                                aria-label={integrity === null ? "Verificando SHA-256…" : integrity ? "SHA-256 verificado — contenido íntegro" : "SHA-256 no coincide — contenido puede haber cambiado"}
+                                title="SHA-256 verifica que el contenido no cambió desde que se creó el snapshot. No verifica autoría ni origen."
                               >
-                                {integrity
-                                  ? <><ShieldCheck className="w-3 h-3" aria-hidden="true" /><span>Íntegro</span></>
-                                  : <><ShieldX className="w-3 h-3" aria-hidden="true" /><span>Hash inválido</span></>
+                                {integrity === null
+                                  ? <><Shield className="w-3 h-3 animate-pulse" aria-hidden="true" /><span>Verificando…</span></>
+                                  : integrity
+                                  ? <><ShieldCheck className="w-3 h-3" aria-hidden="true" /><span>SHA-256 ✓</span></>
+                                  : <><ShieldX className="w-3 h-3" aria-hidden="true" /><span>SHA-256 ✗</span></>
                                 }
                               </span>
                               {diffSummary && (diffSummary.added + diffSummary.removed + diffSummary.modified) > 0 && (

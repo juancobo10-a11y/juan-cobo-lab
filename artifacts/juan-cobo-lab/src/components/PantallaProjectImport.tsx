@@ -47,7 +47,7 @@ export function PantallaProjectImport({
   const [step, setStep] = useState<Step>("select");
   const [filename, setFilename] = useState("");
   const [rawContent, setRawContent] = useState("");
-  const [validation, setValidation] = useState<ReturnType<typeof validateProjectPackage> | null>(null);
+  const [validation, setValidation] = useState<import("@/project-versioning/types").ProjectIntegrityResult | null>(null);
   const [strategy, setStrategy] = useState<ImportStrategy>("create-copy");
   const [confirmed, setConfirmed] = useState(false);
   const [result, setResult] = useState<ProjectImportResult | null>(null);
@@ -68,9 +68,13 @@ export function PantallaProjectImport({
         setStep("error");
         return;
       }
-      const val = validateProjectPackage(pkg);
-      setValidation(val);
-      setStep("review");
+      validateProjectPackage(pkg).then((val) => {
+        setValidation(val);
+        setStep("review");
+      }).catch(() => {
+        setErrorMsg("Error al validar el paquete.");
+        setStep("error");
+      });
     };
     reader.onerror = () => {
       setErrorMsg("No se pudo leer el archivo.");
@@ -87,9 +91,9 @@ export function PantallaProjectImport({
   const migrationAvailable = needsMigration && canMigrate(schemaVersion, CURRENT_PROJECT_SCHEMA_VERSION);
   const blocked = !validation?.valid || isFutureSchema || (needsMigration && !migrationAvailable);
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = useCallback(async () => {
     if (!pkg || blocked) return;
-    const importResult = importProjectPackage(
+    const importResult = await importProjectPackage(
       pkg,
       currentSnapshots,
       currentVersions,

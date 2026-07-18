@@ -1,14 +1,14 @@
 /**
- * S-024 — SnapshotService
+ * S-024 / S-024.1 — SnapshotService
  *
- * Pure functions. No mutations. No storage access.
+ * Pure async functions. No mutations. No storage access.
  * Every function returns a new value; inputs are never modified.
  *
- * Hash algorithm: MurmurHash3-inspired 128-bit fingerprint (hex).
- * Deterministic, cross-environment (browser + Node), synchronous.
- * NOT cryptographic — guarantees integrity, not confidentiality.
- * Upgrade path: replace murmurFingerprint128 with SHA-256 (Web Crypto, async)
- * if cryptographic strength is required in the future.
+ * Hash algorithm: SHA-256 via CryptoHashAdapter (Web Crypto + Node fallback).
+ * The hash verifies that content has not changed since the snapshot was created.
+ * It does NOT verify authorship, identity, or origin (ADR-0013A).
+ *
+ * Canonicalization: deterministic via canonicalize.ts (NFC + sorted keys).
  */
 
 import {
@@ -21,69 +21,38 @@ import {
   type SnapshotValidationResult,
 } from "./types";
 export { CURRENT_PROJECT_SCHEMA_VERSION };
+import { sha256Hex } from "./crypto/CryptoHashAdapter";
+import { canonicalStringify } from "./crypto/canonicalize";
 import { buildReportDocument } from "@/report-builder/ReportBuilderService";
 import { MarkdownExporter } from "@/report-builder/exporters/MarkdownExporter";
 import type { ReportBuildInput } from "@/report-builder/types";
 
-// ─── Hash ─────────────────────────────────────────────────────────────────────
+// ─── Deep clone / freeze utilities ───────────────────────────────────────────
 
 /**
- * MurmurHash3-inspired 128-bit deterministic fingerprint.
- * Produces 32 hex characters. Same input always produces same output.
- * Cross-environment: pure JS, no imports.
+ * Deep-freeze an object recursively for runtime immutability.
+ * TypeScript's Readonly<T> only guarantees compile-time safety.
+ * This ensures runtime mutations throw (in strict mode) or silently fail.
  */
-function murmurFingerprint128(s: string): string {
-  // Four independent 32-bit hashes with distinct seeds → 128-bit output
-  const seeds = [0xdeadbeef, 0x41c6ce57, 0xb0f57ee3, 0x7b573bf9];
-  const hexParts = seeds.map((seed) => {
-    let h1 = seed >>> 0;
-    let h2 = (seed ^ 0xf1b2c3d4) >>> 0;
-    for (let i = 0; i < s.length; i++) {
-      const ch = s.charCodeAt(i);
-      h1 = (Math.imul(h1 ^ ch, 0x9e3779b9) >>> 0);
-      h2 = (Math.imul(h2 ^ ch, 0x517cc1b7) >>> 0);
-    }
-    h1 = (Math.imul(h1 ^ (h1 >>> 16), 0x85ebca6b) ^ Math.imul(h2 ^ (h2 >>> 13), 0xc2b2ae35)) >>> 0;
-    h2 = (Math.imul(h2 ^ (h2 >>> 16), 0x85ebca6b) ^ Math.imul(h1 ^ (h1 >>> 13), 0xc2b2ae35)) >>> 0;
-    return (h1.toString(16).padStart(8, "0") + h2.toString(16).padStart(8, "0"));
+export function deepFreeze<T>(obj: T): T {
+  if (obj === null || typeof obj !== "object") return obj;
+  Object.getOwnPropertyNames(obj).forEach((name) => {
+    const val = (obj as Record<string, unknown>)[name];
+    if (val && typeof val === "object") deepFreeze(val);
   });
-  return hexParts.join("");
+  return Object.freeze(obj);
+}
+
+/**
+ * Deep-clone a JSON-serializable value.
+ * Uses JSON round-trip to ensure no shared references.
+ * All functions, Dates, undefined values, and circular refs will not survive.
+ */
+export function deepClone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 // ─── Normalization ────────────────────────────────────────────────────────────
-
-/**
- * Deep-sort the keys of a plain object so that accidental key ordering
- * does not affect the hash. Arrays whose order has methodological meaning
- * are preserved as-is (variables, indicators, rows, evidences, assessments,
- * sections of a report). Arrays without semantic order (e.g. tags) are sorted.
- */
-function sortKeys(value: unknown, path = ""): unknown {
-  if (value === null || typeof value !== "object") return value;
-  if (Array.isArray(value)) {
-    // Preserve semantic order for known list types
-    const semanticPaths = [
-      "variables", "indicators", "evidenceSources", "rows",
-      "observations", "assessments", "sections", "reflectionAnswers",
-      "hypotheses", "conceptualModels", "operationalizationMatrices",
-      "contrastationMatrices", "evidenceEvaluationMatrices",
-      "hypothesisEvidenceConclusions", "reportDefinitions",
-    ];
-    const key = path.split(".").pop() ?? "";
-    const preserve = semanticPaths.some((p) => key === p || path.endsWith(`.${p}`));
-    const mapped = value.map((v, i) => sortKeys(v, `${path}[${i}]`));
-    return preserve ? mapped : [...mapped].sort((a, b) =>
-      JSON.stringify(a).localeCompare(JSON.stringify(b))
-    );
-  }
-  const sorted: Record<string, unknown> = {};
-  Object.keys(value as Record<string, unknown>)
-    .sort()
-    .forEach((k) => {
-      sorted[k] = sortKeys((value as Record<string, unknown>)[k], path ? `${path}.${k}` : k);
-    });
-  return sorted;
-}
 
 /**
  * Produce a canonical representation of the payload for hashing.
@@ -93,39 +62,52 @@ function sortKeys(value: unknown, path = ""): unknown {
  * - undefined values (normalized to absent)
  * - transitory fields (pantalla, scroll positions, etc.)
  *
- * Note: createdAt/updatedAt on ENTITIES (variables, hypotheses) are included
- * because they are part of the entity identity. Only the snapshot's own
- * createdAt is excluded.
+ * Unicode: all strings are NFC-normalized by canonicalStringify.
  */
 export function normalizeSnapshotPayload(payload: ProjectSnapshotPayload): string {
-  // Deep-copy and sort keys deterministically
-  const normalized = sortKeys(payload);
-  return JSON.stringify(normalized, (_k, v) => {
-    if (v === undefined) return null; // normalize undefined → null for canonical form
-    return v;
-  });
+  return canonicalStringify(payload);
 }
 
 // ─── Hash computation ─────────────────────────────────────────────────────────
 
 /**
- * Compute a deterministic content hash for a snapshot.
+ * Compute a deterministic SHA-256 content hash for a snapshot.
  *
- * Inputs: schemaVersion + normalized payload + stable metadata fields.
- * Excluded: createdAt, contentHash itself, transitory text, accidental order.
+ * Inputs to hash:
+ *   schemaVersion + projectId + projectName + versionLabel + description +
+ *   author + tags + sourceSnapshotId + changeSummary + normalized payload.
+ *
+ * Excluded from hash:
+ *   createdAt, contentHash itself, transitory/operational metadata.
  */
-export function computeSnapshotHash(
+export async function computeSnapshotHash(
   schemaVersion: string,
   payload: ProjectSnapshotPayload,
-  metadata: Pick<ProjectSnapshotMetadata, "projectId" | "projectName">
-): string {
-  const canonical = JSON.stringify({
+  metadata: Pick<
+    ProjectSnapshotMetadata,
+    | "projectId"
+    | "projectName"
+    | "versionLabel"
+    | "description"
+    | "author"
+    | "tags"
+    | "sourceSnapshotId"
+    | "changeSummary"
+  >
+): Promise<string> {
+  const canonical = canonicalStringify({
     schemaVersion,
     projectId: metadata.projectId,
     projectName: metadata.projectName,
+    versionLabel: metadata.versionLabel ?? null,
+    description: metadata.description ?? null,
+    author: metadata.author ?? null,
+    tags: [...(metadata.tags ?? [])].sort(),
+    sourceSnapshotId: metadata.sourceSnapshotId ?? null,
+    changeSummary: metadata.changeSummary ?? null,
     payload: JSON.parse(normalizeSnapshotPayload(payload)),
   });
-  return murmurFingerprint128(canonical);
+  return sha256Hex(canonical);
 }
 
 // ─── Snapshot CRUD ────────────────────────────────────────────────────────────
@@ -137,23 +119,21 @@ function generateId(): string {
 /**
  * Create a new immutable project snapshot from the current session state.
  * The returned object is frozen (deep) to enforce immutability.
+ * Async because SHA-256 computation is async.
  */
-export function createProjectSnapshot(
+export async function createProjectSnapshot(
   payload: ProjectSnapshotPayload,
   metadata: ProjectSnapshotMetadata,
   versionLabel?: string
-): ProjectSnapshot {
+): Promise<ProjectSnapshot> {
   const schemaVersion = CURRENT_PROJECT_SCHEMA_VERSION;
-  const payloadCopy = deepFreeze(JSON.parse(JSON.stringify(payload))) as ProjectSnapshotPayload;
+  const payloadCopy = deepFreeze(deepClone(payload));
   const metaCopy: ProjectSnapshotMetadata = {
-    ...metadata,
+    ...deepClone(metadata),
     tags: [...(metadata.tags ?? [])],
     versionLabel: versionLabel ?? metadata.versionLabel,
   };
-  const contentHash = computeSnapshotHash(schemaVersion, payloadCopy, {
-    projectId: metaCopy.projectId,
-    projectName: metaCopy.projectName,
-  });
+  const contentHash = await computeSnapshotHash(schemaVersion, payloadCopy, metaCopy);
   const snapshot: ProjectSnapshot = {
     id: generateId(),
     version: versionLabel ?? metaCopy.versionLabel ?? "1.0",
@@ -167,14 +147,15 @@ export function createProjectSnapshot(
 }
 
 /**
- * Verify that a snapshot's contentHash matches a freshly computed hash.
- * Returns false if tampered. Does NOT auto-correct.
+ * Verify that a snapshot's contentHash matches a freshly computed SHA-256.
+ * Returns false if tampered or corrupted.
+ * The hash does NOT verify authorship — only content integrity.
  */
-export function verifySnapshotIntegrity(snapshot: ProjectSnapshot): boolean {
-  const expected = computeSnapshotHash(
+export async function verifySnapshotIntegrity(snapshot: ProjectSnapshot): Promise<boolean> {
+  const expected = await computeSnapshotHash(
     snapshot.schemaVersion,
     snapshot.payload,
-    { projectId: snapshot.metadata.projectId, projectName: snapshot.metadata.projectName }
+    snapshot.metadata
   );
   return expected === snapshot.contentHash;
 }
@@ -183,13 +164,13 @@ export function verifySnapshotIntegrity(snapshot: ProjectSnapshot): boolean {
  * Create a deep copy of a snapshot with a new ID and timestamp.
  * Useful for deriving a new snapshot from an existing one.
  */
-export function cloneSnapshot(
+export async function cloneSnapshot(
   source: ProjectSnapshot,
   overrides: Partial<ProjectSnapshotMetadata> = {}
-): ProjectSnapshot {
-  const newPayload = JSON.parse(JSON.stringify(source.payload)) as ProjectSnapshotPayload;
+): Promise<ProjectSnapshot> {
+  const newPayload = deepClone(source.payload);
   const newMeta: ProjectSnapshotMetadata = {
-    ...JSON.parse(JSON.stringify(source.metadata)),
+    ...deepClone(source.metadata),
     ...overrides,
     sourceSnapshotId: source.id,
   };
@@ -198,6 +179,7 @@ export function cloneSnapshot(
 
 /**
  * Validate the structural integrity of a snapshot (not the hash).
+ * Synchronous — for use in import pipelines before async hash checks.
  */
 export function validateSnapshot(snapshot: unknown): SnapshotValidationResult {
   const errors: string[] = [];
@@ -244,7 +226,7 @@ export function isSnapshotEquivalent(a: ProjectSnapshot, b: ProjectSnapshot): bo
  */
 export function reconstructSessionFromSnapshot(snapshot: ProjectSnapshot): ReconstructedSession {
   // Deep-copy the payload so the session is independent of the snapshot
-  const p = JSON.parse(JSON.stringify(snapshot.payload)) as ProjectSnapshotPayload;
+  const p = deepClone(snapshot.payload);
   return {
     problema: p.problema ?? "",
     packActivo: p.packActivo ?? null,
@@ -298,13 +280,24 @@ export function generateReportFromSnapshot(
 }
 
 /**
- * Verify that two report generations from the same snapshot produce identical content.
- * Timestamps must be excluded from the comparison hash for true reproducibility.
+ * Compute a SHA-256 hash of a generated report string (timestamps stripped).
  */
-export function verifyReportReproducibility(
+export async function computeGeneratedReportHash(reportContent: string): Promise<string> {
+  const stripped = reportContent.replace(
+    /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/g,
+    "<TIMESTAMP>"
+  );
+  return sha256Hex(stripped);
+}
+
+/**
+ * Verify that two report generations from the same snapshot produce identical content.
+ * SHA-256 hashes are used for comparison; timestamps are excluded.
+ */
+export async function verifyReportReproducibility(
   snapshot: ProjectSnapshot,
   reportDefinitionId: string
-): ReproducibilityResult {
+): Promise<ReproducibilityResult> {
   const first = generateReportFromSnapshot(snapshot, reportDefinitionId);
   const second = generateReportFromSnapshot(snapshot, reportDefinitionId);
 
@@ -317,22 +310,18 @@ export function verifyReportReproducibility(
     };
   }
 
-  // Strip timestamps from comparison (lines containing ISO dates)
-  const stripTimestamps = (s: string) =>
-    s.replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z/g, "<TIMESTAMP>");
-
-  const normalizedFirst = stripTimestamps(first);
-  const normalizedSecond = stripTimestamps(second);
-  const firstHash = murmurFingerprint128(normalizedFirst);
-  const secondHash = murmurFingerprint128(normalizedSecond);
+  const firstHash = await computeGeneratedReportHash(first);
+  const secondHash = await computeGeneratedReportHash(second);
 
   if (firstHash === secondHash) {
     return { reproducible: true, firstHash, secondHash, differences: [] };
   }
 
-  // Find differing lines
-  const linesA = normalizedFirst.split("\n");
-  const linesB = normalizedSecond.split("\n");
+  // Find differing lines for debugging
+  const stripTimestamps = (s: string) =>
+    s.replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/g, "<TIMESTAMP>");
+  const linesA = stripTimestamps(first).split("\n");
+  const linesB = stripTimestamps(second).split("\n");
   const differences: string[] = [];
   const len = Math.max(linesA.length, linesB.length);
   for (let i = 0; i < len; i++) {
@@ -376,16 +365,4 @@ export function removeProjectSnapshot(
   const referenced = versions.some((v) => v.snapshotId === snapshotId);
   if (referenced) return null; // blocked
   return snapshots.filter((s) => s.id !== snapshotId);
-}
-
-// ─── Utilities ────────────────────────────────────────────────────────────────
-
-/** Deep-freeze an object recursively for runtime immutability. */
-function deepFreeze<T>(obj: T): T {
-  if (obj === null || typeof obj !== "object") return obj;
-  Object.getOwnPropertyNames(obj).forEach((name) => {
-    const val = (obj as Record<string, unknown>)[name];
-    if (val && typeof val === "object") deepFreeze(val);
-  });
-  return Object.freeze(obj);
 }

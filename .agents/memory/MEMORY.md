@@ -1,3 +1,4 @@
 - [HELIOS Knowledge Router](helios-router.md) — arquitectura del Router de Sprint 0.5; decisiones de algoritmo, umbrales y extensión futura
 - [PreguntaItem textarea restructure](s015-accordion-textarea.md) — interactive element inside `<button>` is invalid HTML; expanded panel must live outside the toggle button
 - [Framer Motion Variants typecheck](s015-framer-variants-typecheck.md) — use `: Variants` + `as const` on bezier arrays to avoid TS2322 with cubic-bezier ease
+- [S-024.1 async snapshot API](s024-1-async-snapshot-api.md) — all hash/snapshot functions async (SHA-256); ImportTransaction signatures; BreakingChangeRule properties; render-time async pattern

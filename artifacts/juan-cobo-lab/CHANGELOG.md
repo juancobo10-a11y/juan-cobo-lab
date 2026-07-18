@@ -1,5 +1,40 @@
 # HELIOS — Changelog
 
+## S-023 (2026-07-18) — Report Builder & Traceable Export Engine
+
+### Resumen
+Transforma la sesión metodológica completa en un informe trazable y exportable. El informe es una proyección del Knowledge Graph — nunca una copia paralela. Sin IA, sin auto-resumen, sin auto-conclusiones. Cada bloque del informe lleva `entityType` + `entityId` para trazabilidad bidireccional.
+
+### Nuevos módulos
+- **`src/report-builder/types.ts`** — 13 tipos: `ReportSectionType` (13 secciones), `ReportBlock`, `ReportSectionConfig`, `ReportDefinition`, `GeneratedSection`, `GeneratedReport`, `TraceabilityEntry`, `ReportValidationResult`, `ReportGenerationSummary`, `ReportDocument`, `ReportBuildInput`, `ReportExporter`. Constantes `SECTION_TITLES` y `DEFAULT_SECTION_ORDER`.
+- **`src/report-builder/ReportBuilderService.ts`** — Funciones puras: `createReportDefinition`, `updateReportDefinition`, `toggleSection`, `reorderSections`, `generateSection`, `generateReport`, `findTraceability`, `validateReport`, `summarizeReport`, `buildReportDocument`, `upsertReportDefinition`, `findReportDefinitionByHypothesis`, `removeReportDefinition`; constructores para 13 tipos de sección.
+- **`src/report-builder/exporters/MarkdownExporter.ts`** — Markdown compatible con GitHub: TOC, tablas, listas, metadatos con `>`.
+- **`src/report-builder/exporters/HtmlExporter.ts`** — HTML semántico completo: `nav#toc`, `scope="col"`, `data-entity-type/id`, anclas de referencia cruzada, back-to-index, CSS inline.
+- **`src/report-builder/exporters/JsonExporter.ts`** — Serialización `GeneratedReport` (no el estado HELIOS completo).
+- **`src/report-builder/exporters/index.ts`** — Re-exporta los tres exportadores.
+- **`src/report-builder/index.ts`** — API pública barrel.
+- **`src/components/PantallaReportBuilder.tsx`** — UI completa: dos pestañas (Configurar / Vista previa), formulario de metadatos, toggle y reordenamiento de secciones, iframe de preview HTML, botones de descarga MD/HTML/JSON, validación en tiempo real, accesible por teclado.
+- **`docs/adr/ADR-0012-report-builder.md`** — Decisión + alternativas consideradas.
+- **`docs/architecture/S-023-report-builder.md`** — 10 preguntas de revisión arquitectónica respondidas.
+
+### Archivos extendidos
+- **`src/pages/Helios.tsx`** — Nueva pantalla `"report-builder"`; estado `reportDefinitions`; handlers `handleIrAReportBuilder`, `handleUpdateReportDefinition`; reset en `handleReiniciar`; bloque de render para `PantallaReportBuilder`; prop `onIrAReportBuilder` pasada a `PantallaRevisionFinal` y `PantallaAuditoriaMetodologica`.
+- **`src/components/PantallaRevisionFinal.tsx`** — Prop `onIrAReportBuilder?: () => void`; botón "Generar informe" en el footer de acción (primer botón, antes de auditoría).
+- **`src/components/PantallaAuditoriaMetodologica.tsx`** — Prop `onIrAReportBuilder?: () => void`; botón "Generar informe" en el footer.
+- **`scripts/validate-all.ts`** — Suite S-023 agregada; header actualizado a S-023; 15 → 16 suites.
+- **`package.json`** — Script `validate:s023`.
+
+### Decisiones arquitectónicas
+- **ADR-0012** — `ReportDefinition` almacena solo config (orden/visibilidad de secciones). `GeneratedReport` se reconstruye dinámicamente desde el estado de sesión en cada llamada. Sin estado derivado persistente.
+- Trazabilidad bidireccional: cada `ReportBlock` lleva `entityType` + `entityId`; el exportador HTML emite `data-entity-type` / `data-entity-id` para referencias cruzadas.
+- Tres exportadores independientes: Markdown (GitHub-compatible), HTML (semántico con TOC y anclas), JSON (árbol estructurado del informe, no el estado completo de HELIOS).
+- El informe es accesible desde `PantallaRevisionFinal` y `PantallaAuditoriaMetodologica`.
+
+### Validación
+- **133/133** aserciones — 53 describes cubriendo todos los tipos de sección, exportadores, trazabilidad, validación, multi-hipótesis, idempotencia, regresión.
+- **16/16** suites del runner completo.
+- TypeCheck: cero errores.
+
 ## S-022 (2026-07-17) — Motor de Evaluación de Evidencia
 
 ### Resumen

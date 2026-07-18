@@ -1,0 +1,446 @@
+Sprint S-023 — Report Builder & Traceable Export Engine
+Contexto
+
+Después de los Sprint S-011 a S-022, HELIOS ya implementa un ciclo metodológico completo:
+
+Problema
+↓
+Knowledge Pack
+↓
+Thinking Pattern
+↓
+Reflexión
+↓
+Hipótesis
+↓
+Modelo Conceptual
+↓
+Variables
+↓
+Indicadores
+↓
+Fuentes
+↓
+Operacionalización
+↓
+Contrastación
+↓
+Evidencia observada
+↓
+Evaluación
+↓
+Conclusión metodológica
+↓
+Knowledge Graph
+↓
+Auditoría metodológica
+
+Actualmente toda esta información existe dentro del sistema, pero no puede convertirse en un producto final reutilizable.
+
+Este sprint debe crear un Report Builder capaz de transformar el conocimiento generado en un informe completamente trazable.
+
+El informe no será una copia de pantallas.
+
+Debe reconstruirse desde el modelo de conocimiento.
+
+No introducir IA generativa.
+
+No resumir automáticamente.
+
+No redactar conclusiones automáticamente.
+
+No modificar el flujo metodológico existente.
+
+No cambiar los servicios implementados entre S-011 y S-022.
+
+Objetivo general
+
+Agregar una nueva etapa:
+
+Problema
+↓
+Diseño metodológico
+↓
+Evaluación
+↓
+Conclusión
+↓
+Informe trazable
+
+El usuario decidirá qué incluir.
+
+HELIOS únicamente organizará el contenido.
+
+ADR-0012
+
+Agregar:
+
+ADR-0012 — El informe es una proyección del Knowledge Graph
+
+El reporte no constituye un modelo independiente.
+
+Debe poder reconstruirse completamente desde:
+
+estado de sesión;
+Knowledge Graph;
+auditoría metodológica;
+evaluación de evidencia.
+
+No mantener una copia paralela.
+
+Toda sección del informe debe ser trazable hasta las entidades originales.
+
+1. Revisión inicial obligatoria
+
+Antes de implementar revisar:
+
+KnowledgeGraph
+MethodologicalAudit
+EvidenceEvaluationMatrix
+HypothesisEvidenceConclusion
+estado de sesión
+PantallaRevisionFinal
+
+Responder:
+
+¿Qué información ya existe?
+¿Qué información debe proyectarse?
+¿Qué información nunca debe duplicarse?
+¿Qué secciones del informe pueden reconstruirse automáticamente?
+¿Qué información depende exclusivamente del usuario?
+¿Cómo mantener la trazabilidad?
+¿Qué limitaciones existen?
+
+No implementar antes de completar esta revisión.
+
+2. Nuevo modelo
+
+Crear:
+
+ReportDefinition
+ReportSection
+ReportDocument
+ReportGenerationSummary
+ReportDefinition
+
+Debe contener:
+
+id
+nombre
+descripción
+fecha
+secciones activas
+configuración
+ReportSection
+
+Cada sección debe contener:
+
+id
+tipo
+título
+visible
+orden
+
+No almacenar contenido.
+
+El contenido debe generarse dinámicamente.
+
+3. Tipos de sección
+
+Catálogo inicial:
+
+portada
+resumen ejecutivo
+problema
+thinking pattern
+hipótesis
+modelo conceptual
+operacionalización
+contrastación
+evidencia
+evaluación
+conclusiones
+auditoría metodológica
+anexos
+
+Debe ser extensible.
+
+4. Report Builder
+
+Crear:
+
+ReportBuilderService.ts
+
+Funciones puras:
+
+createReportDefinition()
+updateReportDefinition()
+generateReport()
+generateSection()
+findTraceability()
+validateReport()
+summarizeReport()
+
+No acceder a UI.
+
+No modificar el estado.
+
+5. Proyección
+
+Cada sección debe reconstruirse desde el modelo.
+
+Ejemplo:
+
+Hipótesis
+
+↓
+
+PolicyHypothesis
+Modelo Conceptual
+
+↓
+
+ConceptualModel
+Conclusiones
+
+↓
+
+HypothesisEvidenceConclusion
+
+Nunca copiar datos.
+
+6. Trazabilidad
+
+Cada bloque del informe debe conocer:
+
+Origen
+
+↓
+
+Entidad
+
+↓
+
+ID
+
+Debe ser posible navegar desde el informe hasta el modelo original.
+
+7. Validación
+
+Crear:
+
+validateReport()
+
+Errores:
+
+sin secciones
+sin hipótesis
+sin conclusión
+referencias rotas
+
+Advertencias:
+
+auditoría pendiente
+evaluación incompleta
+anexos vacíos
+
+No bloquear edición.
+
+Bloquear únicamente generación.
+
+8. Generación
+
+Crear representación intermedia:
+
+GeneratedReport
+
+No generar directamente PDF.
+
+El reporte debe producir primero un árbol estructurado.
+
+9. Exportadores
+
+Crear arquitectura extensible.
+
+Interfaces:
+
+ReportExporter
+
+Implementaciones iniciales:
+
+Markdown
+HTML
+JSON
+
+PDF se implementará posteriormente utilizando HTML como origen.
+
+10. HTML
+
+Debe generar:
+
+navegación interna;
+índice;
+encabezados;
+tablas;
+listas;
+referencias cruzadas;
+enlaces internos.
+11. Markdown
+
+Compatible con GitHub.
+
+Debe conservar:
+
+encabezados;
+tablas;
+listas;
+enlaces;
+bloques de evidencia.
+12. JSON
+
+Debe exportar toda la estructura del informe.
+
+No el estado completo de HELIOS.
+
+13. Navegación
+
+Crear:
+
+PantallaReportBuilder
+
+Funciones:
+
+activar/desactivar secciones;
+cambiar orden;
+vista previa;
+generar;
+exportar.
+14. Vista previa
+
+Mostrar exactamente el documento generado.
+
+No reutilizar componentes de edición.
+
+Debe ser lectura.
+
+15. Estado
+
+Agregar únicamente:
+
+reportDefinitions
+
+No almacenar reportes generados.
+
+Siempre reconstruir.
+
+16. Accesibilidad
+
+La vista previa debe:
+
+funcionar con teclado;
+encabezados semánticos;
+tablas accesibles;
+índice navegable.
+17. Casos de prueba
+
+Crear:
+
+validacion_s023.ts
+
+Como mínimo:
+
+definición;
+secciones;
+orden;
+generación;
+validación;
+HTML;
+Markdown;
+JSON;
+trazabilidad;
+referencias;
+múltiples hipótesis;
+múltiples conclusiones;
+vista previa;
+navegación;
+exportación;
+integración;
+regresión.
+
+Esperar más de 150 aserciones.
+
+18. Integración
+
+Agregar botón:
+
+Generar informe
+
+en:
+
+Revisión Final;
+Auditoría Metodológica.
+19. Regresión
+
+Ejecutar:
+
+Typecheck
+S-012
+S-013
+S-014
+S-015
+S-016
+S-017
+S-018
+S-019
+S-020
+S-021
+S-022
+S-023
+Smoke
+Integration
+Build
+
+Todos deben permanecer en verde.
+
+20. Architecture Review
+
+Responder:
+
+¿Cómo se representa un informe?
+¿Cómo se reconstruye desde el Knowledge Graph?
+¿Cómo se preserva la trazabilidad?
+¿Qué información nunca se duplica?
+¿Cómo se agregan nuevos exportadores?
+¿Cómo se valida un informe?
+¿Cómo se integra con la auditoría metodológica?
+¿Qué limitaciones permanecen?
+¿Qué deuda técnica queda?
+¿Está HELIOS preparado para generar documentos reproducibles?
+21. Documentación
+
+Agregar:
+
+ADR-0012-report-builder.md
+architecture/S-023-report-builder.md
+documentación de exportadores;
+actualización del README;
+CHANGELOG.
+22. Entrega
+
+Entregar:
+
+revisión inicial;
+ADR-0012;
+nuevos tipos;
+ReportBuilderService;
+exportadores HTML, Markdown y JSON;
+PantallaReportBuilder;
+vista previa;
+validación S-023;
+regresión completa;
+documentación;
+CHANGELOG;
+commit;
+push;
+no hacer republish;
+detenerse para revisión.

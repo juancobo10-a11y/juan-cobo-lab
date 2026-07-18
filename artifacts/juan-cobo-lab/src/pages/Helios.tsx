@@ -31,6 +31,13 @@ import {
   upsertHypothesisEvidenceConclusion,
   findHypothesisEvidenceConclusion,
 } from "@/evidence-evaluation/HypothesisEvidenceConclusionService";
+// S-023: Report Builder
+import PantallaReportBuilder from "@/components/PantallaReportBuilder";
+import type { ReportDefinition } from "@/report-builder/types";
+import {
+  upsertReportDefinition,
+  findReportDefinitionByHypothesis,
+} from "@/report-builder/ReportBuilderService";
 import type { ContrastationMatrix } from "@/contrastation/types";
 import {
   findContrastationMatrixByHypothesisId,
@@ -1528,6 +1535,7 @@ type Pantalla =
   | "auditoria"                  // S-021: auditoría de consistencia metodológica
   | "evidence-evaluation"        // S-022: registro y evaluación de evidencia observada
   | "hypothesis-conclusion"      // S-022: conclusión metodológica de la hipótesis
+  | "report-builder"             // S-023: generador de informes trazables
   | "hipotesis"
   | "pestel"
   | "descubrimiento";
@@ -1610,6 +1618,8 @@ export default function Helios() {
   const [hypothesisEvidenceConclusions, setHypothesisEvidenceConclusions] = useState<
     HypEvidConclusion[]
   >([]);
+  // S-023: Report definitions (session-only)
+  const [reportDefinitions, setReportDefinitions] = useState<ReportDefinition[]>([]);
 
   const handleSubmitProblema = async (p: string) => {
     setProblema(p);
@@ -1860,6 +1870,19 @@ export default function Helios() {
     []
   );
 
+  // ── S-023: Report Builder handlers ───────────────────────────────────────────
+
+  const handleIrAReportBuilder = useCallback(() => {
+    setPantalla("report-builder");
+  }, []);
+
+  const handleUpdateReportDefinition = useCallback(
+    (def: ReportDefinition) => {
+      setReportDefinitions((prev) => upsertReportDefinition(prev, def));
+    },
+    []
+  );
+
   const handleReiniciar = () => {
     setProblema("");
     setPackActivo(null);
@@ -1881,6 +1904,8 @@ export default function Helios() {
     // S-022
     setEvidenceEvaluationMatrices([]);
     setHypothesisEvidenceConclusions([]);
+    // S-023
+    setReportDefinitions([]);
     setPantalla("entrada");
   };
 
@@ -2188,6 +2213,7 @@ export default function Helios() {
               onIrAOperacionalizacion={() => setPantalla("operationalization-matrix")}
               onIrAContrastation={() => setPantalla("contrastation-matrix")}
               onVerKnowledgeGraph={handleVerKnowledgeGraph}
+              onIrAReportBuilder={handleIrAReportBuilder}
             />
           )}
           {/* S-022: Evaluación de Evidencia */}
@@ -2289,8 +2315,46 @@ export default function Helios() {
                 onIrAOperacionalizacion={() => setPantalla("operationalization-matrix")}
                 onIrAContrastation={() => setPantalla("contrastation-matrix")}
                 onIrAEvidenceEvaluation={handleIrAEvidenceEvaluation}
+                onIrAReportBuilder={handleIrAReportBuilder}
                 onVerKnowledgeGraph={handleVerKnowledgeGraph}
                 onEjecutarAuditoria={handleEjecutarAuditoria}
+                onReiniciar={handleReiniciar}
+              />
+            );
+          })()}
+          {/* S-023: Report Builder */}
+          {pantalla === "report-builder" && hypotheses.length > 0 && (() => {
+            const activeHyp =
+              (primaryHypothesisId
+                ? hypotheses.find((h) => h.id === primaryHypothesisId)
+                : undefined) ?? hypotheses[0];
+            if (!activeHyp) return null;
+            const activeModel = findModelByHypothesisId(conceptualModels, activeHyp.id);
+            const activeOpMatrix = findMatrixByHypothesisId(operationalizationMatrices, activeHyp.id);
+            const activeCtMatrix = findContrastationMatrixByHypothesisId(contrastationMatrices, activeHyp.id);
+            const activeEEM = findEvidenceEvaluationMatrixByHypothesis(evidenceEvaluationMatrices, activeHyp.id);
+            const activeConclusion = findHypothesisEvidenceConclusion(hypothesisEvidenceConclusions, activeHyp.id);
+            const activeReport = findReportDefinitionByHypothesis(reportDefinitions, activeHyp.id);
+            const patternTitulo =
+              perequeMode?.mode === "single"
+                ? perequeMode.pattern.metadata.titulo
+                : perequeMode?.mode === "combined"
+                ? `${perequeMode.primaryPattern.metadata.titulo} + ${perequeMode.secondaryPattern.metadata.titulo}`
+                : null;
+            return (
+              <PantallaReportBuilder
+                key="report-builder"
+                problema={problema}
+                perequePatternTitulo={patternTitulo}
+                hypothesis={activeHyp}
+                conceptualModel={activeModel}
+                operationalizationMatrix={activeOpMatrix}
+                contrastationMatrix={activeCtMatrix}
+                evidenceEvaluationMatrix={activeEEM}
+                hypothesisEvidenceConclusion={activeConclusion}
+                reportDefinition={activeReport}
+                onUpdateDefinition={handleUpdateReportDefinition}
+                onVolver={() => setPantalla("revision-final")}
                 onReiniciar={handleReiniciar}
               />
             );

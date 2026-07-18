@@ -61,6 +61,8 @@ interface Props {
   onIrAContrastation: () => void;
   /** S-020 optional */
   onVerKnowledgeGraph?: () => void;
+  /** S-023: navigate to report builder */
+  onIrAReportBuilder?: () => void;
 }
 
 // ─── Entity type → nav callback ───────────────────────────────────────────────
@@ -273,6 +275,7 @@ export function PantallaAuditoriaMetodologica({
   onIrAOperacionalizacion,
   onIrAContrastation,
   onVerKnowledgeGraph,
+  onIrAReportBuilder,
 }: Props) {
 
   // ── Run audit (memoized — deterministic from session) ──────────────────────
@@ -472,6 +475,15 @@ export function PantallaAuditoriaMetodologica({
           <ArrowLeft className="w-4 h-4" aria-hidden="true" />
           Volver a revisión
         </button>
+        {onIrAReportBuilder && (
+          <button
+            type="button"
+            onClick={onIrAReportBuilder}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all duration-200"
+          >
+            Generar informe
+          </button>
+        )}
         {onVerKnowledgeGraph && (
           <button
             type="button"

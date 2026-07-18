@@ -65,6 +65,8 @@ interface Props {
   onEjecutarAuditoria?: () => void;
   /** S-022: navigate to evidence evaluation screen */
   onIrAEvidenceEvaluation?: () => void;
+  /** S-023: navigate to report builder screen */
+  onIrAReportBuilder?: () => void;
   onReiniciar: () => void;
 }
 
@@ -128,6 +130,7 @@ export function PantallaRevisionFinal({
   onIrAContrastation,
   onVerKnowledgeGraph,
   onEjecutarAuditoria,
+  onIrAReportBuilder,
   onReiniciar,
 }: Props) {
 
@@ -421,6 +424,15 @@ export function PantallaRevisionFinal({
 
         {/* ── Navigation ────────────────────────────────────────────────── */}
         <motion.div variants={fadeUp} className="mt-10 flex flex-wrap items-center gap-4">
+          {onIrAReportBuilder && (
+            <button
+              type="button"
+              onClick={onIrAReportBuilder}
+              className="group flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold tracking-wide hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all duration-200"
+            >
+              Generar informe
+            </button>
+          )}
           {onEjecutarAuditoria && (
             <button
               type="button"

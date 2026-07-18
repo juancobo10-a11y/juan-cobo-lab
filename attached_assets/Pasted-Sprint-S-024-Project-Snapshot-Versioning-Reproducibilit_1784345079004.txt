@@ -1,0 +1,1180 @@
+Sprint S-024 — Project Snapshot, Versioning & Reproducibility Engine
+Contexto
+
+Después de los Sprint S-011 a S-023, HELIOS ya permite:
+
+Diseñar
+↓
+Auditar
+↓
+Evaluar evidencia
+↓
+Formular conclusiones
+↓
+Generar informes trazables
+
+El sistema ya dispone de:
+
+estado metodológico estructurado;
+Knowledge Graph reconstruible;
+auditoría metodológica;
+evaluación de evidencia;
+conclusiones por hipótesis;
+Report Builder;
+exportadores HTML, Markdown y JSON.
+
+Sin embargo, todavía no existe una forma de capturar de manera inmutable el estado completo de un proyecto en un momento determinado.
+
+Esto impide responder con precisión preguntas como:
+
+¿Qué versión del proyecto produjo este informe?
+¿Qué cambió entre dos revisiones?
+¿Qué hipótesis, variables o evidencias fueron modificadas?
+¿Puede reconstruirse exactamente un reporte anterior?
+¿El archivo importado conserva su integridad?
+¿Es compatible con la versión actual del esquema?
+
+Este sprint debe introducir un motor de versionamiento metodológico, snapshots reproducibles e intercambio de proyectos.
+
+No agregar nuevos Thinking Patterns.
+
+No modificar el Thinking Router.
+
+No introducir IA generativa, LLM ni APIs externas.
+
+No implementar colaboración en tiempo real.
+
+No implementar Git interno.
+
+No persistir diffs manualmente.
+
+No duplicar el estado activo del proyecto como una segunda fuente de verdad.
+
+Objetivo general
+
+Agregar esta capacidad:
+
+Proyecto activo
+↓
+Snapshot inmutable
+↓
+Versión identificable
+↓
+Hash de integridad
+↓
+Comparación
+↓
+Reproducción de informe
+↓
+Exportación / importación
+
+HELIOS debe poder capturar, comparar, verificar, exportar, importar y reconstruir versiones metodológicas completas.
+
+ADR-0013
+
+Agregar:
+
+ADR-0013 — Los snapshots son representaciones inmutables y verificables del estado metodológico
+
+Un snapshot debe representar el estado completo y normalizado del proyecto en un momento determinado.
+
+Debe ser:
+
+inmutable;
+determinístico;
+verificable;
+serializable;
+migrable;
+reconstruible;
+independiente de la interfaz.
+
+El snapshot no debe almacenar:
+
+estado transitorio de UI;
+filtros;
+pantallas abiertas;
+posiciones de scroll;
+resultados derivados que puedan reconstruirse;
+informes generados como archivos.
+
+Los informes deben poder reconstruirse desde el snapshot y la definición del reporte.
+
+1. Revisión inicial obligatoria
+
+Antes de implementar, revisar:
+
+estado de sesión completo;
+operaciones upsert*, find* y remove*;
+KnowledgeGraphService;
+MethodologicalConsistencyService;
+EvidenceEvaluationService;
+ReportBuilderService;
+ReportDefinition;
+exportador JSON;
+navegación de Helios.tsx;
+mecanismos actuales de reinicio;
+uso de timestamps e IDs.
+
+Responder primero:
+
+¿Qué estructuras constituyen el estado metodológico persistible?
+¿Qué datos son derivados y no deben incluirse?
+¿Qué datos de UI deben excluirse?
+¿Qué campos impiden hoy una serialización determinística?
+¿Qué IDs y fechas deben conservarse?
+¿Qué ordenamientos deben normalizarse?
+¿Cómo se reconstruirá un informe desde un snapshot?
+¿Qué riesgos de compatibilidad existen?
+¿Qué estrategia de migración mínima se requiere?
+¿Cómo se garantizará que importar un proyecto no modifique silenciosamente el original?
+
+No implementar hasta completar esta revisión.
+
+2. Separación de responsabilidades
+
+Mantener esta arquitectura:
+
+Estado activo
+↓
+SnapshotService
+↓
+Snapshot inmutable
+↓
+VersionComparisonService
+↓
+Diff derivado
+
+y:
+
+Snapshot
+↓
+ProjectPackageService
+↓
+Exportación / importación
+
+No mezclar:
+
+creación de snapshots;
+comparación;
+migración;
+importación;
+UI.
+3. Nuevos tipos
+
+Crear bajo:
+
+src/project-versioning/
+
+los siguientes tipos:
+
+ProjectSnapshot
+ProjectSnapshotMetadata
+ProjectSnapshotPayload
+ProjectVersion
+ProjectVersionTag
+ProjectDiff
+ProjectEntityChange
+ProjectChangeType
+ProjectPackage
+ProjectPackageManifest
+ProjectImportResult
+ProjectIntegrityResult
+SchemaMigration
+SchemaMigrationResult
+4. ProjectSnapshot
+
+Crear:
+
+interface ProjectSnapshot {
+  id: string;
+  version: string;
+  schemaVersion: string;
+
+  metadata: ProjectSnapshotMetadata;
+  payload: ProjectSnapshotPayload;
+
+  contentHash: string;
+  createdAt: string;
+}
+Reglas
+Debe ser inmutable.
+contentHash debe calcularse sobre el contenido normalizado.
+El hash no debe depender de createdAt.
+El hash no debe depender del orden accidental de objetos.
+El hash no debe incluir el propio contentHash.
+El mismo contenido debe producir el mismo hash.
+Dos proyectos distintos no deben compartir el mismo snapshot por accidente.
+5. Metadata
+
+Crear:
+
+interface ProjectSnapshotMetadata {
+  projectId: string;
+  projectName: string;
+  versionLabel?: string;
+  description?: string;
+  author?: string;
+  tags: string[];
+  sourceSnapshotId?: string;
+  changeSummary?: string;
+}
+
+No hacer obligatorios:
+
+author;
+description;
+tags;
+versionLabel.
+6. Payload
+
+ProjectSnapshotPayload debe incluir únicamente el estado metodológico necesario para reconstruir el proyecto.
+
+Como mínimo:
+
+interface ProjectSnapshotPayload {
+  problem: unknown;
+  selectedThinkingPatterns: unknown[];
+  reflections: unknown[];
+  hypotheses: unknown[];
+  conceptualModels: unknown[];
+  operationalizationMatrices: unknown[];
+  contrastationMatrices: unknown[];
+  evidenceEvaluationMatrices: unknown[];
+  hypothesisEvidenceConclusions: unknown[];
+  reportDefinitions: unknown[];
+}
+
+Usar los tipos reales existentes, no unknown, en la implementación final.
+
+Evaluar si deben incluirse también:
+
+Knowledge Pack seleccionado;
+decisiones del Router;
+explicaciones;
+selección de patrón principal y secundario.
+
+Incluir únicamente lo necesario para reproducibilidad metodológica.
+
+No incluir:
+
+Knowledge Graph generado;
+auditorías derivadas;
+reportes generados;
+validaciones;
+resúmenes;
+filtros;
+estado visual.
+7. Versión de esquema
+
+Definir una constante:
+
+CURRENT_PROJECT_SCHEMA_VERSION
+
+Formato recomendado:
+
+1.0.0
+
+No confundir:
+
+schemaVersion
+
+con:
+
+versionLabel
+
+schemaVersion identifica la estructura técnica.
+
+versionLabel identifica la versión metodológica declarada por el usuario.
+
+8. Normalización determinística
+
+Crear:
+
+normalizeSnapshotPayload()
+
+Debe:
+
+ordenar claves de objetos;
+preservar orden semántico de listas cuando sea relevante;
+ordenar listas no semánticas de forma estable;
+excluir campos transitorios;
+normalizar valores undefined;
+conservar null cuando sea significativo;
+evitar referencias circulares;
+producir una representación canónica.
+
+Documentar qué listas mantienen orden del usuario, por ejemplo:
+
+variables;
+indicadores;
+evidencias;
+secciones de reporte.
+
+No ordenar listas cuyo orden tenga significado metodológico o editorial.
+
+9. Hash
+
+Crear:
+
+computeSnapshotHash()
+
+Usar un algoritmo criptográfico disponible en el entorno, preferiblemente SHA-256.
+
+El hash debe calcularse sobre:
+
+schemaVersion
++
+payload normalizado
++
+metadata estable relevante
+
+Excluir:
+
+createdAt;
+contentHash;
+textos transitorios;
+orden accidental.
+
+Agregar:
+
+verifySnapshotIntegrity()
+
+Debe recalcular el hash y comparar.
+
+No corregir un hash inválido automáticamente.
+
+10. SnapshotService
+
+Crear:
+
+SnapshotService.ts
+
+Funciones puras mínimas:
+
+createProjectSnapshot()
+normalizeSnapshotPayload()
+computeSnapshotHash()
+verifySnapshotIntegrity()
+cloneSnapshot()
+validateSnapshot()
+reconstructSessionFromSnapshot()
+isSnapshotEquivalent()
+
+No mutar argumentos.
+
+No acceder a almacenamiento.
+
+11. Inmutabilidad
+
+Aplicar inmutabilidad real en tiempo de ejecución cuando sea razonable.
+
+Opciones válidas:
+
+Readonly;
+Object.freeze;
+deep freeze controlado;
+copias defensivas.
+
+Agregar pruebas que demuestren que modificar el estado activo después de crear el snapshot no cambia el snapshot.
+
+12. Versiones
+
+Crear:
+
+interface ProjectVersion {
+  id: string;
+  snapshotId: string;
+  label: string;
+  notes?: string;
+  createdAt: string;
+  parentVersionId?: string;
+}
+
+El modelo debe permitir:
+
+v1
+↓
+v2
+↓
+v3
+
+No implementar ramas complejas.
+
+Permitir un solo parentVersionId.
+
+No construir un sistema distribuido de control de versiones.
+
+13. Version tags
+
+Crear catálogo o tipo libre controlado:
+
+type ProjectVersionTag =
+  | "draft"
+  | "review"
+  | "approved"
+  | "published"
+  | "archived";
+
+Permitir extensión futura.
+
+No asignar automáticamente.
+
+14. Comparación de versiones
+
+Crear:
+
+VersionComparisonService.ts
+
+Funciones puras:
+
+compareSnapshots()
+compareEntities()
+findAddedEntities()
+findRemovedEntities()
+findModifiedEntities()
+findUnchangedEntities()
+summarizeDiff()
+groupChangesByEntityType()
+15. ProjectDiff
+
+Crear:
+
+interface ProjectDiff {
+  baseSnapshotId: string;
+  targetSnapshotId: string;
+
+  changes: ProjectEntityChange[];
+  summary: ProjectDiffSummary;
+
+  generatedAt: string;
+}
+
+El generatedAt puede variar porque el diff es derivado.
+
+No incluirlo en hashes.
+
+16. Cambios
+
+Crear:
+
+type ProjectChangeType =
+  | "added"
+  | "removed"
+  | "modified"
+  | "reordered"
+  | "unchanged";
+
+Cada cambio debe incluir:
+
+interface ProjectEntityChange {
+  entityType: string;
+  entityId: string;
+  changeType: ProjectChangeType;
+
+  before?: unknown;
+  after?: unknown;
+
+  changedFields?: string[];
+  traceability?: {
+    hypothesisId?: string;
+    parentEntityId?: string;
+  };
+}
+
+No generar descripciones con LLM.
+
+Usar comparaciones determinísticas.
+
+17. Detección de modificaciones
+
+La comparación debe distinguir:
+
+modificación de contenido
+
+de:
+
+reordenamiento
+
+Ejemplo:
+
+misma evidencia, distinta posición: reordered;
+misma evidencia, descripción modificada: modified;
+indicador eliminado: removed.
+
+No usar comparación por índice únicamente.
+
+Comparar entidades por ID.
+
+18. Resumen de cambios
+
+Crear:
+
+interface ProjectDiffSummary {
+  added: number;
+  removed: number;
+  modified: number;
+  reordered: number;
+  unchanged: number;
+  affectedEntityTypes: string[];
+  hasBreakingChanges: boolean;
+}
+
+hasBreakingChanges debe basarse en reglas explícitas.
+
+Ejemplos de breaking change:
+
+eliminación de hipótesis;
+eliminación de variable referenciada;
+eliminación de indicador usado;
+eliminación de evidencia usada en conclusión;
+referencia rota.
+
+No considerar cualquier edición textual como breaking.
+
+19. Changelog metodológico
+
+Crear:
+
+generateMethodologicalChangelog()
+
+Debe producir una estructura, no texto libre generado.
+
+Ejemplo:
+
+Hipótesis
+- 1 agregada
+- 1 modificada
+
+Variables
+- 2 eliminadas
+
+Evidencia
+- 3 agregadas
+- 1 reordenada
+
+Puede exportarse posteriormente a Markdown.
+
+20. Reproducción de informes
+
+Agregar:
+
+generateReportFromSnapshot()
+
+Debe aceptar:
+
+snapshot;
+reportDefinitionId;
+configuración de exportación.
+
+Debe reconstruir:
+
+Snapshot
+↓
+Session reconstruida
+↓
+Knowledge Graph
+↓
+ReportBuilderService
+↓
+GeneratedReport
+
+El mismo snapshot y la misma definición deben producir el mismo contenido estructural.
+
+Excluir timestamps variables del contenido reproducible.
+
+21. Verificación de reproducibilidad
+
+Crear:
+
+verifyReportReproducibility()
+
+Debe comparar dos generaciones desde el mismo snapshot.
+
+Resultado:
+
+interface ReproducibilityResult {
+  reproducible: boolean;
+  firstHash: string;
+  secondHash: string;
+  differences: string[];
+}
+
+El hash del reporte debe calcularse sobre su representación canónica.
+
+22. ProjectPackage
+
+Crear un formato de intercambio:
+
+interface ProjectPackage {
+  manifest: ProjectPackageManifest;
+  snapshots: ProjectSnapshot[];
+  versions: ProjectVersion[];
+}
+
+No incluir binarios.
+
+No incluir archivos exportados HTML o Markdown salvo decisión explícita y documentada.
+
+23. Manifest
+
+Crear:
+
+interface ProjectPackageManifest {
+  format: "HELIOS_PROJECT_PACKAGE";
+  packageVersion: string;
+  schemaVersion: string;
+
+  projectId: string;
+  projectName: string;
+
+  exportedAt: string;
+  snapshotCount: number;
+  versionCount: number;
+
+  packageHash: string;
+}
+
+El hash del paquete debe excluir:
+
+packageHash;
+exportedAt, si se desea reproducibilidad binaria.
+
+Documentar la decisión.
+
+24. ProjectPackageService
+
+Crear:
+
+ProjectPackageService.ts
+
+Funciones puras:
+
+createProjectPackage()
+serializeProjectPackage()
+deserializeProjectPackage()
+validateProjectPackage()
+verifyProjectPackageIntegrity()
+importProjectPackage()
+exportProjectPackage()
+
+La exportación inicial debe ser JSON.
+
+No usar ZIP en este sprint.
+
+25. Importación segura
+
+La importación debe:
+
+parsear;
+validar estructura;
+verificar manifest;
+verificar hash;
+verificar schemaVersion;
+migrar si corresponde;
+detectar conflictos de IDs;
+mostrar resumen;
+pedir confirmación;
+crear una copia importada.
+
+No reemplazar silenciosamente el proyecto activo.
+
+26. Estrategias de importación
+
+Permitir:
+
+type ImportStrategy =
+  | "create-copy"
+  | "replace-current"
+  | "cancel";
+
+La UI debe usar por defecto:
+
+create-copy
+
+replace-current debe requerir confirmación explícita.
+
+No implementar merge automático en este sprint.
+
+27. Migraciones
+
+Crear:
+
+src/project-versioning/migrations/
+
+y:
+
+interface SchemaMigration {
+  fromVersion: string;
+  toVersion: string;
+  migrate: (payload: unknown) => unknown;
+}
+
+Crear:
+
+MigrationService.ts
+
+Funciones:
+
+registerMigration()
+findMigrationPath()
+migrateSnapshot()
+canMigrate()
+validateMigratedSnapshot()
+
+Aunque solo exista una versión inicial, debe quedar preparada la arquitectura.
+
+Agregar al menos una migración de prueba ficticia entre:
+
+0.9.0 → 1.0.0
+
+con fixture controlado.
+
+28. Compatibilidad
+
+Definir reglas:
+
+misma versión: importar directamente;
+versión anterior migrable: migrar;
+versión anterior no migrable: bloquear;
+versión futura: bloquear;
+hash inválido: bloquear;
+referencias rotas: bloquear o importar solo en modo diagnóstico, pero no activar.
+
+No intentar adivinar estructuras desconocidas.
+
+29. Pantalla de snapshots
+
+Crear:
+
+PantallaProjectVersions.tsx
+
+Debe permitir:
+
+crear snapshot;
+asignar nombre de versión;
+agregar notas;
+agregar tag;
+listar versiones;
+visualizar hash;
+verificar integridad;
+comparar versiones;
+exportar proyecto;
+importar proyecto;
+reconstruir informe desde versión.
+30. Crear snapshot
+
+Formulario mínimo:
+
+nombre de versión;
+descripción;
+tag;
+resumen de cambios.
+
+Mostrar antes de confirmar:
+
+número de hipótesis;
+variables;
+indicadores;
+fuentes;
+evidencias;
+conclusiones;
+definiciones de reporte.
+31. Lista de versiones
+
+Mostrar:
+
+etiqueta;
+fecha;
+tag;
+hash abreviado;
+snapshot padre;
+estado de integridad;
+cantidad de cambios frente a la versión anterior.
+
+No depender solo del color.
+
+32. Comparador de versiones
+
+Crear:
+
+PantallaVersionComparison.tsx
+
+Debe mostrar:
+
+versión base;
+versión objetivo;
+resumen;
+filtros por tipo;
+agregados;
+eliminados;
+modificados;
+reordenados;
+campos modificados;
+impacto metodológico.
+
+Permitir navegar a la entidad actual cuando exista.
+
+No permitir editar desde el comparador.
+
+33. Impacto metodológico del cambio
+
+Reutilizar:
+
+Knowledge Graph;
+computeImpact();
+auditoría metodológica.
+
+Cuando una entidad fue eliminada o modificada, mostrar:
+
+Cambio
+↓
+Dependencias afectadas
+↓
+Posibles hallazgos metodológicos
+
+No afirmar que el cambio es incorrecto.
+
+34. Pantalla de importación
+
+Crear:
+
+PantallaProjectImport.tsx
+
+Flujo:
+
+Seleccionar archivo JSON
+↓
+Validar
+↓
+Verificar integridad
+↓
+Mostrar versión de esquema
+↓
+Mostrar migraciones
+↓
+Mostrar conflictos
+↓
+Elegir estrategia
+↓
+Confirmar
+
+No importar hasta confirmación.
+
+35. Exportación
+
+Crear exportación descargable .helios.json.
+
+El nombre recomendado:
+
+<project-name>-<version-label>.helios.json
+
+Sanitizar el nombre del archivo.
+
+No incluir información sensible adicional no presente en el snapshot.
+
+36. Estado de sesión
+
+Extender con:
+
+projectSnapshots
+projectVersions
+
+No almacenar:
+
+diffs;
+hashes de reportes derivados;
+resultados de validación;
+preview de importación;
+auditorías de versiones.
+
+Agregar operaciones:
+
+addProjectSnapshot()
+findProjectSnapshot()
+removeProjectSnapshot()
+
+addProjectVersion()
+findProjectVersion()
+removeProjectVersion()
+
+No permitir modificar un snapshot existente.
+
+37. Eliminación de snapshots
+
+No permitir eliminar un snapshot si:
+
+una versión lo referencia;
+otra versión depende de él;
+es necesario para reconstruir una cadena.
+
+Mostrar impacto antes de eliminar.
+
+Permitir eliminación solo cuando no existan dependencias o tras eliminar primero las versiones relacionadas.
+
+38. Navegación
+
+Agregar acceso desde:
+
+Revisión final;
+Report Builder;
+Auditoría metodológica.
+
+Botón:
+
+Gestionar versiones y snapshots
+
+Flujo recomendado:
+
+Revisión final
+↓
+Versiones
+↓
+Crear snapshot
+↓
+Comparar
+↓
+Exportar
+39. Seguridad y privacidad
+
+Antes de exportar, mostrar advertencia:
+
+El paquete contiene el contenido metodológico completo del proyecto.
+
+No implementar cifrado en este sprint.
+
+Documentar que:
+
+el archivo no está cifrado;
+el hash garantiza integridad, no confidencialidad;
+el usuario debe proteger el archivo.
+
+No incluir tokens, credenciales ni configuración del entorno.
+
+40. Accesibilidad
+
+Mantener:
+
+navegación por teclado;
+foco visible;
+labels;
+tablas accesibles;
+encabezados;
+aria-live;
+estados de integridad expresados en texto;
+confirmaciones claras;
+mensajes de error comprensibles.
+41. Casos de prueba
+
+Crear:
+
+validacion_s024.ts
+
+Incluir como mínimo:
+
+Snapshot
+crear snapshot;
+snapshot inmutable;
+deep copy;
+mismo contenido, mismo hash;
+contenido distinto, hash distinto;
+createdAt no altera hash;
+orden accidental de claves no altera hash;
+orden semántico sí altera contenido cuando corresponde;
+exclusión de UI state;
+exclusión de derivados;
+validación correcta;
+snapshot incompleto;
+referencias rotas;
+equivalencia.
+Versiones
+crear versión;
+parentVersionId;
+tag;
+múltiples versiones;
+cadena lineal;
+versión sin snapshot;
+snapshot inexistente;
+eliminación protegida.
+Diff
+entidad agregada;
+eliminada;
+modificada;
+reordenada;
+sin cambios;
+campos cambiados;
+múltiples hipótesis;
+variables;
+indicadores;
+fuentes;
+evidencias;
+conclusiones;
+reportDefinitions;
+resumen;
+breaking change;
+diff idempotente;
+no mutación.
+Reproducibilidad
+reconstrucción de sesión;
+reconstrucción del grafo;
+generación de informe;
+mismo snapshot, mismo reporte;
+hash reproducible;
+reporte diferente tras cambio;
+timestamps excluidos;
+reportDefinition inexistente;
+snapshot inválido.
+Paquete
+crear paquete;
+serializar;
+deserializar;
+manifest;
+hash correcto;
+hash inválido;
+múltiples snapshots;
+múltiples versiones;
+formato incorrecto;
+JSON inválido;
+referencias internas;
+exportación determinística.
+Importación
+create-copy;
+replace-current;
+cancel;
+conflicto de projectId;
+conflicto de entityId;
+hash inválido;
+versión futura;
+versión antigua migrable;
+versión antigua no migrable;
+importación sin confirmación;
+no reemplazo silencioso;
+copia importada independiente.
+Migraciones
+registrar migración;
+encontrar ruta;
+migración 0.9.0 → 1.0.0;
+validar resultado;
+ruta inexistente;
+migración fallida;
+versión futura;
+idempotencia de migración.
+UI e integración
+crear snapshot desde revisión;
+listar versiones;
+comparar;
+filtrar cambios;
+exportar;
+importar;
+cancelar importación;
+volver sin perder estado;
+reinicio;
+múltiples proyectos importados;
+accesibilidad;
+integración con Report Builder;
+integración con Knowledge Graph;
+integración con auditoría;
+regresión.
+
+Se espera una suite superior a 180 aserciones.
+
+42. Regresión completa
+
+Ejecutar:
+
+Typecheck
+S-012
+S-013
+S-014
+S-015
+S-016
+S-017
+S-018
+S-019
+S-020
+S-021
+S-022
+S-023
+S-024
+Smoke
+Integration
+Build
+
+Todos deben permanecer en verde.
+
+43. Architecture Review
+
+Responder:
+
+¿Qué integra exactamente un snapshot?
+¿Qué queda excluido y por qué?
+¿Cómo se garantiza la inmutabilidad?
+¿Cómo se calcula el hash?
+¿Qué campos se excluyen del hash?
+¿Cómo se preserva el orden semántico?
+¿Cómo se compara una versión?
+¿Cómo se distingue modificación de reordenamiento?
+¿Qué cambios son breaking?
+¿Cómo se reconstruye un informe anterior?
+¿Cómo se verifica reproducibilidad?
+¿Cómo funciona el paquete de proyecto?
+¿Cómo se protege la importación?
+¿Cómo se manejan versiones de esquema?
+¿Cómo se ejecutan migraciones?
+¿Qué ocurre con archivos de versiones futuras?
+¿Cómo se evita reemplazar silenciosamente el proyecto activo?
+¿Qué limitaciones de seguridad permanecen?
+¿Qué deuda técnica queda?
+¿Está HELIOS preparado para colaboración, firma digital o auditoría institucional?
+44. Documentación
+
+Agregar:
+
+docs/adr/ADR-0013-immutable-project-snapshots.md
+docs/architecture/S-024-versioning-reproducibility-review.md
+docs/versioning/project-snapshot-format.md
+docs/versioning/project-package-format.md
+docs/versioning/schema-migrations.md
+docs/versioning/reproducible-reports.md
+
+Actualizar:
+
+README;
+arquitectura general;
+modelo de sesión;
+catálogo de servicios;
+navegación;
+CHANGELOG;
+scripts de validación.
+
+Documentar expresamente:
+
+un hash no cifra el contenido;
+snapshot no equivale a backup externo;
+versionLabel no equivale a schemaVersion;
+una importación crea copia por defecto;
+archivos futuros incompatibles se bloquean;
+reportes se reconstruyen y no se almacenan dentro del snapshot.
+45. Entrega
+
+Entregar:
+
+revisión inicial;
+ADR-0013;
+tipos;
+SnapshotService;
+VersionComparisonService;
+ProjectPackageService;
+MigrationService;
+PantallaProjectVersions;
+PantallaVersionComparison;
+PantallaProjectImport;
+integración con Report Builder;
+reconstrucción reproducible de informes;
+validación S-024;
+regresión completa;
+documentación;
+CHANGELOG;
+commit;
+push;
+no hacer republish;
+detenerse para revisión.

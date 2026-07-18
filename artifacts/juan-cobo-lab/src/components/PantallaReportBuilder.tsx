@@ -62,6 +62,8 @@ interface Props {
   /** Persisted in session — null means not yet created */
   reportDefinition?: ReportDefinition | null;
   onUpdateDefinition: (def: ReportDefinition) => void;
+  /** S-024: navigate to project versions / snapshots */
+  onIrAProjectVersions?: () => void;
   onVolver: () => void;
   onReiniciar: () => void;
 }
@@ -160,6 +162,7 @@ export default function PantallaReportBuilder({
   audit,
   reportDefinition: reportDefinitionProp,
   onUpdateDefinition,
+  onIrAProjectVersions,
   onVolver,
   onReiniciar,
 }: Props) {
@@ -535,7 +538,7 @@ export default function PantallaReportBuilder({
       </div>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between pt-2">
+      <div className="flex flex-wrap items-center gap-3 pt-2">
         <button
           type="button"
           onClick={onVolver}
@@ -544,10 +547,19 @@ export default function PantallaReportBuilder({
           <ArrowLeft className="w-4 h-4" />
           Volver
         </button>
+        {onIrAProjectVersions && (
+          <button
+            type="button"
+            onClick={onIrAProjectVersions}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-primary/30 bg-primary/5 text-primary text-sm font-medium hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors"
+          >
+            Gestionar versiones y snapshots
+          </button>
+        )}
         <button
           type="button"
           onClick={onReiniciar}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors"
+          className="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           Reiniciar sesión

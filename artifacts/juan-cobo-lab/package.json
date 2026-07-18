@@ -20,6 +20,7 @@
     "validate:s021": "tsx src/methodological-consistency/__tests__/validacion_s021.ts",
     "validate:s022": "tsx src/evidence-evaluation/__tests__/validacion_s022.ts",
     "validate:s023": "tsx src/report-builder/__tests__/validacion_s023.ts",
+    "validate:s024": "tsx src/project-versioning/__tests__/validacion_s024.ts",
     "validate:smoke": "tsx src/thinking/__tests__/smoke.ts",
     "validate:integration": "tsx src/thinking/__tests__/integration_flow.ts",
     "validate": "tsx scripts/validate-all.ts"

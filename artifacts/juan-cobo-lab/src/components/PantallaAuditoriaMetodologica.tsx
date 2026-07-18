@@ -63,6 +63,8 @@ interface Props {
   onVerKnowledgeGraph?: () => void;
   /** S-023: navigate to report builder */
   onIrAReportBuilder?: () => void;
+  /** S-024: navigate to project versions / snapshots */
+  onIrAProjectVersions?: () => void;
 }
 
 // ─── Entity type → nav callback ───────────────────────────────────────────────
@@ -276,6 +278,7 @@ export function PantallaAuditoriaMetodologica({
   onIrAContrastation,
   onVerKnowledgeGraph,
   onIrAReportBuilder,
+  onIrAProjectVersions,
 }: Props) {
 
   // ── Run audit (memoized — deterministic from session) ──────────────────────
@@ -482,6 +485,15 @@ export function PantallaAuditoriaMetodologica({
             className="flex items-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all duration-200"
           >
             Generar informe
+          </button>
+        )}
+        {onIrAProjectVersions && (
+          <button
+            type="button"
+            onClick={onIrAProjectVersions}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl border border-primary/30 bg-primary/5 text-primary text-sm font-medium hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all duration-200"
+          >
+            Gestionar versiones y snapshots
           </button>
         )}
         {onVerKnowledgeGraph && (

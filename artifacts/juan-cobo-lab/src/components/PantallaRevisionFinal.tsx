@@ -67,6 +67,8 @@ interface Props {
   onIrAEvidenceEvaluation?: () => void;
   /** S-023: navigate to report builder screen */
   onIrAReportBuilder?: () => void;
+  /** S-024: navigate to project versions / snapshots */
+  onIrAProjectVersions?: () => void;
   onReiniciar: () => void;
 }
 
@@ -131,6 +133,7 @@ export function PantallaRevisionFinal({
   onVerKnowledgeGraph,
   onEjecutarAuditoria,
   onIrAReportBuilder,
+  onIrAProjectVersions,
   onReiniciar,
 }: Props) {
 
@@ -431,6 +434,15 @@ export function PantallaRevisionFinal({
               className="group flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold tracking-wide hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all duration-200"
             >
               Generar informe
+            </button>
+          )}
+          {onIrAProjectVersions && (
+            <button
+              type="button"
+              onClick={onIrAProjectVersions}
+              className="group flex items-center gap-2.5 px-6 py-3.5 rounded-xl border border-primary/30 bg-primary/5 text-primary text-sm font-medium tracking-wide hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all duration-200"
+            >
+              Gestionar versiones y snapshots
             </button>
           )}
           {onEjecutarAuditoria && (

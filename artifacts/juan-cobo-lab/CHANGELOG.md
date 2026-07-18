@@ -1,5 +1,45 @@
 # HELIOS — Changelog
 
+## S-024 (2026-07-18) — Project Snapshot, Versioning & Reproducibility Engine
+
+### Resumen
+Motor de reproducibilidad metodológica completa. Snapshots inmutables con integridad verificable por hash (MurmurHash3-128, síncrono, cross-environment). Diff semántico entre versiones. Reconstrucción determinista de informes desde snapshots. Exportación/importación como `.helios.json`. Infraestructura de migraciones de schema con BFS para encontrar rutas entre versiones.
+
+### ADR-0013
+Snapshots son inmutables (deep-frozen), deterministas, verificables. Hash excluye `createdAt` y el propio hash. `schemaVersion ≠ versionLabel`. Los informes se *reconstruyen* desde snapshots, nunca se almacenan dentro de ellos. Import por defecto a `create-copy`; `replace-current` requiere confirmación explícita. Schema de importación: la versión futura se detecta antes de la validación de hash.
+
+### Nuevos módulos
+- **`src/project-versioning/types.ts`** — 17 tipos: `ProjectSnapshotPayload`, `ProjectSnapshotMetadata`, `ProjectSnapshot`, `ProjectVersion`, `ProjectVersionTag`, `ProjectDiff`, `ProjectEntityChange`, `ProjectDiffSummary`, `MethodologicalChangelog`, `ReproducibilityResult`, `ProjectPackage`, `ProjectPackageManifest`, `ProjectImportResult`, `ProjectIntegrityResult`, `SnapshotValidationResult`, `SchemaMigration`, `SchemaMigrationResult`, `ReconstructedSession`; constante `CURRENT_PROJECT_SCHEMA_VERSION = "1.0.0"`.
+- **`src/project-versioning/SnapshotService.ts`** — `createProjectSnapshot`, `normalizeSnapshotPayload`, `computeSnapshotHash`, `verifySnapshotIntegrity`, `cloneSnapshot`, `validateSnapshot`, `isSnapshotEquivalent`, `reconstructSessionFromSnapshot`, `generateReportFromSnapshot`, `verifyReportReproducibility`, `addProjectSnapshot`, `findProjectSnapshot`, `removeProjectSnapshot`.
+- **`src/project-versioning/VersionComparisonService.ts`** — `compareSnapshots`, `compareEntities`, `findAddedEntities`, `findRemovedEntities`, `findModifiedEntities`, `findUnchangedEntities`, `summarizeDiff`, `groupChangesByEntityType`, `generateMethodologicalChangelog`.
+- **`src/project-versioning/ProjectPackageService.ts`** — `createProjectPackage`, `serializeProjectPackage`, `deserializeProjectPackage`, `validateProjectPackage`, `verifyProjectPackageIntegrity`, `importProjectPackage`, `exportProjectPackage`, `sanitizeFilename`, `buildExportFilename`, `createProjectVersion`, `addProjectVersion`, `findProjectVersion`, `removeProjectVersion`.
+- **`src/project-versioning/migrations/MigrationService.ts`** — `registerMigration`, `findMigrationPath` (BFS), `canMigrate`, `migrateSnapshot`, `validateMigratedSnapshot`.
+- **`src/project-versioning/migrations/migration-0.9.0-to-1.0.0.ts`** — Primera migración: agrega `reportDefinitions`, `primaryHypothesisId`; normaliza `evidenceMatrices → evidenceEvaluationMatrices`.
+- **`src/project-versioning/index.ts`** — Barrel de API pública.
+- **`src/components/PantallaProjectVersions.tsx`** — UI principal: formulario de creación de snapshot con estadísticas de payload, lista de versiones con badge de integridad + hash + diff count, exportación, navegación a importar y comparar.
+- **`src/components/PantallaVersionComparison.tsx`** — Visor de diff read-only: tiles de resumen, alerta de breaking changes, changelog metodológico, filtro por tipo de cambio, detalle expandible por entidad con antes/después.
+- **`src/components/PantallaProjectImport.tsx`** — Flujo guiado de importación (7 pasos): seleccionar archivo → validar → revisar integridad/schema/migraciones/conflictos → elegir estrategia → confirmar → listo/error.
+- **`src/project-versioning/__tests__/validacion_s024.ts`** — 106/106 aserciones.
+- **`docs/adr/ADR-0013-immutable-project-snapshots.md`** — ADR completo.
+- **`docs/architecture/S-024-versioning-reproducibility-review.md`** — 20 preguntas de revisión respondidas.
+- **`docs/versioning/project-snapshot-format.md`** — Referencia del formato JSON de snapshot.
+- **`docs/versioning/project-package-format.md`** — Formato del paquete + tabla de estrategias de importación.
+- **`docs/versioning/schema-migrations.md`** — Registro de migraciones y reglas de compatibilidad.
+- **`docs/versioning/reproducible-reports.md`** — Flujo de reconstrucción de informes y limitaciones.
+
+### Archivos extendidos
+- **`src/pages/Helios.tsx`** — Pantallas `"project-versions"`, `"version-comparison"`, `"project-import"` en la unión `Pantalla`; estado `projectSnapshots`, `projectVersions`, `compareBaseId`, `compareTargetId`; handlers S-024; reset en `handleReiniciar`; bloques de render; `registerMigration(migration_0_9_0_to_1_0_0)` en nivel de módulo; prop `onIrAProjectVersions` pasada a `PantallaRevisionFinal`, `PantallaReportBuilder` y `PantallaAuditoriaMetodologica`.
+- **`src/components/PantallaRevisionFinal.tsx`** — Prop `onIrAProjectVersions?: () => void`; botón "Gestionar versiones y snapshots" en footer.
+- **`src/components/PantallaReportBuilder.tsx`** — Prop `onIrAProjectVersions?: () => void`; botón en footer.
+- **`src/components/PantallaAuditoriaMetodologica.tsx`** — Prop `onIrAProjectVersions?: () => void`; botón en footer.
+- **`scripts/validate-all.ts`** — Suite S-024 agregada; header actualizado a S-024; 16 → 17 suites.
+- **`package.json`** — Script `validate:s024`.
+
+### Resultado de validación
+- TypeCheck: 0 errores
+- S-024: 106/106
+- validate-all: 17/17 suites PASS
+
 ## S-023 (2026-07-18) — Report Builder & Traceable Export Engine
 
 ### Resumen

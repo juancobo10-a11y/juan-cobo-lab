@@ -38,6 +38,16 @@ import {
   upsertReportDefinition,
   findReportDefinitionByHypothesis,
 } from "@/report-builder/ReportBuilderService";
+// S-024: Project Versioning
+import PantallaProjectVersions from "@/components/PantallaProjectVersions";
+import PantallaVersionComparison from "@/components/PantallaVersionComparison";
+import PantallaProjectImport from "@/components/PantallaProjectImport";
+import {
+  type ProjectSnapshot,
+  type ProjectVersion,
+  registerMigration,
+  migration_0_9_0_to_1_0_0,
+} from "@/project-versioning";
 import type { ContrastationMatrix } from "@/contrastation/types";
 import {
   findContrastationMatrixByHypothesisId,
@@ -1536,9 +1546,15 @@ type Pantalla =
   | "evidence-evaluation"        // S-022: registro y evaluación de evidencia observada
   | "hypothesis-conclusion"      // S-022: conclusión metodológica de la hipótesis
   | "report-builder"             // S-023: generador de informes trazables
+  | "project-versions"          // S-024: gestión de snapshots y versiones
+  | "version-comparison"        // S-024: comparación de dos snapshots
+  | "project-import"            // S-024: importar paquete .helios.json
   | "hipotesis"
   | "pestel"
   | "descubrimiento";
+
+// Register S-024 schema migration once at module load (synchronous, idempotent)
+registerMigration(migration_0_9_0_to_1_0_0);
 
 export default function Helios() {
   const [pantalla, setPantalla] = useState<Pantalla>("entrada");
@@ -1620,6 +1636,11 @@ export default function Helios() {
   >([]);
   // S-023: Report definitions (session-only)
   const [reportDefinitions, setReportDefinitions] = useState<ReportDefinition[]>([]);
+  // S-024: Project versioning state
+  const [projectSnapshots, setProjectSnapshots] = useState<ProjectSnapshot[]>([]);
+  const [projectVersions, setProjectVersions] = useState<ProjectVersion[]>([]);
+  const [compareBaseId, setCompareBaseId] = useState<string | null>(null);
+  const [compareTargetId, setCompareTargetId] = useState<string | null>(null);
 
   const handleSubmitProblema = async (p: string) => {
     setProblema(p);
@@ -1876,6 +1897,39 @@ export default function Helios() {
     setPantalla("report-builder");
   }, []);
 
+  // ── S-024: Project Versioning handlers ────────────────────────────────────────
+
+  const handleIrAProjectVersions = useCallback(() => {
+    setPantalla("project-versions");
+  }, []);
+
+  const handleUpdateSnapshots = useCallback((snaps: ProjectSnapshot[]) => {
+    setProjectSnapshots(snaps);
+  }, []);
+
+  const handleUpdateVersions = useCallback((vers: ProjectVersion[]) => {
+    setProjectVersions(vers);
+  }, []);
+
+  const handleCompareVersions = useCallback((baseId: string, targetId: string) => {
+    setCompareBaseId(baseId);
+    setCompareTargetId(targetId);
+    setPantalla("version-comparison");
+  }, []);
+
+  const handleIrAProjectImport = useCallback(() => {
+    setPantalla("project-import");
+  }, []);
+
+  const handleImportComplete = useCallback(
+    (snaps: ProjectSnapshot[], vers: ProjectVersion[], _result: unknown) => {
+      setProjectSnapshots(snaps);
+      setProjectVersions(vers);
+      setPantalla("project-versions");
+    },
+    []
+  );
+
   const handleUpdateReportDefinition = useCallback(
     (def: ReportDefinition) => {
       setReportDefinitions((prev) => upsertReportDefinition(prev, def));
@@ -1906,6 +1960,11 @@ export default function Helios() {
     setHypothesisEvidenceConclusions([]);
     // S-023
     setReportDefinitions([]);
+    // S-024
+    setProjectSnapshots([]);
+    setProjectVersions([]);
+    setCompareBaseId(null);
+    setCompareTargetId(null);
     setPantalla("entrada");
   };
 
@@ -2214,6 +2273,7 @@ export default function Helios() {
               onIrAContrastation={() => setPantalla("contrastation-matrix")}
               onVerKnowledgeGraph={handleVerKnowledgeGraph}
               onIrAReportBuilder={handleIrAReportBuilder}
+              onIrAProjectVersions={handleIrAProjectVersions}
             />
           )}
           {/* S-022: Evaluación de Evidencia */}
@@ -2316,6 +2376,7 @@ export default function Helios() {
                 onIrAContrastation={() => setPantalla("contrastation-matrix")}
                 onIrAEvidenceEvaluation={handleIrAEvidenceEvaluation}
                 onIrAReportBuilder={handleIrAReportBuilder}
+                onIrAProjectVersions={handleIrAProjectVersions}
                 onVerKnowledgeGraph={handleVerKnowledgeGraph}
                 onEjecutarAuditoria={handleEjecutarAuditoria}
                 onReiniciar={handleReiniciar}
@@ -2354,11 +2415,69 @@ export default function Helios() {
                 hypothesisEvidenceConclusion={activeConclusion}
                 reportDefinition={activeReport}
                 onUpdateDefinition={handleUpdateReportDefinition}
+                onIrAProjectVersions={handleIrAProjectVersions}
                 onVolver={() => setPantalla("revision-final")}
                 onReiniciar={handleReiniciar}
               />
             );
           })()}
+          {/* S-024: Project Versions */}
+          {pantalla === "project-versions" && (() => {
+            const currentPayload = {
+              problema,
+              packActivo,
+              thinkingUserSelection,
+              reflectionAnswers,
+              hypotheses,
+              primaryHypothesisId,
+              conceptualModels,
+              operationalizationMatrices,
+              contrastationMatrices,
+              evidenceEvaluationMatrices,
+              hypothesisEvidenceConclusions,
+              reportDefinitions,
+            };
+            return (
+              <PantallaProjectVersions
+                key="project-versions"
+                projectId="helios-session"
+                projectName={packActivo?.metadata.titulo ?? "Proyecto HELIOS"}
+                currentPayload={currentPayload}
+                snapshots={projectSnapshots}
+                versions={projectVersions}
+                onUpdateSnapshots={handleUpdateSnapshots}
+                onUpdateVersions={handleUpdateVersions}
+                onCompareVersions={handleCompareVersions}
+                onImport={handleIrAProjectImport}
+                onVolver={() => setPantalla("revision-final")}
+                onReiniciar={handleReiniciar}
+              />
+            );
+          })()}
+          {/* S-024: Version Comparison */}
+          {pantalla === "version-comparison" && compareBaseId && compareTargetId && (() => {
+            const baseSnap = projectSnapshots.find((s) => s.id === compareBaseId) ?? null;
+            const targetSnap = projectSnapshots.find((s) => s.id === compareTargetId) ?? null;
+            if (!baseSnap || !targetSnap) return null;
+            return (
+              <PantallaVersionComparison
+                key="version-comparison"
+                baseSnapshot={baseSnap}
+                targetSnapshot={targetSnap}
+                onVolver={() => setPantalla("project-versions")}
+              />
+            );
+          })()}
+          {/* S-024: Project Import */}
+          {pantalla === "project-import" && (
+            <PantallaProjectImport
+              key="project-import"
+              currentSnapshots={projectSnapshots}
+              currentVersions={projectVersions}
+              onImportComplete={handleImportComplete}
+              onVolver={() => setPantalla("project-versions")}
+            />
+          )}
           {pantalla === "hipotesis" && packActivo && (
             <PantallaHipotesis
               key="hipotesis"

@@ -1,0 +1,152 @@
+S-025 — Case of Understanding Foundation
+
+Vamos a continuar el proyecto existente Juan Cobo Lab / HELIOS.
+
+Antes de actuar, utiliza como fuente técnica de verdad:
+
+PROJECT_CURRENT_STATE.md
+los ADR existentes;
+CHANGELOG.md;
+las suites de validación;
+el código actualmente implementado.
+Restricción principal
+
+Este sprint debe ser estrictamente aditivo, compatible y no destructivo.
+
+No reemplaces el flujo actual de HELIOS.
+
+No crees otra aplicación.
+
+No refactorices todavía Helios.tsx.
+
+No modifiques la lógica del Knowledge Router, Thinking Router, Hypothesis Builder, modelo conceptual, matrices, evaluación de evidencia, report builder ni versionamiento, salvo los cambios mínimos y explícitamente justificados necesarios para integrar la nueva entidad.
+
+No escribas código inmediatamente. Primero presenta el plan de implementación y espera aprobación.
+
+Contexto conceptual
+
+HELIOS evoluciona desde un motor metodológico hacia una plataforma de construcción de comprensión.
+
+La nueva entidad raíz se denomina:
+
+Case of Understanding / Caso de Comprensión
+
+Un Caso de Comprensión representa el espacio dentro del cual se construye y evoluciona una explicación sobre un fenómeno complejo.
+
+El motor metodológico actual debe quedar contenido dentro de un Caso de Comprensión.
+
+Objetivo del sprint
+
+Introducir la entidad UnderstandingCase como contexto raíz del análisis actual, preservando íntegramente el flujo ya construido.
+
+El sprint debe permitir:
+
+Crear un Caso de Comprensión.
+Registrar su pregunta central.
+Registrar su propósito, dominio, alcance y descripción.
+Asociar el problema actual de HELIOS al caso.
+Mostrar un resumen del caso antes de iniciar el flujo metodológico.
+Incluir los datos del caso en snapshots, exportaciones e importaciones sin romper la compatibilidad existente.
+Mantener operativos los proyectos exportados con esquema anterior mediante una migración segura, si resulta necesaria.
+Modelo de dominio propuesto
+
+Analiza y valida una interfaz semejante a esta, sin asumir que debe implementarse literalmente si existe una solución más coherente con los tipos actuales:
+
+interface UnderstandingCase {
+  id: string;
+  name: string;
+  understandingQuestion: string;
+  purpose: string;
+  domain: string;
+  scope?: string;
+  description?: string;
+  status: "draft" | "active" | "in-review" | "archived";
+  createdAt: string;
+  updatedAt: string;
+}
+
+El campo actual problema: string no debe eliminarse.
+
+Debe mantenerse como formulación específica del problema dentro del Caso de Comprensión.
+
+La pregunta de comprensión y el problema son objetos conceptualmente distintos:
+
+Pregunta de comprensión: aquello que se busca comprender.
+Problema: formulación analítica del fenómeno que será estudiado.
+Experiencia de usuario
+
+Antes de la actual PantallaEntrada, incorporar una pantalla ligera de creación o apertura del Caso de Comprensión.
+
+Campos mínimos:
+
+Nombre del caso.
+¿Qué deseas comprender?
+Propósito.
+Dominio.
+Alcance.
+Descripción inicial.
+
+Después de crear el caso, el usuario continúa hacia la actual entrada del problema y desde allí recorre el flujo metodológico existente sin modificaciones funcionales.
+
+Debe existir un resumen visible del caso dentro de HELIOS, sin rediseñar completamente la interfaz.
+
+Compatibilidad y versionamiento
+
+Debes analizar cuidadosamente:
+
+ProjectSnapshotPayload;
+CURRENT_PROJECT_SCHEMA_VERSION;
+las migraciones existentes;
+SnapshotService;
+ProjectPackageService;
+VersionComparisonService;
+canonicalización;
+hashes SHA-256.
+
+No modifiques el esquema ni aumentes su versión sin justificarlo previamente.
+
+Si UnderstandingCase se incorpora al payload, prepara una migración explícita desde el esquema actual y conserva compatibilidad con paquetes .helios.json anteriores.
+
+Los proyectos antiguos deben poder importarse creando un caso compatible a partir de sus datos existentes, sin perder información.
+
+Pruebas
+
+Crear una nueva suite de validación para S-025 e integrarla en scripts/validate-all.ts.
+
+La suite debe comprobar, como mínimo:
+
+creación válida del caso;
+validación de campos obligatorios;
+actualización de metadatos;
+asociación entre caso y problema;
+inclusión en snapshot;
+estabilidad del hash;
+exportación e importación;
+migración desde el esquema anterior;
+comparación entre versiones cuando cambian datos del caso;
+ausencia de regresiones en las 18 suites existentes.
+Documentación obligatoria
+
+Generar:
+
+ADR correspondiente a S-025;
+documento de validación;
+entrada en CHANGELOG.md;
+actualización de PROJECT_CURRENT_STATE.md;
+descripción del impacto sobre el modelo de dominio.
+Entregable de la primera fase
+
+Antes de programar, entrégame:
+
+Diagnóstico del impacto técnico.
+Archivos que sería necesario crear.
+Archivos que sería necesario modificar.
+Riesgos de compatibilidad.
+Decisión sobre versión de esquema.
+Diseño de la migración, si aplica.
+Plan de pruebas.
+Plan de rollback.
+Propuesta de interfaz de usuario.
+Criterios de aceptación.
+
+Espera mi aprobación antes de ejecutar cambios.

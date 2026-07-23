@@ -1,0 +1,92 @@
+Prompt para auditar el proyecto existente
+
+Antes de realizar cualquier cambio, necesito que hagas una auditoría completa del proyecto actual Juan Cobo Lab.
+
+No modifiques, elimines, refactorices ni generes código todavía.
+
+Analiza todo el repositorio y entrégame un informe técnico completo con:
+
+Stack tecnológico actual
+framework;
+lenguaje;
+librerías principales;
+sistema de estilos;
+base de datos;
+autenticación;
+servicios externos;
+variables de entorno necesarias.
+Estructura completa del proyecto
+árbol de carpetas;
+propósito de cada carpeta;
+archivos principales;
+punto de entrada;
+rutas y páginas existentes.
+Funcionalidades ya implementadas
+página principal;
+Juan Cobo Lab;
+sección HELIOS;
+publicaciones;
+herramientas;
+videos;
+buscadores;
+formularios;
+paneles;
+cualquier función administrativa o de edición;
+cualquier integración con inteligencia artificial.
+Estado específico de HELIOS
+archivos y componentes relacionados;
+rutas;
+modelos de datos;
+funcionalidades ya construidas;
+funcionalidades parcialmente construidas;
+datos mock;
+lógica real;
+pendientes o errores conocidos.
+Modelo de datos
+tablas o colecciones;
+campos;
+relaciones;
+migraciones;
+datos persistentes;
+datos temporales.
+Arquitectura actual
+frontend;
+backend;
+API;
+almacenamiento;
+flujo de navegación;
+componentes reutilizables;
+estado global o local.
+Historial técnico
+revisa commits, checkpoints y cambios recientes;
+identifica las funcionalidades desarrolladas anteriormente;
+señala cambios incompletos o regresiones.
+Riesgos antes de continuar
+archivos delicados;
+código duplicado;
+dependencias obsoletas;
+posibles breaking changes;
+funciones que no deben tocarse.
+Plan recomendado para incorporar el MVP de HELIOS
+reutilizando la arquitectura existente;
+sin crear una aplicación nueva;
+sin reemplazar la interfaz actual;
+sin afectar las funcionalidades ya construidas.
+
+Al final, crea únicamente un archivo:
+
+PROJECT_CURRENT_STATE.md
+
+Debe contener toda esta auditoría.
+
+No cambies ningún otro archivo.
+
+No ejecutes migraciones.
+
+No modifiques la base de datos.
+
+No instales dependencias.
+
+No publiques una nueva versión.
+
+Espera mi autorización después de presentar el informe.

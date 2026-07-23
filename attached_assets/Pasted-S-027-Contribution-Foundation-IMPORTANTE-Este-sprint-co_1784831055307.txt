@@ -1,0 +1,259 @@
+S-027 — Contribution Foundation
+
+IMPORTANTE
+
+Este sprint continúa sobre el commit 36fe8ad (S-026).
+
+Antes de implementar:
+
+revisar PROJECT_CURRENT_STATE.md;
+revisar CHANGELOG.md;
+revisar ADR-0015;
+revisar el modelo actual;
+presentar diagnóstico técnico y esperar aprobación.
+Principio de diseño
+
+Este sprint NO incorpora inteligencia artificial.
+
+NO incorpora OpenAI.
+
+NO incorpora Consensus.
+
+NO incorpora scraping.
+
+NO incorpora RAG.
+
+NO incorpora embeddings.
+
+NO incorpora búsqueda automática.
+
+Su objetivo es construir el contrato cognitivo que utilizarán los futuros agentes.
+
+Objetivo
+
+Introducir la entidad Contribution como unidad cognitiva fundamental de HELIOS.
+
+Una contribución representa una idea trazable extraída de una Fuente de Conocimiento.
+
+Una contribución NO es:
+
+un resumen;
+un documento;
+una hipótesis;
+evidencia;
+una conclusión.
+
+Una contribución representa un elemento de conocimiento potencialmente útil para construir comprensión.
+
+Modelo conceptual
+
+Analiza un diseño semejante al siguiente (sin copiarlo literalmente si el modelo actual sugiere una mejor integración):
+
+interface Contribution {
+
+    id:string;
+
+    caseId:string;
+
+    sourceId:string;
+
+    type:
+        | "finding"
+        | "definition"
+        | "fact"
+        | "claim"
+        | "causal-mechanism"
+        | "recommendation"
+        | "limitation"
+        | "assumption"
+        | "contradiction"
+        | "question"
+        | "other";
+
+    statement:string;
+
+    sourceExcerpt:string;
+
+    sourceLocation?:string;
+
+    interpretation?:string;
+
+    relevance?:string;
+
+    status:
+
+        | "draft"
+
+        | "proposed"
+
+        | "validated"
+
+        | "rejected"
+
+        | "archived";
+
+    origin:
+
+        | "human"
+
+        | "agent-assisted";
+
+    confidence?:number;
+
+    createdAt:string;
+
+    updatedAt:string;
+
+}
+Experiencia de usuario
+
+Crear una pantalla denominada
+
+Contribuciones
+
+accesible únicamente desde una Fuente de Conocimiento.
+
+Debe permitir:
+
+visualizar contribuciones de esa fuente;
+crear una contribución manualmente;
+editar;
+eliminar;
+validar;
+rechazar;
+archivar;
+visualizar el fragmento original de donde proviene.
+
+No implementar extracción automática.
+
+No conectar IA.
+
+Flujo
+Fuente
+
+↓
+
+Abrir
+
+↓
+
+Nueva contribución
+
+↓
+
+Seleccionar tipo
+
+↓
+
+Escribir contribución
+
+↓
+
+Asociar fragmento
+
+↓
+
+Guardar
+
+↓
+
+Validar
+Versionado
+
+Analizar si corresponde incrementar:
+
+1.2.0
+
+↓
+
+1.3.0
+
+Implementar migración declarativa.
+
+Todos los proyectos migrados deben iniciar con:
+
+contributions:[]
+Compatibilidad
+
+Las contribuciones deben:
+
+participar en snapshots;
+participar en exportación;
+participar en importación;
+participar en diff;
+participar en hashes;
+participar en migraciones.
+
+No modificar todavía:
+
+hipótesis;
+modelo explicativo;
+evidencia;
+robustness.
+Restricciones
+
+No modificar el flujo metodológico existente.
+
+No refactorizar Helios.tsx.
+
+No introducir backend.
+
+No introducir proveedores.
+
+No introducir agentes.
+
+No introducir IA.
+
+No modificar pantallas existentes salvo navegación mínima.
+
+Pruebas
+
+Diseñar una nueva suite S-027.
+
+Las pruebas deberán cubrir como mínimo:
+
+creación;
+validación;
+edición;
+eliminación;
+estados;
+asociación con fuente;
+asociación con caso;
+snapshots;
+migraciones;
+hashes;
+round-trip;
+diff;
+coexistencia con KnowledgeSource.
+
+Mantener todas las suites existentes en verde.
+
+Objetivo final:
+
+21/21 suites PASS
+TypeCheck 0 errores
+Build OK
+Documentación
+
+Actualizar:
+
+CHANGELOG.md
+PROJECT_CURRENT_STATE.md
+ADR correspondiente
+documento de validación
+Primera entrega requerida
+
+Antes de escribir código presentar:
+
+diagnóstico técnico;
+archivos nuevos;
+archivos modificados;
+impacto sobre Helios.tsx;
+decisión sobre versión;
+migración;
+UX;
+plan de pruebas;
+rollback;
+criterios de aceptación.
+
+Esperar aprobación antes de implementar.

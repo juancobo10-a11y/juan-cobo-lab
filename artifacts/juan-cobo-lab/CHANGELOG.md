@@ -1,5 +1,37 @@
 # HELIOS — Changelog
 
+## S-025 (2026-07-23) — Understanding Case Foundation
+
+### Resumen
+Introduce `UnderstandingCase` como campo aditivo en `ProjectSnapshotPayload`. El Caso de Comprensión es el contenedor epistémico del análisis — independiente del campo `problema` (formulación analítica) y anterior a él. No hay reorganización estructural del payload (diferida a sprint futuro). `CURRENT_PROJECT_SCHEMA_VERSION`: `1.0.0` → `1.1.0`. 19/19 suites PASS. TypeCheck: 0 errores.
+
+### ADR-0014
+`understandingCase` es un campo aditivo opcional (`?`) en `ProjectSnapshotPayload`. El campo `problema` se preserva verbatim. Ver `docs/adr/ADR-0014-understanding-case.md`.
+
+### Decisión de migración (Ajuste 2)
+La migración `1.0.0 → 1.1.0` sintetiza un `UnderstandingCase` real a partir del campo `problema` existente — nunca asigna `null`. El caso sintetizado lleva `migrationOrigin` con `fromSchemaVersion: "1.0.0"`, `synthesizedAt` y `synthesizedFromProblema` para trazabilidad completa. `isSynthesizedCase()` → `true`. La UI muestra badge "Sintetizado" en la `CaseSummaryBand`.
+
+### Nuevos archivos
+- **`src/understanding-case/types.ts`** — `UnderstandingCase`, `UnderstandingCaseMigrationOrigin`, `UnderstandingCaseInput`, `UnderstandingCaseValidationResult`, `UnderstandingCaseStatus`.
+- **`src/understanding-case/UnderstandingCaseService.ts`** — Funciones puras: `createCase()`, `validateCase()`, `updateCase()`, `synthesizeCaseFromPayload()`, `isSynthesizedCase()`, `STATUS_LABELS`.
+- **`src/understanding-case/__tests__/validacion_s025.ts`** — Suite S-025 (~64 aserciones; 10 secciones).
+- **`src/components/PantallaCaseSetup.tsx`** — UI: `PantallaCaseSetup` (formulario de creación del caso) + `CaseSummaryBand` (banda de contexto visible en todas las pantallas posteriores).
+- **`src/project-versioning/migrations/migration-1.0.0-to-1.1.0.ts`** — Migración declarativa; sintetiza caso desde `problema`.
+- **`docs/adr/ADR-0014-understanding-case.md`** — ADR completo.
+- **`docs/validation/understanding-case-s025.md`** — Reporte de validación.
+
+### Archivos modificados
+- **`src/project-versioning/types.ts`** — `CURRENT_PROJECT_SCHEMA_VERSION: "1.1.0"`; `understandingCase?: UnderstandingCase | null` en `ProjectSnapshotPayload` y `ReconstructedSession`.
+- **`src/project-versioning/SnapshotService.ts`** — `reconstructSessionFromSnapshot` incluye `understandingCase`.
+- **`src/project-versioning/migrations/registry.ts`** — Registra `migration_1_0_0_to_1_1_0`.
+- **`src/project-versioning/index.ts`** — Re-exporta tipos y servicio de `UnderstandingCase`.
+- **`src/project-versioning/__tests__/validacion_s024_1.ts`** — Actualizada aserción de schema version a `"1.1.0"`.
+- **`src/pages/Helios.tsx`** — `Pantalla` gana `"case-setup"`; estado `understandingCase`; handler `handleCaseCreated`; `handleReiniciar` resetea a `"case-setup"`; `CaseSummaryBand` visible tras iniciar caso; `PantallaCaseSetup` renderizado; `currentPayload` incluye `understandingCase`.
+- **`scripts/validate-all.ts`** — Suite S-025 añadida; header actualizado a S-025.
+- **`package.json`** — Script `validate:s025`.
+
+---
+
 ## S-024.1 (2026-07-18) — Cryptographic Integrity & Versioning Hardening
 
 ### Resumen

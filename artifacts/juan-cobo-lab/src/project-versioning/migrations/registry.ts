@@ -15,7 +15,9 @@
 
 import type { SchemaMigration } from "../types";
 import { migration_0_9_0_to_1_0_0 } from "./migration-0.9.0-to-1.0.0";
+import { migration_1_0_0_to_1_1_0 } from "./migration-1.0.0-to-1.1.0";
 
 export const REGISTERED_MIGRATIONS: SchemaMigration[] = [
   migration_0_9_0_to_1_0_0,
+  migration_1_0_0_to_1_1_0,
 ];

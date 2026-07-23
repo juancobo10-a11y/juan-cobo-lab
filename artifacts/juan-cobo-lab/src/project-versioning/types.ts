@@ -22,6 +22,7 @@ import type { OperationalizationMatrix } from "@/operationalization/types";
 import type { ContrastationMatrix } from "@/contrastation/types";
 import type { EvidenceEvaluationMatrix, HypothesisEvidenceConclusion } from "@/evidence-evaluation/types";
 import type { ReportDefinition } from "@/report-builder/types";
+import type { UnderstandingCase } from "@/understanding-case/types";
 
 // ─── Schema version ───────────────────────────────────────────────────────────
 
@@ -30,8 +31,12 @@ import type { ReportDefinition } from "@/report-builder/types";
  * ≠ versionLabel (which is the user-declared methodological version label).
  *
  * Bump when payload fields are added, removed, or semantically changed.
+ *
+ * History:
+ *   1.0.0 — S-024: initial versioning system
+ *   1.1.0 — S-025: adds understandingCase field
  */
-export const CURRENT_PROJECT_SCHEMA_VERSION = "1.0.0";
+export const CURRENT_PROJECT_SCHEMA_VERSION = "1.1.0";
 
 // ─── Payload ──────────────────────────────────────────────────────────────────
 
@@ -49,6 +54,9 @@ export const CURRENT_PROJECT_SCHEMA_VERSION = "1.0.0";
  * Lists whose order has methodological meaning are preserved as-is.
  */
 export interface ProjectSnapshotPayload {
+  /** S-025: Understanding Case — epistemic container for the analysis. Optional for backward
+   * compatibility; null when the case has not been set; undefined excluded from hashes. */
+  understandingCase?: UnderstandingCase | null;
   problema: string;
   packActivo: KnowledgePack | null;
   thinkingUserSelection: ThinkingUserSelection | null;
@@ -332,6 +340,8 @@ export interface SchemaMigrationResult {
 
 /** The session fields that can be fully reconstructed from a snapshot */
 export interface ReconstructedSession {
+  /** S-025: Understanding Case — null when not present in the snapshot */
+  understandingCase: UnderstandingCase | null;
   problema: string;
   packActivo: KnowledgePack | null;
   thinkingUserSelection: ThinkingUserSelection | null;

@@ -228,6 +228,7 @@ export function reconstructSessionFromSnapshot(snapshot: ProjectSnapshot): Recon
   // Deep-copy the payload so the session is independent of the snapshot
   const p = deepClone(snapshot.payload);
   return {
+    understandingCase: p.understandingCase ?? null,
     problema: p.problema ?? "",
     packActivo: p.packActivo ?? null,
     thinkingUserSelection: p.thinkingUserSelection ?? null,

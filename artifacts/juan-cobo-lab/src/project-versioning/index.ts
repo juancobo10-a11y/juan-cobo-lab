@@ -120,6 +120,23 @@ export {
   CanonicalizationError,
 } from "./errors";
 
+// Understanding Case (S-025) — re-exported for consumers of the versioning barrel
+export type {
+  UnderstandingCase,
+  UnderstandingCaseMigrationOrigin,
+  UnderstandingCaseInput,
+  UnderstandingCaseValidationResult,
+  UnderstandingCaseStatus,
+} from "@/understanding-case/types";
+export {
+  createCase,
+  validateCase,
+  updateCase,
+  synthesizeCaseFromPayload,
+  isSynthesizedCase,
+  STATUS_LABELS,
+} from "@/understanding-case/UnderstandingCaseService";
+
 // Breaking change rules
 export type { BreakingChangeRule } from "./breaking-change-rules";
 export {

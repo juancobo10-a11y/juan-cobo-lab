@@ -24,7 +24,8 @@
     "validate:smoke": "tsx src/thinking/__tests__/smoke.ts",
     "validate:integration": "tsx src/thinking/__tests__/integration_flow.ts",
     "validate": "tsx scripts/validate-all.ts",
-    "validate:s024_1": "tsx src/project-versioning/__tests__/validacion_s024_1.ts"
+    "validate:s024_1": "tsx src/project-versioning/__tests__/validacion_s024_1.ts",
+    "validate:s025": "tsx src/understanding-case/__tests__/validacion_s025.ts"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",

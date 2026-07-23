@@ -46,6 +46,9 @@ import {
   type ProjectSnapshot,
   type ProjectVersion,
 } from "@/project-versioning";
+// S-025: Understanding Case
+import type { UnderstandingCase } from "@/understanding-case/types";
+import { PantallaCaseSetup, CaseSummaryBand } from "@/components/PantallaCaseSetup";
 import type { ContrastationMatrix } from "@/contrastation/types";
 import {
   findContrastationMatrixByHypothesisId,
@@ -1527,6 +1530,7 @@ function PantallaDescubrimiento({
 
 // ─── Página principal ───────────────────────────────────────────────────────
 type Pantalla =
+  | "case-setup"                  // S-025: Understanding Case setup (initial screen)
   | "entrada"
   | "enrutando"
   | "confirmacion-candidatos"
@@ -1555,7 +1559,9 @@ type Pantalla =
 // No module-level side-effects required here.
 
 export default function Helios() {
-  const [pantalla, setPantalla] = useState<Pantalla>("entrada");
+  // S-025: Understanding Case — the epistemic container for the analysis
+  const [understandingCase, setUnderstandingCase] = useState<UnderstandingCase | null>(null);
+  const [pantalla, setPantalla] = useState<Pantalla>("case-setup");
   const [problema, setProblema] = useState("");
   const [packActivo, setPackActivo] = useState<KnowledgePack | null>(null);
   const [routerResult, setRouterResult] = useState<RouterResult | null>(null);
@@ -1963,6 +1969,14 @@ export default function Helios() {
     setProjectVersions([]);
     setCompareBaseId(null);
     setCompareTargetId(null);
+    // S-025: reset understanding case and return to the case setup screen
+    setUnderstandingCase(null);
+    setPantalla("case-setup");
+  };
+
+  /** S-025: Called when the user submits the Understanding Case form. */
+  const handleCaseCreated = (c: UnderstandingCase) => {
+    setUnderstandingCase(c);
     setPantalla("entrada");
   };
 
@@ -2063,8 +2077,18 @@ export default function Helios() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      {/* S-025: Show case context band on all screens except case-setup itself */}
+      {understandingCase && pantalla !== "case-setup" && (
+        <CaseSummaryBand understandingCase={understandingCase} />
+      )}
       <main id="helios-main">
         <AnimatePresence mode="wait">
+          {pantalla === "case-setup" && (
+            <PantallaCaseSetup
+              key="case-setup"
+              onSubmit={handleCaseCreated}
+            />
+          )}
           {pantalla === "entrada" && (
             <PantallaEntrada
               key="entrada"
@@ -2422,6 +2446,7 @@ export default function Helios() {
           {/* S-024: Project Versions */}
           {pantalla === "project-versions" && (() => {
             const currentPayload = {
+              understandingCase,
               problema,
               packActivo,
               thinkingUserSelection,

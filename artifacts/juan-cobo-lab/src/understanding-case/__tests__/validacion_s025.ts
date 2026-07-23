@@ -176,6 +176,7 @@ function makePayload(
   return {
     understandingCase: null,
     knowledgeSources: [],
+    contributions: [],
     problema: "Problema analítico del fenómeno estudiado",
     packActivo: null,
     thinkingUserSelection: null,
@@ -445,9 +446,9 @@ describe("Inclusión en snapshot", () => {
     expect(valid).toBeTrue();
   });
 
-  it("schemaVersion del snapshot es '1.2.0'", async () => {
+  it("schemaVersion del snapshot es '1.3.0'", async () => {
     const snap = await createProjectSnapshot(makePayload(), META);
-    expect(snap.schemaVersion).toBe("1.2.0");
+    expect(snap.schemaVersion).toBe("1.3.0");
   });
 
   it("snapshot con understandingCase: null → campo null en payload", async () => {
@@ -749,8 +750,8 @@ describe("Diff semántico y rutas de migración", () => {
 // ─── §10. Regresión ───────────────────────────────────────────────────────────
 
 describe("Regresión — compatibilidad con suites anteriores", () => {
-  it("CURRENT_PROJECT_SCHEMA_VERSION === '1.2.0'", () => {
-    expect(CURRENT_PROJECT_SCHEMA_VERSION).toBe("1.2.0");
+  it("CURRENT_PROJECT_SCHEMA_VERSION === '1.3.0'", () => {
+    expect(CURRENT_PROJECT_SCHEMA_VERSION).toBe("1.3.0");
   });
 
   it("REGISTERED_MIGRATIONS tiene al menos 2 migraciones", () => {
@@ -772,6 +773,7 @@ describe("Regresión — compatibilidad con suites anteriores", () => {
     const payloadSinCaso: ProjectSnapshotPayload = {
       problema: "Problema sin caso",
       knowledgeSources: [],
+      contributions: [],
       packActivo: null,
       thinkingUserSelection: null,
       reflectionAnswers: [],

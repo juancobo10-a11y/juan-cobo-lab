@@ -52,6 +52,9 @@ import { PantallaCaseSetup, CaseSummaryBand } from "@/components/PantallaCaseSet
 // S-026: Knowledge Sources (Fuentes de Conocimiento)
 import type { KnowledgeSource } from "@/knowledge-sources/types";
 import PantallaFuentes from "@/components/PantallaFuentes";
+// S-027: Contributions (Contribuciones)
+import type { Contribution } from "@/contributions/types";
+import PantallaContribuciones from "@/components/PantallaContribuciones";
 import type { ContrastationMatrix } from "@/contrastation/types";
 import {
   findContrastationMatrixByHypothesisId,
@@ -1555,6 +1558,7 @@ type Pantalla =
   | "version-comparison"        // S-024: comparación de dos snapshots
   | "project-import"            // S-024: importar paquete .helios.json
   | "fuentes"                   // S-026: Fuentes de Conocimiento del caso activo
+  | "contribuciones"            // S-027: Contribuciones de una Fuente de Conocimiento
   | "hipotesis"
   | "pestel"
   | "descubrimiento";
@@ -1657,6 +1661,11 @@ export default function Helios() {
    */
   const [pantallaVolverDesdeFuentes, setPantallaVolverDesdeFuentes] =
     useState<Pantalla>("entrada");
+  // S-027: Contributions — all contributions across the session (filtered by sourceId in UI)
+  const [contributions, setContributions] = useState<Contribution[]>([]);
+  /** S-027: Which source is currently open in PantallaContribuciones. */
+  const [selectedSourceForContribuciones, setSelectedSourceForContribuciones] =
+    useState<string | null>(null);
 
   const handleSubmitProblema = async (p: string) => {
     setProblema(p);
@@ -1986,6 +1995,9 @@ export default function Helios() {
     // S-026: reset knowledge sources
     setKnowledgeSources([]);
     setPantallaVolverDesdeFuentes("entrada");
+    // S-027: reset contributions
+    setContributions([]);
+    setSelectedSourceForContribuciones(null);
     setPantalla("case-setup");
   };
 
@@ -1993,6 +2005,12 @@ export default function Helios() {
   const handleNavigateToFuentes = () => {
     setPantallaVolverDesdeFuentes(pantalla);
     setPantalla("fuentes");
+  };
+
+  /** S-027: Navigate to contributions for a specific source (from PantallaFuentes only). */
+  const handleNavigateToContribuciones = (sourceId: string) => {
+    setSelectedSourceForContribuciones(sourceId);
+    setPantalla("contribuciones");
   };
 
   /** S-025: Called when the user submits the Understanding Case form. */
@@ -2476,16 +2494,41 @@ export default function Helios() {
               caseName={understandingCase.name}
               sources={knowledgeSources.filter((s) => s.caseId === understandingCase.id)}
               allSources={knowledgeSources}
+              contributions={contributions}
               onUpdateSources={setKnowledgeSources}
+              onNavigateToContribuciones={handleNavigateToContribuciones}
               onVolver={() => setPantalla(pantallaVolverDesdeFuentes)}
               onReiniciar={handleReiniciar}
             />
           )}
+          {/* S-027: Contribuciones */}
+          {pantalla === "contribuciones" && understandingCase && selectedSourceForContribuciones && (() => {
+            const selectedSource = knowledgeSources.find(
+              (s) => s.id === selectedSourceForContribuciones
+            );
+            if (!selectedSource) return null;
+            return (
+              <PantallaContribuciones
+                key="contribuciones"
+                source={selectedSource}
+                caseId={understandingCase.id}
+                caseName={understandingCase.name}
+                contributions={contributions.filter(
+                  (c) => c.sourceId === selectedSourceForContribuciones
+                )}
+                allContributions={contributions}
+                onUpdateContributions={setContributions}
+                onVolver={() => setPantalla("fuentes")}
+                onReiniciar={handleReiniciar}
+              />
+            );
+          })()}
           {/* S-024: Project Versions */}
           {pantalla === "project-versions" && (() => {
             const currentPayload = {
               understandingCase,
               knowledgeSources,
+              contributions,
               problema,
               packActivo,
               thinkingUserSelection,

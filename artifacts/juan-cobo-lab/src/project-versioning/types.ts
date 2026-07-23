@@ -24,6 +24,7 @@ import type { EvidenceEvaluationMatrix, HypothesisEvidenceConclusion } from "@/e
 import type { ReportDefinition } from "@/report-builder/types";
 import type { UnderstandingCase } from "@/understanding-case/types";
 import type { KnowledgeSource } from "@/knowledge-sources/types";
+import type { Contribution } from "@/contributions/types";
 
 // ─── Schema version ───────────────────────────────────────────────────────────
 
@@ -37,8 +38,9 @@ import type { KnowledgeSource } from "@/knowledge-sources/types";
  *   1.0.0 — S-024: initial versioning system
  *   1.1.0 — S-025: adds understandingCase field
  *   1.2.0 — S-026: adds knowledgeSources field (Fuentes de Conocimiento)
+ *   1.3.0 — S-027: adds contributions field (Contribuciones)
  */
-export const CURRENT_PROJECT_SCHEMA_VERSION = "1.2.0";
+export const CURRENT_PROJECT_SCHEMA_VERSION = "1.3.0";
 
 // ─── Payload ──────────────────────────────────────────────────────────────────
 
@@ -65,6 +67,19 @@ export interface ProjectSnapshotPayload {
    * incorporated. ready-for-analysis sources are queued for contribution extraction (S-027).
    */
   knowledgeSources: KnowledgeSource[];
+  /**
+   * S-027: Contributions (Contribuciones) — traceable cognitive units extracted
+   * from Knowledge Sources. Each contribution references its source via sourceId.
+   * Empty array when no contributions have been created.
+   *
+   * Referential invariants (enforced by ContributionService):
+   *   - contribution.sourceId must reference an existing KnowledgeSource.
+   *   - contribution.caseId must equal KnowledgeSource(sourceId).caseId.
+   *   - Source must be in "registered" or "ready-for-analysis" state for new contributions.
+   *
+   * Orphan protection: a KnowledgeSource with contributions cannot be hard-deleted.
+   */
+  contributions: Contribution[];
   problema: string;
   packActivo: KnowledgePack | null;
   thinkingUserSelection: ThinkingUserSelection | null;
@@ -352,6 +367,8 @@ export interface ReconstructedSession {
   understandingCase: UnderstandingCase | null;
   /** S-026: Knowledge Sources — empty array when not present in the snapshot */
   knowledgeSources: KnowledgeSource[];
+  /** S-027: Contributions — empty array when not present in the snapshot */
+  contributions: Contribution[];
   problema: string;
   packActivo: KnowledgePack | null;
   thinkingUserSelection: ThinkingUserSelection | null;

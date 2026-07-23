@@ -163,6 +163,39 @@ export {
   replaceSource,
 } from "@/knowledge-sources/KnowledgeSourceService";
 
+// Contributions (S-027) — re-exported for consumers of the versioning barrel
+export type {
+  Contribution,
+  ContributionType,
+  ContributionStatus,
+  ContributionOrigin,
+  SourceLocation,
+  ContributionInput,
+  ContributionUpdate,
+  ContributionValidationResult,
+  ContributionReferentialValidationResult,
+} from "@/contributions/types";
+export {
+  CONTRIBUTION_TYPE_LABELS,
+  CONTRIBUTION_STATUS_LABELS,
+  CONTRIBUTION_ORIGIN_LABELS,
+  VALID_CONTRIBUTION_STATUS_TRANSITIONS,
+  ENABLED_SOURCE_STATUSES_FOR_CONTRIBUTIONS,
+} from "@/contributions/types";
+export {
+  validateContribution,
+  validateContributionReferences,
+  canDeleteSource,
+  createContribution,
+  updateContribution,
+  changeContributionStatus,
+  deleteContribution,
+  replaceContribution,
+  getContributionsBySource,
+  getContributionsByCase,
+  getContributionById,
+} from "@/contributions/ContributionService";
+
 // Breaking change rules
 export type { BreakingChangeRule } from "./breaking-change-rules";
 export {

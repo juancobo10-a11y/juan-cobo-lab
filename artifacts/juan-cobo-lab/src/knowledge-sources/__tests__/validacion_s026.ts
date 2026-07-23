@@ -62,6 +62,7 @@ function makePayload(overrides: Partial<ProjectSnapshotPayload> = {}): ProjectSn
   return {
     understandingCase: null,
     knowledgeSources: [],
+    contributions: [],
     problema: "Prueba S-026",
     packActivo: null,
     thinkingUserSelection: null,
@@ -587,8 +588,8 @@ await test("migrar ruta completa 0.9.0 → 1.2.0 produce knowledgeSources: []", 
   assert.ok(p.understandingCase !== undefined, "understandingCase debe estar presente tras migración");
 });
 
-await test("CURRENT_PROJECT_SCHEMA_VERSION es 1.2.0", () => {
-  assert.equal(CURRENT_PROJECT_SCHEMA_VERSION, "1.2.0");
+await test("CURRENT_PROJECT_SCHEMA_VERSION es 1.3.0", () => {
+  assert.equal(CURRENT_PROJECT_SCHEMA_VERSION, "1.3.0");
 });
 
 // ─── Section 15: Diff ─────────────────────────────────────────────────────────

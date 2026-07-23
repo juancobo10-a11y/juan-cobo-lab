@@ -1,0 +1,36 @@
+Diagnóstico aprobado con ajustes obligatorios de integridad referencial.
+
+La arquitectura propuesta es consistente con S-025 y S-026. Se autoriza la implementación de S-027, incorporando las siguientes condiciones:
+
+Protección contra contribuciones huérfanas.
+Una KnowledgeSource con contribuciones asociadas no podrá eliminarse físicamente. No implementar eliminación en cascada silenciosa. La interfaz deberá indicar cuántas contribuciones impiden la eliminación y ofrecer archivar la fuente o gestionar primero sus contribuciones. La regla debe existir en la capa de dominio y no solo en la UI.
+
+Validación referencial.
+Al crear o actualizar una contribución debe verificarse:
+
+que sourceId corresponda a una fuente existente;
+que caseId corresponda al caso de esa fuente;
+que la fuente pertenezca al UnderstandingCase activo.
+
+Separar, si resulta conveniente, validación estructural y validación referencial.
+
+Estados de fuente habilitados.
+Permitir creación de contribuciones únicamente para fuentes en estado registered o ready-for-analysis. Las fuentes draft, rejected o archived podrán conservar visualización histórica, pero no admitir nuevas contribuciones.
+Localización de origen.
+Evaluar sustituir sourceLocation?: string por una estructura tipada extensible que admita rangos de texto ahora y páginas o secciones cuando se incorporen documentos. No es necesario implementar selección automática de texto en S-027.
+Origen de contribución.
+Mantener origin: "human" | "agent-assisted", pero en S-027 todas las contribuciones creadas desde la interfaz deberán registrarse como human. agent-assisted queda reservado para sprints posteriores.
+Pruebas adicionales.
+Añadir cobertura para:
+intento de eliminar una fuente con contribuciones;
+sourceId inexistente;
+discrepancia entre Contribution.caseId y KnowledgeSource.caseId;
+creación desde una fuente en estado no habilitado;
+preservación de contribuciones al archivar una fuente.
+
+Con estas condiciones, iniciar implementación. Mantener como resultado requerido:
+
+21/21 suites PASS;
+TypeCheck: 0 errores;
+Build: OK;
+flujo metodológico previo sin regresiones.

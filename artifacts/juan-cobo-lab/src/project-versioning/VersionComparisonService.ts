@@ -333,6 +333,16 @@ export function compareSnapshots(base: ProjectSnapshot, target: ProjectSnapshot)
     )
   );
 
+  // S-027: Contributions (Contribuciones)
+  changes.push(
+    ...compareEntityList(
+      "contribution",
+      (bp.contributions ?? []) as unknown as Array<{ id: string } & Record<string, unknown>>,
+      (tp.contributions ?? []) as unknown as Array<{ id: string } & Record<string, unknown>>,
+      (e) => ({ parentEntityId: (e as { sourceId?: string }).sourceId })
+    )
+  );
+
   const summary = summarizeDiff(changes);
 
   return {
@@ -408,6 +418,7 @@ export function generateMethodologicalChangelog(diff: ProjectDiff): Methodologic
     hypothesisEvidenceConclusion: "Conclusiones",
     reportDefinition: "Definiciones de informe",
     knowledgeSource: "Fuentes de conocimiento",
+    contribution: "Contribuciones",
     problema: "Problema de política",
     pack: "Pack de conocimiento",
   };

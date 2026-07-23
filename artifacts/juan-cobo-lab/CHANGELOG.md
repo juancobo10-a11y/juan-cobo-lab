@@ -1,5 +1,51 @@
 # HELIOS — Changelog
 
+## S-027 (2026-07-23) — Contributions: Traceable Cognitive Units (Contribuciones)
+
+### Resumen
+Introduce `Contribution` (Contribución) como nueva entidad de primer nivel en HELIOS. Una contribución es una unidad cognitiva trazable extraída de una `KnowledgeSource`. El sprint es estrictamente aditivo. `CURRENT_PROJECT_SCHEMA_VERSION`: `1.2.0` → `1.3.0`. 21/21 suites PASS. TypeCheck: 0 errores.
+
+### Modelo conceptual
+- **Fuente (Source):** origen del contenido.
+- **Contribución (Contribution):** unidad cognitiva del analista — formulación original, no copia textual.
+- **Fragmento original (sourceExcerpt):** texto exacto de la fuente que respalda la contribución.
+- **Localización (SourceLocation):** referencia tipada `{ description?, textRange?, page?, section? }`.
+
+### Invariantes de dominio implementadas (condiciones de aprobación)
+1. **Protección de huérfanos:** `canDeleteSource(sourceId, contributions)` bloquea la eliminación dura de una fuente con contribuciones (capa de dominio, no solo UI). La UI ofrece archivar o gestionar contribuciones como alternativas.
+2. **Validación referencial:** `validateContributionReferences(input, sources)` verifica que `sourceId` exista, que `caseId` coincida con el de la fuente y que la fuente pertenezca al caso activo.
+3. **Estados habilitados:** nuevas contribuciones solo en fuentes `registered` o `ready-for-analysis` (constante `ENABLED_SOURCE_STATUSES_FOR_CONTRIBUTIONS`; UI aplica la restricción con advertencia explícita).
+4. **`SourceLocation` tipado:** struct extensible vs. string plano.
+5. **`origin`:** `"human"` en toda contribución creada desde la UI de S-027.
+6. **Preservación al archivar:** archivar una fuente no elimina sus contribuciones.
+
+### Navegación
+`PantallaContribuciones` es accesible **exclusivamente** desde `PantallaFuentes` (ADR-0016 §Navigation). No se expone en `CaseSummaryBand` ni en ningún otro punto de entrada.
+
+### ADR-0016
+Ver `docs/adr/ADR-0016-contributions.md`.
+
+### Nuevos archivos
+- **`src/contributions/types.ts`** — `Contribution`, `ContributionType` (11 valores), `ContributionStatus` (5), `ContributionOrigin`, `SourceLocation`, `ContributionInput/Update/ValidationResult/ReferentialValidationResult`, labels, `VALID_CONTRIBUTION_STATUS_TRANSITIONS`, `ENABLED_SOURCE_STATUSES_FOR_CONTRIBUTIONS`.
+- **`src/contributions/ContributionService.ts`** — `validateContribution`, `validateContributionReferences`, `canDeleteSource`, `createContribution`, `updateContribution`, `changeContributionStatus`, `deleteContribution`, `replaceContribution`, `getContributionsBySource`, `getContributionsByCase`, `getContributionById`.
+- **`src/contributions/__tests__/validacion_s027.ts`** — Suite S-027 (18 secciones, 60 aserciones).
+- **`src/project-versioning/migrations/migration-1.2.0-to-1.3.0.ts`** — Migración declarativa; añade `contributions: []`.
+- **`src/components/PantallaContribuciones.tsx`** — Pantalla completa: lista, crear, editar, transición de estado, eliminar con confirmación, vista de fragmento.
+- **`docs/adr/ADR-0016-contributions.md`** — ADR completo.
+- **`docs/validation/contributions-s027.md`** — Reporte de validación.
+
+### Archivos modificados
+- **`src/project-versioning/types.ts`** — `ProjectSnapshotPayload.contributions: Contribution[]`; `ReconstructedSession.contributions: Contribution[]`; versión `"1.3.0"`.
+- **`src/project-versioning/SnapshotService.ts`** — `reconstructSessionFromSnapshot` restaura `contributions`.
+- **`src/project-versioning/VersionComparisonService.ts`** — diff de entidad `"contribution"`; label `"Contribuciones"` en changelog.
+- **`src/project-versioning/index.ts`** — re-exporta todos los tipos y funciones de contributions.
+- **`src/project-versioning/migrations/registry.ts`** — registra `migration_1_2_0_to_1_3_0`.
+- **`src/components/PantallaFuentes.tsx`** — pill de contribuciones por fuente, botón "Contribuciones", `handleDeleteRequest` con protección de huérfanos, diálogo de bloqueo de huérfano.
+- **`src/pages/Helios.tsx`** — estado `contributions`, estado `selectedSourceForContribuciones`, `handleNavigateToContribuciones`, `handleReiniciar` resetea contribuciones, `currentPayload` incluye contribuciones, bloque render `PantallaContribuciones`.
+- **Fixtures de tests** — `basePayload`/`makePayload` en S-024, S-024.1, S-025, S-026 reciben `contributions: []`; aserciones de schema version `1.2.0 → 1.3.0`.
+
+---
+
 ## S-026 (2026-07-23) — Knowledge Sources Foundation (Fuentes de Conocimiento)
 
 ### Resumen

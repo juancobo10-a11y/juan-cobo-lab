@@ -1,5 +1,5 @@
 /**
- * S-026 — PantallaFuentes
+ * S-026 / S-027 — PantallaFuentes
  *
  * Screen for managing Knowledge Sources (Fuentes de Conocimiento) within a
  * HELIOS Understanding Case. Each source is an object that provides information
@@ -8,12 +8,12 @@
  * Conceptual distinctions preserved in this UI:
  *   Fuente (Source):             origin of the content.
  *   Información (Information):   content incorporated from the source.
- *   Contribución (Contribution): cognitive unit to be extracted (future: S-027).
+ *   Contribución (Contribution): cognitive unit extracted from the source (S-027).
  *   Evidencia (Evidence):        information evaluated against a hypothesis.
  *
  * S-026 scope: create, read, update, delete, and status-transition sources.
- * The "Analizar fuente" action (contribution extraction) is shown disabled
- * as a forward-looking signal for S-027.
+ * S-027 adds: contribution count pill per source, navigation to PantallaContribuciones,
+ *   and orphan-aware delete (a source with contributions cannot be hard-deleted).
  */
 
 import React, { useState } from "react";
@@ -29,9 +29,9 @@ import {
   Trash2,
   CheckCircle,
   Clock,
-  Sparkles,
   X,
   AlertTriangle,
+  Layers,
 } from "lucide-react";
 import {
   createSource,
@@ -52,6 +52,8 @@ import {
   SOURCE_TYPE_LABELS,
   ENABLED_SOURCE_TYPES_S026,
 } from "@/knowledge-sources/types";
+import { canDeleteSource } from "@/contributions/ContributionService";
+import type { Contribution } from "@/contributions/types";
 
 // ─── Animation variants ───────────────────────────────────────────────────────
 
@@ -432,14 +434,18 @@ function SourceForm({
 
 function SourceCard({
   source,
+  contributionCount,
   onEdit,
   onDelete,
   onStatusChange,
+  onNavigateToContribuciones,
 }: {
   source: KnowledgeSource;
+  contributionCount: number;
   onEdit: () => void;
   onDelete: () => void;
   onStatusChange: (newStatus: KnowledgeSourceStatus) => void;
+  onNavigateToContribuciones: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -466,6 +472,17 @@ function SourceCard({
               <span className="text-[10px] font-mono uppercase tracking-wide text-foreground/35 px-2 py-0.5 rounded-full bg-zinc-50 ring-1 ring-zinc-200/60">
                 {SOURCE_TYPE_LABELS[source.sourceType]}
               </span>
+              {/* S-027: contribution count pill */}
+              {contributionCount > 0 && (
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent ring-1 ring-accent/20 cursor-pointer hover:bg-accent/20 transition-colors"
+                  onClick={onNavigateToContribuciones}
+                  title="Ver contribuciones extraídas de esta fuente"
+                >
+                  <Layers className="size-2.5" />
+                  {contributionCount} contribución{contributionCount !== 1 ? "es" : ""}
+                </span>
+              )}
             </div>
             {/* Content preview */}
             <p
@@ -544,20 +561,18 @@ function SourceCard({
             </button>
           )}
 
-          {/* Analizar fuente — disabled, forward signal for S-027 */}
-          <span
-            title="La extracción de contribuciones estará disponible en una próxima versión (S-027)"
-            className="cursor-not-allowed"
-            aria-label="Analizar fuente — próxima funcionalidad"
+          {/* S-027: Navigate to contributions */}
+          <button
+            type="button"
+            onClick={onNavigateToContribuciones}
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-accent/8 text-accent border border-accent/20 hover:bg-accent/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 transition-colors duration-150"
           >
-            <span className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-dashed border-border text-foreground/30 select-none">
-              <Sparkles className="size-3.5" />
-              Analizar fuente
-              <span className="text-[9px] font-mono uppercase tracking-wide ml-0.5">
-                S-027
-              </span>
-            </span>
-          </span>
+            <Layers className="size-3.5" />
+            Contribuciones
+            {contributionCount > 0 && (
+              <span className="ml-0.5 font-bold">{contributionCount}</span>
+            )}
+          </button>
 
           {/* Edit and delete — right-aligned */}
           <div className="flex items-center gap-1.5 ml-auto">
@@ -604,8 +619,12 @@ interface PantallaFuentesProps {
   sources: KnowledgeSource[];
   /** Full list of all sources across all cases (needed for updateSources). */
   allSources: KnowledgeSource[];
+  /** S-027: All contributions across the session — used for orphan checks and count pills. */
+  contributions: Contribution[];
   /** Called when the sources list changes. Passes the full updated allSources array. */
   onUpdateSources: (updated: KnowledgeSource[]) => void;
+  /** S-027: Navigate to the contributions screen for a specific source. */
+  onNavigateToContribuciones: (sourceId: string) => void;
   /** Navigate back to the previous screen. */
   onVolver: () => void;
   /** Restart the full HELIOS session. */
@@ -617,7 +636,9 @@ export default function PantallaFuentes({
   caseName,
   sources,
   allSources,
+  contributions,
   onUpdateSources,
+  onNavigateToContribuciones,
   onVolver,
 }: PantallaFuentesProps) {
   type UIMode =
@@ -664,11 +685,35 @@ export default function PantallaFuentes({
     onUpdateSources(replaceSource(allSources, result.source));
   };
 
-  // ── Delete ──
+  // ── Delete — orphan-aware (S-027) ──
+  // A KnowledgeSource that has contributions cannot be hard-deleted.
+  // The domain layer enforces this via canDeleteSource; the UI shows archive as alternative.
+  const [orphanBlockTarget, setOrphanBlockTarget] = useState<{
+    source: KnowledgeSource;
+    contributionCount: number;
+  } | null>(null);
+
+  const handleDeleteRequest = (source: KnowledgeSource) => {
+    const check = canDeleteSource(source.id, contributions);
+    if (!check.canDelete) {
+      setOrphanBlockTarget({ source, contributionCount: check.contributionCount });
+      return;
+    }
+    setDeleteTarget(source);
+  };
+
   const handleDeleteConfirm = () => {
     if (!deleteTarget) return;
     onUpdateSources(deleteSource(allSources, deleteTarget.id));
     setDeleteTarget(null);
+  };
+
+  const handleArchiveInsteadOfDelete = (source: KnowledgeSource) => {
+    const result = changeStatus(source, "archived");
+    if (result.success) {
+      onUpdateSources(replaceSource(allSources, result.source));
+    }
+    setOrphanBlockTarget(null);
   };
 
   // ── Editing initial values ──
@@ -853,9 +898,11 @@ export default function PantallaFuentes({
                 <motion.div key={src.id} variants={fadeUp}>
                   <SourceCard
                     source={src}
+                    contributionCount={contributions.filter((c) => c.sourceId === src.id).length}
                     onEdit={() => setMode({ kind: "editing", sourceId: src.id })}
-                    onDelete={() => setDeleteTarget(src)}
+                    onDelete={() => handleDeleteRequest(src)}
                     onStatusChange={(s) => handleStatusChange(src, s)}
+                    onNavigateToContribuciones={() => onNavigateToContribuciones(src.id)}
                   />
                 </motion.div>
               ))}
@@ -882,9 +929,11 @@ export default function PantallaFuentes({
                       <div key={src.id} className="mt-2">
                         <SourceCard
                           source={src}
+                          contributionCount={contributions.filter((c) => c.sourceId === src.id).length}
                           onEdit={() => {}}
-                          onDelete={() => setDeleteTarget(src)}
+                          onDelete={() => handleDeleteRequest(src)}
                           onStatusChange={(s) => handleStatusChange(src, s)}
+                          onNavigateToContribuciones={() => onNavigateToContribuciones(src.id)}
                         />
                       </div>
                     ))}
@@ -925,6 +974,80 @@ export default function PantallaFuentes({
             onConfirm={handleDeleteConfirm}
             onCancel={() => setDeleteTarget(null)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* S-027: Orphan block dialog — source has contributions, cannot be hard-deleted */}
+      <AnimatePresence>
+        {orphanBlockTarget && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="orphan-dialog-title"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-2xl shadow-xl border border-border p-6 max-w-sm w-full"
+            >
+              <div className="flex items-start gap-3 mb-4">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4 text-amber-500" />
+                </div>
+                <div>
+                  <h3 id="orphan-dialog-title" className="text-sm font-semibold text-primary mb-1">
+                    No se puede eliminar esta fuente
+                  </h3>
+                  <p className="text-xs text-foreground/60 leading-relaxed">
+                    La fuente{" "}
+                    <span className="font-medium text-primary">
+                      "{orphanBlockTarget.source.title}"
+                    </span>{" "}
+                    tiene{" "}
+                    <span className="font-semibold">
+                      {orphanBlockTarget.contributionCount} contribución
+                      {orphanBlockTarget.contributionCount !== 1 ? "es" : ""}
+                    </span>{" "}
+                    asociada{orphanBlockTarget.contributionCount !== 1 ? "s" : ""}. Eliminarla
+                    dejaría contribuciones huérfanas.
+                  </p>
+                  <p className="text-xs text-foreground/50 mt-1.5 leading-relaxed">
+                    Puedes archivarla (oculta la fuente pero conserva las contribuciones)
+                    o gestionar las contribuciones antes de eliminar.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleArchiveInsteadOfDelete(orphanBlockTarget.source)}
+                  className="w-full px-4 py-2 text-sm rounded-lg bg-zinc-100 text-zinc-700 hover:bg-zinc-200 font-medium transition-colors"
+                >
+                  Archivar fuente
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOrphanBlockTarget(null);
+                    onNavigateToContribuciones(orphanBlockTarget.source.id);
+                  }}
+                  className="w-full px-4 py-2 text-sm rounded-lg border border-border text-foreground/70 hover:bg-zinc-50 transition-colors"
+                >
+                  Gestionar contribuciones
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrphanBlockTarget(null)}
+                  className="w-full px-4 py-2 text-sm rounded-lg text-foreground/50 hover:text-foreground/80 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </>

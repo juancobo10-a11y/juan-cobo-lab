@@ -116,6 +116,7 @@ const NOW = "2026-01-01T00:00:00.000Z";
 const basePayload: ProjectSnapshotPayload = {
   problema: "¿Cómo aumentar la cobertura educativa en zonas rurales?",
   knowledgeSources: [],
+  contributions: [],
   packActivo: null,
   thinkingUserSelection: null,
   reflectionAnswers: [],

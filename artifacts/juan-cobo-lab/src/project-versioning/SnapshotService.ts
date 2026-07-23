@@ -230,6 +230,7 @@ export function reconstructSessionFromSnapshot(snapshot: ProjectSnapshot): Recon
   return {
     understandingCase: p.understandingCase ?? null,
     knowledgeSources: p.knowledgeSources ?? [],
+    contributions: p.contributions ?? [],
     problema: p.problema ?? "",
     packActivo: p.packActivo ?? null,
     thinkingUserSelection: p.thinkingUserSelection ?? null,

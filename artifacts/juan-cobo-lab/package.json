@@ -26,7 +26,8 @@
     "validate": "tsx scripts/validate-all.ts",
     "validate:s024_1": "tsx src/project-versioning/__tests__/validacion_s024_1.ts",
     "validate:s025": "tsx src/understanding-case/__tests__/validacion_s025.ts",
-    "validate:s026": "tsx src/knowledge-sources/__tests__/validacion_s026.ts"
+    "validate:s026": "tsx src/knowledge-sources/__tests__/validacion_s026.ts",
+    "validate:s027": "tsx src/contributions/__tests__/validacion_s027.ts"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",

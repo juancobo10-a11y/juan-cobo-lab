@@ -3,3 +3,4 @@
 - [Framer Motion Variants typecheck](s015-framer-variants-typecheck.md) — use `: Variants` + `as const` on bezier arrays to avoid TS2322 with cubic-bezier ease
 - [S-024.1 async snapshot API](s024-1-async-snapshot-api.md) — all hash/snapshot functions async (SHA-256); ImportTransaction signatures; BreakingChangeRule properties; render-time async pattern
 - [S-025 Understanding Case](s025-understanding-case.md) — UnderstandingCase additive field; migrateSnapshot takes ProjectSnapshot not plain payload; verifySnapshotIntegrity returns boolean not {valid}
+- [S-026 Knowledge Sources](s026-knowledge-sources.md) — schema 1.2.0; migrateSnapshot → SchemaMigrationResult (not ProjectSnapshot); createProjectPackage(id, name, snaps, vers)

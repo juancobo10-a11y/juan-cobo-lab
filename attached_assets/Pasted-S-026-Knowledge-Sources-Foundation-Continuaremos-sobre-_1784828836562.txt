@@ -1,0 +1,164 @@
+S-026 — Knowledge Sources Foundation
+
+Continuaremos sobre el commit 7eb0897, correspondiente a S-025.
+
+Utiliza como fuentes técnicas de verdad:
+
+PROJECT_CURRENT_STATE.md;
+CHANGELOG.md;
+ADR-0014;
+documentación de S-025;
+tipos y servicios actuales;
+suites de validación existentes.
+Restricción principal
+
+Este sprint debe ser aditivo, compatible y no destructivo.
+
+No refactorices Helios.tsx.
+
+No modifiques el flujo metodológico existente.
+
+No conectes todavía servicios de inteligencia artificial.
+
+No implementes PDF, Word, APIs, embeddings, RAG ni almacenamiento externo.
+
+Antes de programar, presenta el diagnóstico técnico y espera aprobación.
+
+Objetivo
+
+Introducir la entidad KnowledgeSource como una fuente de conocimiento asociada a un UnderstandingCase.
+
+El usuario debe poder:
+
+acceder a un espacio de Fuentes desde el contexto del caso;
+registrar una fuente mediante texto pegado;
+agregar metadatos básicos;
+revisar el contenido registrado;
+editar o eliminar una fuente antes de su procesamiento;
+marcarla como lista para análisis;
+incluir las fuentes en snapshots, exportaciones, importaciones, comparaciones y migraciones.
+Modelo conceptual
+
+Una fuente es un objeto que aporta información potencialmente relevante para construir comprensión.
+
+Registrar una fuente no significa que su contenido sea verdadero, pertinente ni que constituya evidencia.
+
+Debe preservarse esta distinción:
+
+Fuente: origen del contenido.
+Información: contenido incorporado.
+Contribución: unidad cognitiva que podrá extraerse posteriormente.
+Evidencia: información evaluada que respalda o contradice una hipótesis.
+
+Analiza una interfaz semejante a:
+
+interface KnowledgeSource {
+  id: string;
+  caseId: string;
+  title: string;
+  sourceType:
+    | "pasted-text"
+    | "document"
+    | "web"
+    | "dataset"
+    | "interview"
+    | "note"
+    | "other";
+  author?: string;
+  institution?: string;
+  publicationDate?: string;
+  incorporatedAt: string;
+  updatedAt: string;
+  language?: string;
+  referenceUrl?: string;
+  content: string;
+  notes?: string;
+  status:
+    | "draft"
+    | "registered"
+    | "ready-for-analysis"
+    | "processed"
+    | "rejected"
+    | "archived";
+}
+
+No implementes literalmente esta interfaz sin revisar antes los contratos existentes y las convenciones del proyecto.
+
+Experiencia de usuario
+
+Añadir una pantalla o espacio denominado Fuentes dentro de HELIOS, accesible después de crear el caso.
+
+La pantalla debe permitir:
+
+visualizar las fuentes del caso;
+crear una nueva fuente;
+pegar texto;
+completar metadatos;
+guardar como borrador;
+marcar como lista para análisis;
+editar;
+eliminar con confirmación;
+consultar el contenido completo.
+
+La interfaz debe mantener el sistema visual actual y preservar CaseSummaryBand.
+
+No construyas todavía extracción de contribuciones. La acción “Analizar fuente” puede aparecer deshabilitada o marcada como próxima funcionalidad.
+
+Compatibilidad
+
+Analiza si la incorporación de knowledgeSources requiere:
+
+aumento de esquema 1.1.0 → 1.2.0;
+migración explícita;
+valor por defecto [];
+cambios en ProjectDiff;
+reglas de breaking change;
+actualización de hashes y paquetes.
+
+Los snapshots anteriores deben migrarse conservando todos sus datos y recibiendo knowledgeSources: [].
+
+Pruebas mínimas
+
+La suite S-026 debe comprobar:
+
+creación válida de una fuente;
+validación de campos obligatorios;
+edición;
+cambio de estado;
+eliminación;
+asociación con el caso;
+múltiples fuentes dentro del mismo caso;
+inclusión en snapshot;
+estabilidad del hash;
+cambio del hash al modificar una fuente;
+exportación e importación;
+migración desde 1.1.0;
+diff de creación, modificación, eliminación y reordenamiento;
+coexistencia con UnderstandingCase;
+ausencia de regresiones en las 19 suites existentes.
+Documentación
+
+Generar:
+
+ADR de S-026;
+documento de validación;
+entrada en CHANGELOG.md;
+actualización de PROJECT_CURRENT_STATE.md;
+actualización del modelo de dominio.
+Primera entrega
+
+Antes de programar, presenta:
+
+diagnóstico técnico;
+archivos por crear;
+archivos por modificar;
+impacto sobre Helios.tsx;
+decisión sobre versión de esquema;
+diseño de migración;
+modelo de estados de la fuente;
+propuesta UX;
+plan de pruebas;
+plan de rollback;
+criterios de aceptación.
+
+Espera aprobación antes de implementar.

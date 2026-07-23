@@ -23,6 +23,7 @@ import type { ContrastationMatrix } from "@/contrastation/types";
 import type { EvidenceEvaluationMatrix, HypothesisEvidenceConclusion } from "@/evidence-evaluation/types";
 import type { ReportDefinition } from "@/report-builder/types";
 import type { UnderstandingCase } from "@/understanding-case/types";
+import type { KnowledgeSource } from "@/knowledge-sources/types";
 
 // ─── Schema version ───────────────────────────────────────────────────────────
 
@@ -35,8 +36,9 @@ import type { UnderstandingCase } from "@/understanding-case/types";
  * History:
  *   1.0.0 — S-024: initial versioning system
  *   1.1.0 — S-025: adds understandingCase field
+ *   1.2.0 — S-026: adds knowledgeSources field (Fuentes de Conocimiento)
  */
-export const CURRENT_PROJECT_SCHEMA_VERSION = "1.1.0";
+export const CURRENT_PROJECT_SCHEMA_VERSION = "1.2.0";
 
 // ─── Payload ──────────────────────────────────────────────────────────────────
 
@@ -57,6 +59,12 @@ export interface ProjectSnapshotPayload {
   /** S-025: Understanding Case — epistemic container for the analysis. Optional for backward
    * compatibility; null when the case has not been set; undefined excluded from hashes. */
   understandingCase?: UnderstandingCase | null;
+  /**
+   * S-026: Knowledge Sources (Fuentes de Conocimiento) — sources of information
+   * associated with the Understanding Case. Empty array when no sources have been
+   * incorporated. ready-for-analysis sources are queued for contribution extraction (S-027).
+   */
+  knowledgeSources: KnowledgeSource[];
   problema: string;
   packActivo: KnowledgePack | null;
   thinkingUserSelection: ThinkingUserSelection | null;
@@ -342,6 +350,8 @@ export interface SchemaMigrationResult {
 export interface ReconstructedSession {
   /** S-025: Understanding Case — null when not present in the snapshot */
   understandingCase: UnderstandingCase | null;
+  /** S-026: Knowledge Sources — empty array when not present in the snapshot */
+  knowledgeSources: KnowledgeSource[];
   problema: string;
   packActivo: KnowledgePack | null;
   thinkingUserSelection: ThinkingUserSelection | null;

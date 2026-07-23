@@ -10,7 +10,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { motion, type Variants } from "framer-motion";
-import { ArrowRight, BookOpen, AlertCircle } from "lucide-react";
+import { ArrowRight, BookOpen, AlertCircle, Library } from "lucide-react";
 import { createCase, validateCase, STATUS_LABELS } from "@/understanding-case/UnderstandingCaseService";
 import type { UnderstandingCase, UnderstandingCaseInput } from "@/understanding-case/types";
 
@@ -354,40 +354,65 @@ export function PantallaCaseSetup({ onSubmit }: PantallaCaseSetupProps) {
  */
 export function CaseSummaryBand({
   understandingCase,
+  sourcesCount = 0,
+  onNavigateToFuentes,
 }: {
   understandingCase: UnderstandingCase;
+  /** Number of knowledge sources associated with this case. */
+  sourcesCount?: number;
+  /** Called when the user clicks the "Fuentes de conocimiento" pill. */
+  onNavigateToFuentes?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const isSynthesized = understandingCase.migrationOrigin !== undefined;
 
   return (
     <div className="border-b border-border/60 bg-background/80 backdrop-blur-sm">
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="w-full text-left px-6 py-2 flex items-center gap-3 hover:bg-accent/5 transition-colors duration-150"
-        aria-expanded={expanded}
-        aria-label="Ver detalles del caso de comprensión"
-      >
-        <BookOpen className="size-3.5 text-accent shrink-0" />
-        <span className="text-xs font-mono text-foreground/50 uppercase tracking-[0.15em] shrink-0">
-          Caso
-        </span>
-        <span className="text-xs font-medium text-primary truncate">
-          {understandingCase.name}
-        </span>
-        <span className="hidden sm:block text-xs text-foreground/40 truncate flex-1 min-w-0">
-          · {understandingCase.understandingQuestion}
-        </span>
-        {isSynthesized && (
-          <span className="shrink-0 text-[10px] font-mono uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 ring-1 ring-amber-200/60">
-            Sintetizado
+      <div className="px-6 py-2 flex items-center gap-3">
+        {/* Toggle button for case details */}
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex items-center gap-3 min-w-0 flex-1 text-left hover:bg-accent/5 -mx-2 px-2 py-0.5 rounded-lg transition-colors duration-150"
+          aria-expanded={expanded}
+          aria-label="Ver detalles del caso de comprensión"
+        >
+          <BookOpen className="size-3.5 text-accent shrink-0" />
+          <span className="text-xs font-mono text-foreground/50 uppercase tracking-[0.15em] shrink-0">
+            Caso
           </span>
+          <span className="text-xs font-medium text-primary truncate">
+            {understandingCase.name}
+          </span>
+          <span className="hidden sm:block text-xs text-foreground/40 truncate flex-1 min-w-0">
+            · {understandingCase.understandingQuestion}
+          </span>
+          {isSynthesized && (
+            <span className="shrink-0 text-[10px] font-mono uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 ring-1 ring-amber-200/60">
+              Sintetizado
+            </span>
+          )}
+          <span className="shrink-0 text-[10px] text-foreground/30">
+            {expanded ? "▲" : "▼"}
+          </span>
+        </button>
+
+        {/* Fuentes de conocimiento pill — always visible when handler is provided */}
+        {onNavigateToFuentes && (
+          <button
+            type="button"
+            onClick={onNavigateToFuentes}
+            className="shrink-0 flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.12em] px-3 py-1 rounded-full border border-border bg-white text-foreground/60 hover:border-accent/50 hover:text-primary hover:bg-accent/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 transition-all duration-200"
+            aria-label={`Fuentes de conocimiento — ${sourcesCount} fuente${sourcesCount !== 1 ? "s" : ""}`}
+          >
+            <Library className="size-3 shrink-0" />
+            <span>Fuentes de conocimiento</span>
+            <span className="inline-flex items-center justify-center size-4 rounded-full bg-accent/10 text-accent text-[10px] font-semibold">
+              {sourcesCount}
+            </span>
+          </button>
         )}
-        <span className="ml-auto shrink-0 text-[10px] text-foreground/30">
-          {expanded ? "▲" : "▼"}
-        </span>
-      </button>
+      </div>
 
       {expanded && (
         <motion.div

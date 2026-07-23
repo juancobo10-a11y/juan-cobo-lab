@@ -1,5 +1,50 @@
 # HELIOS — Changelog
 
+## S-026 (2026-07-23) — Knowledge Sources Foundation (Fuentes de Conocimiento)
+
+### Resumen
+Introduce `KnowledgeSource` (Fuente de Conocimiento) como entidad del modelo de dominio de HELIOS, asociada a un `UnderstandingCase`. El sprint es estrictamente aditivo: ningún módulo existente fue refactorizado. `CURRENT_PROJECT_SCHEMA_VERSION`: `1.1.0` → `1.2.0`. 20/20 suites PASS. TypeCheck: 0 errores.
+
+### Modelo conceptual (Inteligencia Ecosistémica)
+Las fuentes de conocimiento preservan las siguientes distinciones:
+- **Fuente:** origen del contenido.
+- **Información:** contenido incorporado desde la fuente.
+- **Contribución:** unidad cognitiva a extraer (futuro: S-027).
+- **Evidencia:** información evaluada frente a una hipótesis.
+
+Registrar una fuente no implica que su contenido sea verdadero, pertinente ni que constituya evidencia.
+
+### Estado `ready-for-analysis` — antesala del pipeline cognitivo
+El estado `ready-for-analysis` es el estado inmediatamente anterior a la extracción de contribuciones (S-027). Marcarlo es una señal de intención del analista: la fuente ha sido revisada y está lista para el pipeline cognitivo. En S-026 no se desencadena ningún proceso automatizado; la acción "Analizar fuente" aparece deshabilitada con indicador explícito de S-027.
+
+### ADR-0015
+`knowledgeSources: KnowledgeSource[]` es un campo no-opcional en `ProjectSnapshotPayload`. Los snapshots migrados desde 1.1.0 reciben `knowledgeSources: []`. Ver `docs/adr/ADR-0015-knowledge-sources.md`.
+
+### Nuevos archivos
+- **`src/knowledge-sources/types.ts`** — `KnowledgeSource`, `KnowledgeSourceType`, `KnowledgeSourceStatus`, `KnowledgeSourceInput`, `KnowledgeSourceUpdate`, `KnowledgeSourceValidationResult`, `SOURCE_STATUS_LABELS`, `SOURCE_TYPE_LABELS`, `VALID_STATUS_TRANSITIONS`, `ENABLED_SOURCE_TYPES_S026`.
+- **`src/knowledge-sources/KnowledgeSourceService.ts`** — Funciones puras: `createSource()`, `validateSource()`, `updateSource()`, `changeStatus()`, `deleteSource()`, `replaceSource()`, `getSourcesByCase()`, `getSourceById()`.
+- **`src/knowledge-sources/__tests__/validacion_s026.ts`** — Suite S-026 (16 secciones, ~56 aserciones).
+- **`src/components/PantallaFuentes.tsx`** — Pantalla de gestión de fuentes de conocimiento: lista, creación, edición, cambio de estado, eliminación con confirmación.
+- **`src/project-versioning/migrations/migration-1.1.0-to-1.2.0.ts`** — Migración declarativa; añade `knowledgeSources: []`.
+- **`docs/adr/ADR-0015-knowledge-sources.md`** — ADR completo.
+- **`docs/validation/knowledge-sources-s026.md`** — Reporte de validación.
+
+### Archivos modificados
+- **`src/project-versioning/types.ts`** — `CURRENT_PROJECT_SCHEMA_VERSION: "1.2.0"`; `knowledgeSources: KnowledgeSource[]` en `ProjectSnapshotPayload` y `ReconstructedSession`.
+- **`src/project-versioning/SnapshotService.ts`** — `reconstructSessionFromSnapshot` incluye `knowledgeSources`.
+- **`src/project-versioning/migrations/registry.ts`** — Registra `migration_1_1_0_to_1_2_0` (3 migraciones en total).
+- **`src/project-versioning/VersionComparisonService.ts`** — `compareSnapshots` incluye diff de `knowledgeSources`; `generateMethodologicalChangelog` etiqueta `"knowledgeSource"` → "Fuentes de conocimiento".
+- **`src/project-versioning/index.ts`** — Re-exporta todos los tipos y funciones de `KnowledgeSource`.
+- **`src/components/PantallaCaseSetup.tsx`** — `CaseSummaryBand` gana props `onNavigateToFuentes` y `sourcesCount`; muestra pill "Fuentes de conocimiento (N)" desde todas las pantallas.
+- **`src/pages/Helios.tsx`** — Estado `knowledgeSources`; `Pantalla` gana `"fuentes"`; estado `pantallaVolverDesdeFuentes`; handler `handleNavigateToFuentes`; `handleReiniciar` resetea `knowledgeSources`; `currentPayload` incluye `knowledgeSources`; `PantallaFuentes` renderizado.
+- **`src/project-versioning/__tests__/validacion_s024_1.ts`** — `knowledgeSources: []` en fixture; aserción de schema version actualizada a `"1.2.0"`.
+- **`src/understanding-case/__tests__/validacion_s025.ts`** — `knowledgeSources: []` en fixtures; aserciones de schema version actualizadas a `"1.2.0"`.
+- **`src/project-versioning/__tests__/validacion_s024.ts`** — `knowledgeSources: []` en fixture.
+- **`scripts/validate-all.ts`** — Suite S-026 añadida; header actualizado a S-026. Total: 20 suites.
+- **`package.json`** — Script `validate:s026`.
+
+---
+
 ## S-025 (2026-07-23) — Understanding Case Foundation
 
 ### Resumen

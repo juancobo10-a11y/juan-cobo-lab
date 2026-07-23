@@ -1,8 +1,8 @@
 # PROJECT_CURRENT_STATE.md
 # Auditoría técnica completa — Juan Cobo Lab
 **Fecha de auditoría:** 2026-07-23  
-**Commit auditado:** `aa51cd5` (S-024.1 — Cryptographic Integrity & Versioning Hardening)  
-**Estado general:** Producción funcional en desarrollo activo. 18/18 suites de validación en verde.
+**Commit auditado:** S-026 — Knowledge Sources Foundation (Fuentes de Conocimiento)  
+**Estado general:** Producción funcional en desarrollo activo. 20/20 suites de validación en verde.
 
 ---
 
@@ -480,8 +480,12 @@ ProjectSnapshot (raíz del modelo de persistencia)
 | `ProjectEntityChange` | entityType, entityId, changeType, changedFields?, reordered?, beforeIndex?, afterIndex?, breakingRuleId? | Cambio atómico en un diff |
 
 ### Esquema de versiones
-- `CURRENT_PROJECT_SCHEMA_VERSION = "1.0.0"` (constante en `types.ts`)
-- Migración disponible: `0.9.0 → 1.0.0` (agrega `reportDefinitions`, `primaryHypothesisId`, normaliza `evidenceMatrices`)
+- `CURRENT_PROJECT_SCHEMA_VERSION = "1.2.0"` (constante en `types.ts`)
+- Migraciones disponibles (cadena BFS):
+  - `0.9.0 → 1.0.0` — agrega `reportDefinitions`, `primaryHypothesisId`, normaliza `evidenceMatrices`
+  - `1.0.0 → 1.1.0` — sintetiza `UnderstandingCase` desde `problema` (S-025)
+  - `1.1.0 → 1.2.0` — añade `knowledgeSources: []` (S-026)
+- Ruta completa `0.9.0 → 1.2.0` disponible automáticamente vía BFS
 - El motor BFS de `MigrationService` soporta rutas encadenadas de múltiples saltos
 
 ### Datos persistentes (entre recargas)
@@ -632,7 +636,7 @@ dceb053  S-015: Hypothesis Builder (18/18)
 
 ### Código que NO debe modificarse sin revisión
 - Cualquier función async que compute SHA-256 en `project-versioning/`
-- El tipo `Pantalla` en `Helios.tsx` — las 20 pantallas registradas son la espina dorsal del flujo
+- El tipo `Pantalla` en `Helios.tsx` — las 21 pantallas registradas son la espina dorsal del flujo (incluye `"fuentes"` desde S-026)
 - `CURRENT_PROJECT_SCHEMA_VERSION` — bumpearlo rompe compatibilidad con paquetes exportados
 
 ---
@@ -642,7 +646,7 @@ dceb053  S-015: Hypothesis Builder (18/18)
 ### Principios que deben respetarse
 1. **No crear una nueva aplicación** — todo dentro del artifact `juan-cobo-lab` existente
 2. **No reemplazar la interfaz actual** — las páginas Home, JuanCobo, etc. se mantienen intactas
-3. **No tocar las 18 suites de validación** sin actualizar `validate-all.ts`
+3. **No tocar las 20 suites de validación** sin actualizar `validate-all.ts`
 4. **No añadir rutas URL** sin registrarlas en `App.tsx` y `Navbar.tsx`
 5. **No añadir estado global** sin decidir la estrategia (Context, Zustand, etc.)
 
@@ -675,7 +679,7 @@ dceb053  S-015: Hypothesis Builder (18/18)
 
 ## Resumen ejecutivo
 
-Juan Cobo Lab es un sitio web profesional con una SPA embebida (HELIOS) que implementa una cadena metodológica completa de análisis de políticas públicas. El proyecto tiene **2 700+ líneas de servicios de dominio** rigurosamente documentados, **223 aserciones de prueba** en verde, y una arquitectura de extensión limpia que permite incorporar IA, persistencia y autenticación sin reescribir lo existente.
+Juan Cobo Lab es un sitio web profesional con una SPA embebida (HELIOS) que implementa una cadena metodológica completa de análisis de políticas públicas. El proyecto tiene **3 000+ líneas de servicios de dominio** rigurosamente documentados, **20/20 suites de validación en verde**, y una arquitectura de extensión limpia que permite incorporar IA, persistencia y autenticación sin reescribir lo existente. Esquema de versiones: `1.2.0`. Cadena de migración: `0.9.0 → 1.0.0 → 1.1.0 → 1.2.0`.
 
 El principal riesgo técnico es el tamaño de `Helios.tsx` (2 509 líneas). El principal riesgo de producto es la volatilidad del estado (todo se pierde al recargar). Ambos son conocidos y por diseño en el estado actual.
 

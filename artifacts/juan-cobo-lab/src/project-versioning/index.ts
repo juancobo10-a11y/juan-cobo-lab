@@ -137,6 +137,32 @@ export {
   STATUS_LABELS,
 } from "@/understanding-case/UnderstandingCaseService";
 
+// Knowledge Sources (S-026) — re-exported for consumers of the versioning barrel
+export type {
+  KnowledgeSource,
+  KnowledgeSourceType,
+  KnowledgeSourceStatus,
+  KnowledgeSourceInput,
+  KnowledgeSourceUpdate,
+  KnowledgeSourceValidationResult,
+} from "@/knowledge-sources/types";
+export {
+  SOURCE_STATUS_LABELS,
+  SOURCE_TYPE_LABELS,
+  VALID_STATUS_TRANSITIONS,
+  ENABLED_SOURCE_TYPES_S026,
+} from "@/knowledge-sources/types";
+export {
+  validateSource,
+  createSource,
+  updateSource,
+  changeStatus,
+  getSourcesByCase,
+  getSourceById,
+  deleteSource,
+  replaceSource,
+} from "@/knowledge-sources/KnowledgeSourceService";
+
 // Breaking change rules
 export type { BreakingChangeRule } from "./breaking-change-rules";
 export {

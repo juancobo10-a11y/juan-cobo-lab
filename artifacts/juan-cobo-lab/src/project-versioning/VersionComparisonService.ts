@@ -324,6 +324,15 @@ export function compareSnapshots(base: ProjectSnapshot, target: ProjectSnapshot)
     )
   );
 
+  // S-026: Knowledge Sources (Fuentes de Conocimiento)
+  changes.push(
+    ...compareEntityList(
+      "knowledgeSource",
+      (bp.knowledgeSources ?? []) as unknown as Array<{ id: string } & Record<string, unknown>>,
+      (tp.knowledgeSources ?? []) as unknown as Array<{ id: string } & Record<string, unknown>>
+    )
+  );
+
   const summary = summarizeDiff(changes);
 
   return {
@@ -398,6 +407,7 @@ export function generateMethodologicalChangelog(diff: ProjectDiff): Methodologic
     observedEvidence: "Evidencias observadas",
     hypothesisEvidenceConclusion: "Conclusiones",
     reportDefinition: "Definiciones de informe",
+    knowledgeSource: "Fuentes de conocimiento",
     problema: "Problema de política",
     pack: "Pack de conocimiento",
   };

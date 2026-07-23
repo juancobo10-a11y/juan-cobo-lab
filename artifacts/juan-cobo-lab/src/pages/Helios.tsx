@@ -49,6 +49,9 @@ import {
 // S-025: Understanding Case
 import type { UnderstandingCase } from "@/understanding-case/types";
 import { PantallaCaseSetup, CaseSummaryBand } from "@/components/PantallaCaseSetup";
+// S-026: Knowledge Sources (Fuentes de Conocimiento)
+import type { KnowledgeSource } from "@/knowledge-sources/types";
+import PantallaFuentes from "@/components/PantallaFuentes";
 import type { ContrastationMatrix } from "@/contrastation/types";
 import {
   findContrastationMatrixByHypothesisId,
@@ -1551,6 +1554,7 @@ type Pantalla =
   | "project-versions"          // S-024: gestión de snapshots y versiones
   | "version-comparison"        // S-024: comparación de dos snapshots
   | "project-import"            // S-024: importar paquete .helios.json
+  | "fuentes"                   // S-026: Fuentes de Conocimiento del caso activo
   | "hipotesis"
   | "pestel"
   | "descubrimiento";
@@ -1645,6 +1649,14 @@ export default function Helios() {
   const [projectVersions, setProjectVersions] = useState<ProjectVersion[]>([]);
   const [compareBaseId, setCompareBaseId] = useState<string | null>(null);
   const [compareTargetId, setCompareTargetId] = useState<string | null>(null);
+  // S-026: Knowledge Sources — all sources across the session (filtered by caseId in UI)
+  const [knowledgeSources, setKnowledgeSources] = useState<KnowledgeSource[]>([]);
+  /**
+   * Tracks which screen preceded "fuentes" so that "Volver" returns correctly.
+   * Defaults to "entrada" as the most common entry point.
+   */
+  const [pantallaVolverDesdeFuentes, setPantallaVolverDesdeFuentes] =
+    useState<Pantalla>("entrada");
 
   const handleSubmitProblema = async (p: string) => {
     setProblema(p);
@@ -1971,7 +1983,16 @@ export default function Helios() {
     setCompareTargetId(null);
     // S-025: reset understanding case and return to the case setup screen
     setUnderstandingCase(null);
+    // S-026: reset knowledge sources
+    setKnowledgeSources([]);
+    setPantallaVolverDesdeFuentes("entrada");
     setPantalla("case-setup");
+  };
+
+  /** S-026: Navigate to the Fuentes de Conocimiento screen from any context. */
+  const handleNavigateToFuentes = () => {
+    setPantallaVolverDesdeFuentes(pantalla);
+    setPantalla("fuentes");
   };
 
   /** S-025: Called when the user submits the Understanding Case form. */
@@ -2077,9 +2098,13 @@ export default function Helios() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      {/* S-025: Show case context band on all screens except case-setup itself */}
+      {/* S-025/S-026: Show case context band on all screens except case-setup itself */}
       {understandingCase && pantalla !== "case-setup" && (
-        <CaseSummaryBand understandingCase={understandingCase} />
+        <CaseSummaryBand
+          understandingCase={understandingCase}
+          sourcesCount={knowledgeSources.filter((s) => s.caseId === understandingCase.id).length}
+          onNavigateToFuentes={pantalla !== "fuentes" ? handleNavigateToFuentes : undefined}
+        />
       )}
       <main id="helios-main">
         <AnimatePresence mode="wait">
@@ -2443,10 +2468,24 @@ export default function Helios() {
               />
             );
           })()}
+          {/* S-026: Fuentes de Conocimiento */}
+          {pantalla === "fuentes" && understandingCase && (
+            <PantallaFuentes
+              key="fuentes"
+              caseId={understandingCase.id}
+              caseName={understandingCase.name}
+              sources={knowledgeSources.filter((s) => s.caseId === understandingCase.id)}
+              allSources={knowledgeSources}
+              onUpdateSources={setKnowledgeSources}
+              onVolver={() => setPantalla(pantallaVolverDesdeFuentes)}
+              onReiniciar={handleReiniciar}
+            />
+          )}
           {/* S-024: Project Versions */}
           {pantalla === "project-versions" && (() => {
             const currentPayload = {
               understandingCase,
+              knowledgeSources,
               problema,
               packActivo,
               thinkingUserSelection,

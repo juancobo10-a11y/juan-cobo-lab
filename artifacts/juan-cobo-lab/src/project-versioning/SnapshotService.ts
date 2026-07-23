@@ -229,6 +229,7 @@ export function reconstructSessionFromSnapshot(snapshot: ProjectSnapshot): Recon
   const p = deepClone(snapshot.payload);
   return {
     understandingCase: p.understandingCase ?? null,
+    knowledgeSources: p.knowledgeSources ?? [],
     problema: p.problema ?? "",
     packActivo: p.packActivo ?? null,
     thinkingUserSelection: p.thinkingUserSelection ?? null,

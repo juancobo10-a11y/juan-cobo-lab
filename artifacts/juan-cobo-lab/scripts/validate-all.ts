@@ -121,6 +121,11 @@ const suites: Suite[] = [
     args: ["exec", "tsx", "src/understanding-case/__tests__/validacion_s025.ts"],
   },
   {
+    name: "S-026",
+    cmd: "pnpm",
+    args: ["exec", "tsx", "src/knowledge-sources/__tests__/validacion_s026.ts"],
+  },
+  {
     name: "Smoke",
     cmd: "pnpm",
     args: ["exec", "tsx", "src/thinking/__tests__/smoke.ts"],
@@ -151,7 +156,7 @@ interface Result {
 const results: Result[] = [];
 
 console.log(
-  `\n${C.bold}HELIOS — Validation Suite${C.reset}  ${C.dim}(S-025)${C.reset}\n` +
+  `\n${C.bold}HELIOS — Validation Suite${C.reset}  ${C.dim}(S-026)${C.reset}\n` +
   "─".repeat(44) + "\n"
 );
 

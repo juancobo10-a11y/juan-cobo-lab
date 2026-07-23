@@ -141,6 +141,7 @@ const NOW = "2026-01-01T00:00:00.000Z";
 
 const basePayload: ProjectSnapshotPayload = {
   problema: "¿Cómo aumentar la cobertura educativa en zonas rurales?",
+  knowledgeSources: [],
   packActivo: null,
   thinkingUserSelection: null,
   reflectionAnswers: [],
@@ -1007,8 +1008,8 @@ describe("Errores tipados e integración", () => {
     expect(typeof rule.explanation).toBe("string");
   });
 
-  it("CURRENT_PROJECT_SCHEMA_VERSION es '1.1.0'", () => {
-    expect(CURRENT_PROJECT_SCHEMA_VERSION).toBe("1.1.0");
+  it("CURRENT_PROJECT_SCHEMA_VERSION es '1.2.0'", () => {
+    expect(CURRENT_PROJECT_SCHEMA_VERSION).toBe("1.2.0");
   });
 
   it("snapshot contentHash tiene 64 chars (SHA-256)", async () => {
